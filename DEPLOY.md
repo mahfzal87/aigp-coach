@@ -30,11 +30,20 @@ Add these in Vercel → Project → Settings → Environment Variables only if y
 
 | Variable | Needed for |
 |----------|-----------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Mirroring content to Supabase (`npm run seed`). Not required to run. |
+| `NEXT_PUBLIC_SUPABASE_URL` | **Cloud progress sync** (sync code) + mirroring content to Supabase. Not required to run. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same. |
 | `ANTHROPIC_API_KEY` (+ search key) | The optional in-app "Fetch latest updates" button. Off by default. |
 
 Without any of these, the app runs fully on its bundled content — which is what you want for studying.
+
+## Enabling cloud progress sync (sync code, no login)
+
+1. Create a free Supabase project at supabase.com.
+2. In the SQL Editor, run **`supabase/progress_sync.sql`** (creates the `progress_sync` table + anon policies).
+3. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel (Project → Settings → Env Vars) and redeploy.
+4. In the app: **Settings → Cloud sync → Turn on cloud sync**. Save the `AIGP-XXXX-XXXX` code. On any other device, **Settings → Restore on another device → paste the code**.
+
+Progress stays offline-first (localStorage) and mirrors to the cloud automatically a couple of seconds after each change.
 
 ## Updating content (managed from Claude Code)
 

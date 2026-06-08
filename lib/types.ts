@@ -144,6 +144,8 @@ export interface Settings {
   updatesApiEnabled: boolean;
   lastSeenUpdateTs?: number;
   sound?: boolean; // celebration/feedback sounds (default on)
+  syncEnabled?: boolean; // cloud progress sync via sync code
+  syncCode?: string; // anonymous sync code (AIGP-XXXX-XXXX)
 }
 
 export interface ProgressExport {
