@@ -1,10 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Download, Upload, Trash2 } from "lucide-react";
+import { Cloud, Copy, Download, RefreshCw, Trash2, Upload } from "lucide-react";
 import { useHydrated, useProgress } from "@/store/progress";
 import type { ProgressExport } from "@/lib/types";
-import { Button, Card, CardBody, PageHeader } from "@/components/ui";
+import { genSyncCode, normalizeCode, pullProgress, pushProgress, syncConfigured } from "@/lib/sync";
+import { Badge, Button, Card, CardBody, PageHeader } from "@/components/ui";
 
 export default function SettingsPage() {
   const hydrated = useHydrated();
@@ -38,6 +39,33 @@ export default function SettingsPage() {
     }
   }
 
+  const [restoreCode, setRestoreCode] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function enableSync() {
+    setBusy(true);
+    const code = settings.syncCode || genSyncCode();
+    setSettings({ syncEnabled: true, syncCode: code });
+    const res = await pushProgress(code, exportData());
+    setBusy(false);
+    setMsg(res.ok ? `Cloud sync on. Your code is ${code} — save it to restore on another device.` : `Couldn't reach the cloud: ${res.error}. Check Supabase is configured.`);
+  }
+
+  async function restore() {
+    const code = normalizeCode(restoreCode);
+    if (!code) return;
+    setBusy(true);
+    const res = await pullProgress(code);
+    setBusy(false);
+    if (res.ok && res.data) {
+      importData(res.data);
+      setSettings({ syncEnabled: true, syncCode: code });
+      setMsg("Progress restored from the cloud and sync turned on.");
+    } else {
+      setMsg(res.error === "not-found" ? "No saved progress found for that code." : `Restore failed: ${res.error}.`);
+    }
+  }
+
   if (!hydrated) return <div className="text-sm text-[var(--muted)]">Loading…</div>;
 
   return (
@@ -65,7 +93,44 @@ export default function SettingsPage() {
             <Button variant="outline" onClick={() => fileRef.current?.click()}><Upload size={16} /> Import progress</Button>
             <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={(e) => e.target.files?.[0] && doImport(e.target.files[0])} />
           </div>
-          <p className="text-xs text-[var(--muted)]">Progress is stored only in this browser (no account). Export regularly so you don&apos;t lose it if you clear your cache.</p>
+          <p className="text-xs text-[var(--muted)]">Progress is stored in this browser. Turn on cloud sync below to back it up and move between devices.</p>
+        </CardBody></Card>
+
+        {/* Cloud sync (sync code, no login) */}
+        <Card><CardBody className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Cloud size={18} className="text-[var(--accent)]" />
+            <span className="font-display font-extrabold">Cloud sync</span>
+            {settings.syncEnabled && <Badge tone="success">On</Badge>}
+          </div>
+
+          {!syncConfigured ? (
+            <p className="text-xs text-[var(--muted)]">Cloud sync needs Supabase configured (set <code className="rounded bg-[var(--surface-2)] px-1">NEXT_PUBLIC_SUPABASE_URL</code> and <code className="rounded bg-[var(--surface-2)] px-1">NEXT_PUBLIC_SUPABASE_ANON_KEY</code>, then run <code className="rounded bg-[var(--surface-2)] px-1">supabase/progress_sync.sql</code>). Until then, use Export/Import above. See <code className="rounded bg-[var(--surface-2)] px-1">DEPLOY.md</code>.</p>
+          ) : (
+            <>
+              <p className="text-xs text-[var(--muted)]">No account needed. We save your progress under a private <strong>sync code</strong>. Keep the code safe — anyone with it can load your progress.</p>
+
+              {settings.syncEnabled && settings.syncCode ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-xl bg-[var(--surface-2)] px-3 py-2 font-mono text-sm font-extrabold tracking-wider">{settings.syncCode}</span>
+                  <Button size="sm" variant="outline" onClick={() => { navigator.clipboard?.writeText(settings.syncCode!); setMsg("Sync code copied."); }}><Copy size={14} /> Copy</Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setSettings({ syncEnabled: false }); setMsg("Cloud sync paused. Your code still works to restore later."); }}>Turn off</Button>
+                  <Button size="sm" variant="accent" disabled={busy} onClick={async () => { setBusy(true); const r = await pushProgress(settings.syncCode!, exportData()); setBusy(false); setMsg(r.ok ? "Synced just now." : `Sync failed: ${r.error}.`); }}><RefreshCw size={14} /> Sync now</Button>
+                </div>
+              ) : (
+                <Button variant="accent" disabled={busy} onClick={enableSync}><Cloud size={16} /> Turn on cloud sync</Button>
+              )}
+
+              <div className="border-t-2 border-[var(--border)] pt-3">
+                <div className="mb-1 text-sm font-extrabold">Restore on another device</div>
+                <div className="flex flex-wrap gap-2">
+                  <input value={restoreCode} onChange={(e) => setRestoreCode(e.target.value)} placeholder="AIGP-XXXX-XXXX" className="flex-1 rounded-xl border-2 border-[var(--border)] bg-[var(--surface)] px-3 py-2 font-mono text-sm uppercase" />
+                  <Button variant="outline" disabled={busy || !restoreCode.trim()} onClick={restore}>Restore</Button>
+                </div>
+                <p className="mt-1 text-xs text-[var(--muted)]">Restoring overwrites this device&apos;s progress with the cloud copy.</p>
+              </div>
+            </>
+          )}
         </CardBody></Card>
 
         <Card><CardBody className="space-y-3">
