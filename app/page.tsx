@@ -1,58 +1,62 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo } from "react";
-import { Flame, Target } from "lucide-react";
-import { DAILY_GOAL_XP, levelFromXp, todayStr } from "@/lib/gamify";
+import { CalendarDays, Target } from "lucide-react";
+import { computeReadiness } from "@/lib/readiness";
 import { useHydrated, useProgress } from "@/store/progress";
-import { Bar, Card, CardBody } from "@/components/ui";
-import { Ring } from "@/components/gamify";
-import { LessonPath } from "@/components/path/lesson-path";
+import { Badge, Card, CardBody } from "@/components/ui";
+import { ContinueCard, CurriculumBoard } from "@/components/curriculum";
+import type { Verdict } from "@/lib/types";
 
-export default function PathPage() {
+const VERDICT: Record<Verdict, { label: string; tone: "success" | "warning" | "danger" | "default" }> = {
+  ready: { label: "Exam ready", tone: "success" },
+  almost: { label: "Almost there", tone: "warning" },
+  "not-yet": { label: "Not yet ready", tone: "danger" },
+  unknown: { label: "Building your baseline", tone: "default" },
+};
+
+export default function StudyPlanPage() {
   const hydrated = useHydrated();
-  const xp = useProgress((s) => s.xp);
-  const dailyXp = useProgress((s) => s.dailyXp);
-  const dailyDate = useProgress((s) => s.dailyDate);
-  const streak = useProgress((s) => s.streakCount);
+  const attempts = useProgress((s) => s.attempts);
+  const mocks = useProgress((s) => s.mocks);
+  const examDate = useProgress((s) => s.settings.examDate);
 
-  const today = todayStr();
-  const todayXp = dailyDate === today ? dailyXp : 0;
-  const { level, into, need } = useMemo(() => levelFromXp(xp), [xp]);
-  const goalPct = Math.min(100, (todayXp / DAILY_GOAL_XP) * 100);
+  const readiness = useMemo(() => computeReadiness(attempts, mocks), [attempts, mocks]);
 
-  if (!hydrated) return <div className="text-sm font-bold text-[var(--muted)]">Loading…</div>;
+  if (!hydrated) return <div className="text-sm text-[var(--muted)]">Loading…</div>;
+
+  const v = VERDICT[readiness.verdict];
+  const daysLeft = examDate ? Math.ceil((new Date(examDate).getTime() - Date.now()) / 86400000) : null;
 
   return (
     <div className="space-y-6">
-      {/* Daily goal + level */}
-      <Card className="overflow-hidden">
-        <CardBody className="flex items-center gap-5">
-          <Ring value={goalPct} size={104} stroke={11} color="var(--gold)">
-            <div className="font-display text-xl font-extrabold leading-none">{todayXp}</div>
-            <div className="text-[10px] font-extrabold text-[var(--muted)]">/ {DAILY_GOAL_XP} XP</div>
-          </Ring>
-          <div className="flex-1">
-            <div className="font-display text-lg font-extrabold">
-              {goalPct >= 100 ? "Daily goal smashed! 🎉" : "Today's goal"}
-            </div>
-            <div className="mt-1 flex items-center gap-1.5 text-sm font-bold text-[var(--streak)]">
-              <Flame size={16} fill="var(--streak)" /> {streak}-day streak
-            </div>
-            <div className="mt-3">
-              <div className="mb-1 flex justify-between text-[11px] font-extrabold text-[var(--muted)]">
-                <span>Level {level}</span><span>{into}/{need} XP</span>
-              </div>
-              <Bar value={(into / need) * 100} tone="accent" />
-            </div>
-          </div>
-        </CardBody>
-      </Card>
-
-      <div className="flex items-center gap-2 text-sm font-extrabold text-[var(--muted)]">
-        <Target size={16} /> Follow the path — each stop is a bite-sized lesson.
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Study Plan</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">Work through the four BoK domains in order, then test against each.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge tone={v.tone}>{v.label}</Badge>
+          {daysLeft !== null && daysLeft >= 0 && (
+            <Badge tone={daysLeft <= 14 ? "warning" : "default"}><CalendarDays size={12} /> {daysLeft} days to exam</Badge>
+          )}
+        </div>
       </div>
 
-      <LessonPath />
+      <ContinueCard />
+
+      {attempts.length > 0 && (
+        <Card><CardBody className="flex items-center gap-3 py-3.5">
+          <Target size={16} className="shrink-0 text-[var(--accent)]" />
+          <p className="text-sm text-[var(--muted)]">
+            Readiness <span className="font-semibold text-[var(--foreground)] tabular-nums">{readiness.overall}/100</span> · projected <span className="font-semibold text-[var(--foreground)] tabular-nums">{readiness.projectedScaled}/500</span> · pass needs 300.
+            {" "}<Link href="/profile" className="font-semibold text-[var(--accent)] underline">Details</Link>
+          </p>
+        </CardBody></Card>
+      )}
+
+      <CurriculumBoard />
     </div>
   );
 }

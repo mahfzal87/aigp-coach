@@ -2,6 +2,7 @@ import { domains } from "@/content/curriculum";
 import { competencies } from "@/content/curriculum";
 import { questions as questionsBase } from "@/content/questions";
 import { questionsExtra } from "@/content/questions-extra";
+import { questionsBatch3 } from "@/content/questions-batch3";
 import { flashcards } from "@/content/flashcards";
 import { notes } from "@/content/notes";
 import type { Competency, Domain, DomainCode, Flashcard, Question, StudyNote } from "@/lib/types";
@@ -11,7 +12,7 @@ import type { Competency, Domain, DomainCode, Flashcard, Question, StudyNote } f
 // Combined bank (base + extra), de-duplicated by id.
 const questions: Question[] = (() => {
   const seen = new Set<string>();
-  return [...questionsBase, ...questionsExtra].filter((q) => (seen.has(q.id) ? false : (seen.add(q.id), true)));
+  return [...questionsBase, ...questionsExtra, ...questionsBatch3].filter((q) => (seen.has(q.id) ? false : (seen.add(q.id), true)));
 })();
 
 export function getDomains(): Domain[] {
