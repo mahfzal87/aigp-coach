@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import * as Icons from "lucide-react";
-import { ChevronRight, Flame } from "lucide-react";
-import { getDomain } from "@/lib/content";
+import { ChevronRight, Flame, Target } from "lucide-react";
+import { getCompetency, getDomain } from "@/lib/content";
 import { computeReadiness } from "@/lib/readiness";
+import { computeTopicStats } from "@/lib/topic-stats";
 import { ACHIEVEMENTS, LESSON_PASS, levelFromXp } from "@/lib/gamify";
 import { useHydrated, useProgress } from "@/store/progress";
 import { Badge, Bar, Card, CardBody, PageHeader, Stat } from "@/components/ui";
@@ -30,6 +31,7 @@ export default function ProfilePage() {
   const lessons = useProgress((s) => s.lessons);
 
   const readiness = useMemo(() => computeReadiness(attempts, mocks), [attempts, mocks]);
+  const topicStats = useMemo(() => computeTopicStats(attempts), [attempts]);
   const { level, into, need } = useMemo(() => levelFromXp(xp), [xp]);
 
   const lessonsCompleted = Object.entries(lessons).filter(([, l]) => l.bestScore >= LESSON_PASS).length;
@@ -99,6 +101,42 @@ export default function ProfilePage() {
         </div>
         <Link href="/analytics" className="mt-3 inline-flex items-center gap-1 text-xs font-extrabold text-[var(--accent)]">Full analytics <ChevronRight size={14} /></Link>
       </CardBody></Card>
+
+      {/* Topic-level weakness tracking */}
+      {topicStats.length > 0 && (() => {
+        const touched = topicStats.filter((s) => s.status !== "untouched");
+        const weak = touched.filter((s) => s.status === "weak").sort((a, b) => a.accuracy - b.accuracy);
+        const shaky = touched.filter((s) => s.status === "shaky").sort((a, b) => a.accuracy - b.accuracy);
+        const strong = touched.filter((s) => s.status === "strong").length;
+        const untouched = topicStats.length - touched.length;
+        return (
+          <Card><CardBody>
+            <div className="mb-1 flex items-center gap-2 font-display text-base font-extrabold"><Target size={16} className="text-[var(--accent)]" /> Topic breakdown</div>
+            <p className="mb-4 text-xs text-[var(--muted)]">
+              {strong} strong · {shaky.length} shaky · {weak.length} weak · {untouched} not started — every question you answer is tracked to its topic.
+            </p>
+            {weak.length + shaky.length === 0 ? (
+              <p className="text-sm text-[var(--muted)]">{touched.length === 0 ? "Start a module and your per-topic strengths will appear here." : "No weak topics right now — keep it up."}</p>
+            ) : (
+              <div className="space-y-2">
+                {[...weak, ...shaky].slice(0, 8).map((s) => {
+                  const comp = getCompetency(s.topic.competencyId);
+                  return (
+                    <Link key={s.topic.id} href={`/lesson/${s.topic.competencyId}`} className="press flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--border)] px-3 py-2.5 hover:bg-[var(--surface-2)]">
+                      <Badge tone={s.status === "weak" ? "danger" : "warning"}>{s.status}</Badge>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold">{s.topic.title}</div>
+                        <div className="text-xs text-[var(--muted)]">{comp?.code} · {Math.round(s.accuracy * 100)}% recent accuracy · {s.attempts} attempt{s.attempts === 1 ? "" : "s"}</div>
+                      </div>
+                      <span className="text-xs font-semibold text-[var(--accent)]">Retrain <ChevronRight size={12} className="inline" /></span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </CardBody></Card>
+        );
+      })()}
 
       {/* Achievements */}
       <Card><CardBody>

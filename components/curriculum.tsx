@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { ArrowRight, CheckCircle2, Circle, GraduationCap, PlayCircle } from "lucide-react";
-import { getCompetenciesByDomain, getDomains, getQuestionsByCompetency } from "@/lib/content";
+import { getCompetenciesByDomain, getDomains, getQuestionsByCompetency, getTopicsByCompetency } from "@/lib/content";
 import { LESSON_PASS } from "@/lib/gamify";
 import { haptic } from "@/lib/haptics";
 import { useProgress } from "@/store/progress";
@@ -19,6 +19,7 @@ interface Row {
   name: string;
   kind: "lesson" | "test";
   qCount: number;
+  topicCount: number;
   best: number | null;
   state: RowState;
 }
@@ -34,7 +35,7 @@ export function useCurriculum() {
         const done = (best ?? 0) >= LESSON_PASS;
         let state: RowState = done ? "done" : "todo";
         if (!done && !foundCurrent) { state = "current"; foundCurrent = true; }
-        return { id: c.id, code: c.code, name: c.name, kind: "lesson", qCount: getQuestionsByCompetency(c.id).length, best, state };
+        return { id: c.id, code: c.code, name: c.name, kind: "lesson", qCount: getQuestionsByCompetency(c.id).length, topicCount: getTopicsByCompetency(c.id).length, best, state };
       });
       const testId = `test-${d.code}`;
       const testBest = lessons[testId]?.bestScore ?? null;
@@ -42,7 +43,7 @@ export function useCurriculum() {
       const testDone = (testBest ?? 0) >= LESSON_PASS;
       let testState: RowState = testDone ? "done" : allDone && !foundCurrent ? "current" : "todo";
       if (testState === "current") foundCurrent = true;
-      rows.push({ id: testId, code: "TEST", name: `${d.name} — domain test`, kind: "test", qCount: 10, best: testBest, state: testState });
+      rows.push({ id: testId, code: "TEST", name: `${d.name} — domain test`, kind: "test", qCount: 12, topicCount: 0, best: testBest, state: testState });
       const pct = Math.round((rows.filter((r) => r.state === "done").length / rows.length) * 100);
       return { domain: d, rows, pct };
     });
@@ -100,7 +101,7 @@ function ModuleRow({ row }: { row: Row }) {
           {row.state === "current" && <Badge tone="primary">Up next</Badge>}
         </div>
         <div className="mt-0.5 text-xs text-[var(--muted)]">
-          {row.kind === "test" ? "10 questions, checks the whole domain" : `${row.qCount} questions in bank`}
+          {row.kind === "test" ? "12 questions, checks the whole domain" : row.topicCount > 0 ? `${row.topicCount} topics · learn → test each` : `${row.qCount} questions in bank`}
           {row.best !== null && ` · best ${Math.round(row.best * 100)}%`}
         </div>
       </div>

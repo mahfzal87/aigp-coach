@@ -3,17 +3,37 @@ import { competencies } from "@/content/curriculum";
 import { questions as questionsBase } from "@/content/questions";
 import { questionsExtra } from "@/content/questions-extra";
 import { questionsBatch3 } from "@/content/questions-batch3";
+import { topics as topicsAll, topicQuestions } from "@/content/topics-index";
 import { flashcards } from "@/content/flashcards";
 import { notes } from "@/content/notes";
-import type { Competency, Domain, DomainCode, Flashcard, Question, StudyNote } from "@/lib/types";
+import type { Competency, Domain, DomainCode, Flashcard, Question, StudyNote, Topic } from "@/lib/types";
 
 // Bundled content is the source of truth (also seeded to Supabase). Synchronous accessors.
 
-// Combined bank (base + extra), de-duplicated by id.
+// Combined bank (base + extra + topic-authored), de-duplicated by id.
 const questions: Question[] = (() => {
   const seen = new Set<string>();
-  return [...questionsBase, ...questionsExtra, ...questionsBatch3].filter((q) => (seen.has(q.id) ? false : (seen.add(q.id), true)));
+  return [...questionsBase, ...questionsExtra, ...questionsBatch3, ...topicQuestions].filter((q) => (seen.has(q.id) ? false : (seen.add(q.id), true)));
 })();
+
+// ── Topics (the learn→test spine of each competency) ──
+const questionToTopic: Map<string, Topic> = (() => {
+  const m = new Map<string, Topic>();
+  for (const t of topicsAll) for (const qid of t.questionIds) if (!m.has(qid)) m.set(qid, t);
+  return m;
+})();
+
+export function getTopics(): Topic[] {
+  return topicsAll;
+}
+
+export function getTopicsByCompetency(competencyId: string): Topic[] {
+  return topicsAll.filter((t) => t.competencyId === competencyId).sort((a, b) => a.sort - b.sort);
+}
+
+export function getTopicForQuestion(questionId: string): Topic | undefined {
+  return questionToTopic.get(questionId);
+}
 
 export function getDomains(): Domain[] {
   return [...domains].sort((a, b) => a.sort - b.sort);

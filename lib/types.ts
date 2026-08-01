@@ -83,6 +83,18 @@ export interface Flashcard {
   tags: string[];
 }
 
+// A teachable unit inside a competency: clear concept + concrete example,
+// immediately tested by 1–2 exam-style questions. Lessons walk topics in order.
+export interface Topic {
+  id: string; // "t-i-a-1"
+  competencyId: string; // "i-a"
+  title: string; // "Transparency vs. Explainability"
+  conceptMd: string; // plain-English explanation (markdown; 2–5 sentences, no cryptic shorthand)
+  exampleMd: string; // one concrete mini-scenario illustrating the concept (markdown)
+  questionIds: string[]; // questions that test THIS topic (asked right after the card)
+  sort: number;
+}
+
 export type Severity = "info" | "important" | "critical";
 
 export interface LawUpdate {

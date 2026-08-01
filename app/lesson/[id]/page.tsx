@@ -3,23 +3,26 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { BookOpen, CheckCircle2, RotateCcw, X } from "lucide-react";
+import { BookOpen, CheckCircle2, Lightbulb, RotateCcw, X } from "lucide-react";
 import {
   getCompetenciesByDomain,
   getCompetency,
   getDomains,
   getFlashcards,
+  getQuestion,
   getQuestionsByCompetency,
+  getTopicsByCompetency,
 } from "@/lib/content";
 import { isAnswerCorrect, shuffle } from "@/lib/scoring";
 import { LESSON_PASS, XP_LESSON_BONUS, XP_TEST_BONUS } from "@/lib/gamify";
 import { celebrate } from "@/lib/celebrate";
-import type { Question } from "@/lib/types";
+import type { Question, Topic } from "@/lib/types";
 import { useProgress } from "@/store/progress";
-import { Button, Card, CardBody } from "@/components/ui";
+import { Badge, Button, Card, CardBody } from "@/components/ui";
 import { QuestionView } from "@/components/quiz/question-view";
 import { m, MotionBar, Reveal, springSoft } from "@/components/motion";
 import { haptic } from "@/lib/haptics";
+import { Markdown } from "@/components/markdown";
 
 export default function LessonPage() {
   const router = useRouter();
@@ -34,9 +37,8 @@ export default function LessonPage() {
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
   const [revealed, setRevealed] = useState(false);
-  const [flipped, setFlipped] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
-  const [missed, setMissed] = useState<Question[]>([]);
+  const [missed, setMissed] = useState<{ q: Question; topicTitle?: string }[]>([]);
   const [done, setDone] = useState(false);
   const [startTs, setStartTs] = useState(Date.now());
 
@@ -63,7 +65,6 @@ export default function LessonPage() {
       setStep((s) => s + 1);
       setSelected([]);
       setRevealed(false);
-      setFlipped(false);
       setStartTs(Date.now());
     }
   }
@@ -73,12 +74,12 @@ export default function LessonPage() {
     else setSelected([label]);
   }
 
-  function check(q: Question) {
+  function check(q: Question, topicTitle?: string) {
     const correct = isAnswerCorrect(q, selected);
     recordAttempt({ questionId: q.id, competencyId: q.competencyId, chosen: selected, correct, confidence: 2, timeMs: Date.now() - startTs, mode: isTest ? "mock" : "practice" });
     haptic(correct ? "success" : "error");
     if (correct) setCorrectCount((c) => c + 1);
-    else setMissed((prev) => [...prev, q]);
+    else setMissed((prev) => [...prev, { q, topicTitle }]);
     setRevealed(true);
   }
 
@@ -86,6 +87,13 @@ export default function LessonPage() {
   if (done) {
     const score = totalQ ? correctCount / totalQ : 1;
     const passed = score >= LESSON_PASS;
+    const missedByTopic = new Map<string, Question[]>();
+    for (const mq of missed) {
+      const key = mq.topicTitle ?? "General";
+      const list = missedByTopic.get(key) ?? [];
+      list.push(mq.q);
+      missedByTopic.set(key, list);
+    }
     return (
       <Reveal className="mx-auto max-w-lg space-y-4 py-6">
         <div className="text-center">
@@ -100,15 +108,23 @@ export default function LessonPage() {
 
         {missed.length > 0 && (
           <Card><CardBody>
-            <div className="mb-2 text-sm font-bold">Review your misses ({missed.length})</div>
-            <ul className="space-y-2">
-              {missed.map((q) => (
-                <li key={q.id} className="text-sm">
-                  <div className="font-medium">{q.stem}</div>
-                  <div className="mt-0.5 text-xs text-[var(--muted)]">✓ {q.options.find((o) => o.isCorrect)?.text} — {q.correctExplanation}</div>
-                </li>
+            <div className="mb-3 text-sm font-bold">Topics to revisit ({missedByTopic.size})</div>
+            <div className="space-y-4">
+              {[...missedByTopic.entries()].map(([topicTitle, items]) => (
+                <div key={topicTitle}>
+                  <Badge tone="danger">{topicTitle}</Badge>
+                  <ul className="mt-2 space-y-2">
+                    {items.map((q) => (
+                      <li key={q.id} className="text-sm">
+                        <div className="font-medium">{q.stem}</div>
+                        <div className="mt-0.5 text-xs text-[var(--muted)]">✓ {q.options.find((o) => o.isCorrect)?.text} — {q.correctExplanation}</div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
+            </div>
+            <p className="mt-3 text-xs text-[var(--muted)]">These misses feed your topic-level weakness tracking on the Progress page.</p>
           </CardBody></Card>
         )}
 
@@ -135,26 +151,42 @@ export default function LessonPage() {
       <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">{meta.title}</div>
 
       <m.div key={step} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={springSoft}>
-      {cur.kind === "card" ? (
+      {cur.kind === "topic" ? (
         <Card>
-          <button onClick={() => { haptic("tap"); setFlipped((f) => !f); }} className="block w-full cursor-pointer text-left">
-            <CardBody className="min-h-40">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">{flipped ? "Answer" : "Key concept"}</div>
-              <div className="mt-2 text-[15px] font-semibold leading-relaxed">{flipped ? cur.card.back : cur.card.front}</div>
-              {!flipped && <div className="mt-4 text-xs text-[var(--muted)]">Click to reveal</div>}
-            </CardBody>
-          </button>
+          <CardBody className="space-y-4">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">Learn · topic {cur.index + 1} of {cur.count}</div>
+              <h2 className="mt-1 text-lg font-bold leading-snug">{cur.topic.title}</h2>
+            </div>
+            <div className="prose-note text-[15px] leading-relaxed"><Markdown>{cur.topic.conceptMd}</Markdown></div>
+            <div className="rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/6 p-4">
+              <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent)]"><Lightbulb size={13} /> Example</div>
+              <div className="prose-note text-sm leading-relaxed"><Markdown>{cur.topic.exampleMd}</Markdown></div>
+            </div>
+            <p className="text-xs text-[var(--muted)]">Next: an exam-style question on exactly this.</p>
+          </CardBody>
+        </Card>
+      ) : cur.kind === "card" ? (
+        <Card>
+          <CardBody className="min-h-40 space-y-2">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">Key concept</div>
+            <div className="text-[15px] font-semibold leading-relaxed">{cur.card.front}</div>
+            <div className="prose-note text-sm text-[var(--muted)]"><Markdown>{cur.card.back}</Markdown></div>
+          </CardBody>
         </Card>
       ) : (
-        <Card><CardBody><QuestionView question={cur.q} selected={selected} onToggle={(l) => toggle(l, cur.q)} revealed={revealed} /></CardBody></Card>
+        <Card><CardBody>
+          {cur.topicTitle && <div className="mb-2"><Badge tone="accent">{cur.topicTitle}</Badge></div>}
+          <QuestionView question={cur.q} selected={selected} onToggle={(l) => toggle(l, cur.q)} revealed={revealed} />
+        </CardBody></Card>
       )}
       </m.div>
 
       <div className="mt-5">
-        {cur.kind === "card" ? (
-          <Button className="w-full" onClick={next}>Continue</Button>
+        {cur.kind !== "q" ? (
+          <Button className="w-full" onClick={() => { haptic("tap"); next(); }}>{cur.kind === "topic" ? "Got it — test me" : "Continue"}</Button>
         ) : !revealed ? (
-          <Button className="w-full" onClick={() => check(cur.q)} disabled={selected.length === 0}>Check answer</Button>
+          <Button className="w-full" onClick={() => check(cur.q, cur.topicTitle)} disabled={selected.length === 0}>Check answer</Button>
         ) : (
           <Button className="w-full" variant={isAnswerCorrect(cur.q, selected) ? "primary" : "outline"} onClick={next}>Continue</Button>
         )}
@@ -163,7 +195,10 @@ export default function LessonPage() {
   );
 }
 
-type Step = { kind: "card"; card: { front: string; back: string } } | { kind: "q"; q: Question };
+type Step =
+  | { kind: "topic"; topic: Topic; index: number; count: number }
+  | { kind: "card"; card: { front: string; back: string } }
+  | { kind: "q"; q: Question; topicTitle?: string };
 
 function buildLesson(id: string): { title: string; competencyId: string | null; steps: Step[] } | null {
   if (id.startsWith("test-")) {
@@ -171,12 +206,28 @@ function buildLesson(id: string): { title: string; competencyId: string | null; 
     const domain = getDomains().find((d) => d.code === code);
     if (!domain) return null;
     const comps = getCompetenciesByDomain(domain.id);
-    const qs = shuffle(comps.flatMap((c) => getQuestionsByCompetency(c.id))).slice(0, 10);
+    const qs = shuffle(comps.flatMap((c) => getQuestionsByCompetency(c.id))).slice(0, 12);
     if (qs.length === 0) return null;
     return { title: `${domain.name} — domain test`, competencyId: null, steps: qs.map((q) => ({ kind: "q", q })) };
   }
   const comp = getCompetency(id);
   if (!comp) return null;
+
+  // Topic-driven lesson: concept+example, then its convoluted question(s) — every topic, in order.
+  const topics = getTopicsByCompetency(id);
+  if (topics.length > 0) {
+    const steps: Step[] = [];
+    topics.forEach((t, i) => {
+      steps.push({ kind: "topic", topic: t, index: i, count: topics.length });
+      for (const qid of t.questionIds) {
+        const q = getQuestion(qid);
+        if (q) steps.push({ kind: "q", q, topicTitle: t.title });
+      }
+    });
+    return { title: `${comp.code} · ${comp.name}`, competencyId: id, steps };
+  }
+
+  // Fallback (no topics authored yet): legacy flashcards + random questions.
   const cards = getFlashcards().filter((f) => f.competencyId === id).slice(0, 2);
   const qs = shuffle(getQuestionsByCompetency(id)).slice(0, 6);
   if (qs.length === 0) return null;
