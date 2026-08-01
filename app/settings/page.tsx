@@ -146,14 +146,6 @@ export default function SettingsPage() {
         </CardBody></Card>
 
         <Card><CardBody className="space-y-3">
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={settings.updatesApiEnabled} onChange={(e) => setSettings({ updatesApiEnabled: e.target.checked })} />
-            <span className="font-medium">Show in-app &ldquo;Fetch latest updates&rdquo; button</span>
-          </label>
-          <p className="text-xs text-[var(--muted)]">Off by default. The button calls a server endpoint that must be configured with provider keys; otherwise updates are curated from Claude Code and seeded to the database.</p>
-        </CardBody></Card>
-
-        <Card><CardBody className="space-y-3">
           <div className="text-sm font-medium text-[var(--danger)]">Danger zone</div>
           <Button variant="danger" onClick={() => { if (confirm("Erase all your progress? This cannot be undone.")) { reset(); setMsg("Progress reset."); } }}><Trash2 size={16} /> Reset all progress</Button>
         </CardBody></Card>
