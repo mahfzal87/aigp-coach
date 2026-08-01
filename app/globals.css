@@ -86,10 +86,10 @@ h1, h2, h3, h4, .font-display {
 
 @media (prefers-reduced-motion: no-preference) {
   .press {
-    transition: transform 0.1s ease, background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+    transition: transform 0.12s cubic-bezier(0.2, 0, 0, 1), background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
   }
   .press:active:not(:disabled) {
-    transform: scale(0.985);
+    transform: scale(0.975);
   }
 }
 
@@ -99,6 +99,71 @@ h1, h2, h3, h4, .font-display {
 }
 .btn3d:active:not(:disabled) {
   transform: scale(0.985);
+}
+
+/* ── Elevation scale ── */
+:root {
+  --e1: 0 1px 2px rgba(16, 24, 16, 0.05);
+  --e2: 0 2px 8px rgba(16, 24, 16, 0.07), 0 1px 2px rgba(16, 24, 16, 0.05);
+  --e3: 0 8px 28px rgba(16, 24, 16, 0.11), 0 2px 8px rgba(16, 24, 16, 0.06);
+}
+.dark {
+  --e1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --e2: 0 2px 10px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.02);
+  --e3: 0 10px 34px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+/* Card hover lift — transform+shadow only, no layout shift */
+.liftable {
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s cubic-bezier(0.2, 0, 0, 1), border-color 0.2s ease;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .liftable:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--e3);
+  }
+}
+
+/* Glass chrome for sticky bars */
+.glass {
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+}
+
+/* Hero mesh — quiet ambient color, both themes */
+.mesh {
+  background:
+    radial-gradient(46rem 22rem at 8% -30%, color-mix(in srgb, var(--primary) 13%, transparent), transparent 60%),
+    radial-gradient(38rem 20rem at 96% -18%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 62%),
+    var(--surface);
+}
+
+/* Answer feedback */
+@keyframes shake-x {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  45% { transform: translateX(4px); }
+  70% { transform: translateX(-3px); }
+  88% { transform: translateX(2px); }
+}
+@keyframes pop-in {
+  0% { transform: scale(0.6); opacity: 0.4; }
+  60% { transform: scale(1.12); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .anim-shake { animation: shake-x 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+  .anim-pop { animation: pop-in 0.28s cubic-bezier(0.2, 0, 0, 1); }
+}
+
+/* Streak flame idle pulse */
+@keyframes flame-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .anim-flame { animation: flame-pulse 2.4s ease-in-out infinite; transform-origin: 50% 80%; }
 }
 
 .prose-note h3 { font-weight: 700; margin-top: 1.15em; margin-bottom: 0.35em; font-size: 1rem; }

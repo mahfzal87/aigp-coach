@@ -143,7 +143,8 @@ export interface Settings {
   examDate?: string; // ISO
   updatesApiEnabled: boolean;
   lastSeenUpdateTs?: number;
-  sound?: boolean; // celebration/feedback sounds (default on)
+  sound?: boolean; // celebration/feedback sounds (default off)
+  haptics?: boolean; // vibration feedback where supported (default on)
   syncEnabled?: boolean; // cloud progress sync via sync code
   syncCode?: string; // anonymous sync code (AIGP-XXXX-XXXX)
 }

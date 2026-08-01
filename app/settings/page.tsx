@@ -135,6 +135,10 @@ export default function SettingsPage() {
 
         <Card><CardBody className="space-y-3">
           <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={settings.haptics ?? true} onChange={(e) => setSettings({ haptics: e.target.checked })} />
+            <span className="font-medium">Haptic feedback (vibration, where supported)</span>
+          </label>
+          <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={settings.sound ?? false} onChange={(e) => setSettings({ sound: e.target.checked })} />
             <span className="font-medium">Celebration &amp; feedback sounds</span>
           </label>

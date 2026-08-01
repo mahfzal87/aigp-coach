@@ -18,6 +18,8 @@ import type { Question } from "@/lib/types";
 import { useProgress } from "@/store/progress";
 import { Button, Card, CardBody } from "@/components/ui";
 import { QuestionView } from "@/components/quiz/question-view";
+import { m, MotionBar, Reveal, springSoft } from "@/components/motion";
+import { haptic } from "@/lib/haptics";
 
 export default function LessonPage() {
   const router = useRouter();
@@ -50,6 +52,7 @@ export default function LessonPage() {
   function finish(finalCorrect: number) {
     const score = totalQ ? finalCorrect / totalQ : 1;
     completeLesson(id, score, isTest ? XP_TEST_BONUS : XP_LESSON_BONUS);
+    if (score >= LESSON_PASS) haptic(isTest ? "milestone" : "success");
     if (isTest && score >= LESSON_PASS) celebrate({ sound, big: false });
     setDone(true);
   }
@@ -73,8 +76,9 @@ export default function LessonPage() {
   function check(q: Question) {
     const correct = isAnswerCorrect(q, selected);
     recordAttempt({ questionId: q.id, competencyId: q.competencyId, chosen: selected, correct, confidence: 2, timeMs: Date.now() - startTs, mode: isTest ? "mock" : "practice" });
+    haptic(correct ? "success" : "error");
     if (correct) setCorrectCount((c) => c + 1);
-    else setMissed((m) => [...m, q]);
+    else setMissed((prev) => [...prev, q]);
     setRevealed(true);
   }
 
@@ -83,9 +87,9 @@ export default function LessonPage() {
     const score = totalQ ? correctCount / totalQ : 1;
     const passed = score >= LESSON_PASS;
     return (
-      <div className="mx-auto max-w-lg space-y-4 py-6">
+      <Reveal className="mx-auto max-w-lg space-y-4 py-6">
         <div className="text-center">
-          <CheckCircle2 size={44} className={`mx-auto ${passed ? "text-[var(--success)]" : "text-[var(--muted)]"}`} />
+          <CheckCircle2 size={44} className={`anim-pop mx-auto ${passed ? "text-[var(--success)]" : "text-[var(--muted)]"}`} />
           <h1 className="mt-3 text-2xl font-bold">{passed ? (isTest ? "Domain test passed" : "Module complete") : "Reviewed — run it again"}</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
             {correctCount} of {totalQ} correct ({Math.round(score * 100)}%)
@@ -115,7 +119,7 @@ export default function LessonPage() {
             <Link href={`/learn/${meta.competencyId}`} className="w-full"><Button variant="ghost" className="w-full"><BookOpen size={15} /> Read the study notes</Button></Link>
           )}
         </div>
-      </div>
+      </Reveal>
     );
   }
 
@@ -124,15 +128,16 @@ export default function LessonPage() {
       {/* top bar: exit + progress */}
       <div className="mb-6 flex items-center gap-3">
         <Link href="/" aria-label="Exit module" className="press grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-[var(--muted)] hover:bg-[var(--surface-2)]"><X size={20} /></Link>
-        <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-[var(--surface-2)]"><div className="h-full rounded-full bg-[var(--primary)] transition-all duration-300" style={{ width: `${progress}%` }} /></div>
+        <MotionBar value={progress} className="flex-1" />
         <span className="text-xs font-semibold tabular-nums text-[var(--muted)]">{step + 1}/{steps.length}</span>
       </div>
 
       <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">{meta.title}</div>
 
+      <m.div key={step} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={springSoft}>
       {cur.kind === "card" ? (
         <Card>
-          <button onClick={() => setFlipped((f) => !f)} className="block w-full cursor-pointer text-left">
+          <button onClick={() => { haptic("tap"); setFlipped((f) => !f); }} className="block w-full cursor-pointer text-left">
             <CardBody className="min-h-40">
               <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">{flipped ? "Answer" : "Key concept"}</div>
               <div className="mt-2 text-[15px] font-semibold leading-relaxed">{flipped ? cur.card.back : cur.card.front}</div>
@@ -143,6 +148,7 @@ export default function LessonPage() {
       ) : (
         <Card><CardBody><QuestionView question={cur.q} selected={selected} onToggle={(l) => toggle(l, cur.q)} revealed={revealed} /></CardBody></Card>
       )}
+      </m.div>
 
       <div className="mt-5">
         {cur.kind === "card" ? (

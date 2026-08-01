@@ -7,6 +7,8 @@ import { correctLabels, shuffle } from "@/lib/scoring";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui";
 import { Markdown } from "@/components/markdown";
+import { m, springSoft, Stagger, StaggerItem } from "@/components/motion";
+import { haptic } from "@/lib/haptics";
 
 const TYPE_LABEL: Record<string, string> = {
   best: "Best / Most",
@@ -52,7 +54,7 @@ export function QuestionView({
       )}
       <p className="mb-4 text-base font-medium leading-relaxed">{question.stem}</p>
 
-      <div className="space-y-2" role="group" aria-label="Answer options">
+      <Stagger key={question.id} className="space-y-2" role="group" aria-label="Answer options">
         {opts.map((o) => {
           const isSel = selected.includes(o.label);
           const isCorrect = correct.includes(o.label);
@@ -62,12 +64,13 @@ export function QuestionView({
             else if (isSel && !isCorrect) state = "wrong";
           }
           return (
+            <StaggerItem key={o.label} y={6}>
             <button
-              key={o.label}
               disabled={disabled || revealed}
-              onClick={() => onToggle(o.label)}
+              onClick={() => { haptic("select"); onToggle(o.label); }}
               className={cn(
-                "flex w-full items-start gap-3 rounded-lg border p-3 text-left text-sm transition-colors",
+                "press flex w-full cursor-pointer items-start gap-3 rounded-xl border p-3 text-left text-sm transition-colors",
+                state === "wrong" && "anim-shake",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
                 !revealed && isSel && "border-[var(--primary)] bg-[var(--primary)]/10",
                 !revealed && !isSel && "border-[var(--border)] hover:bg-[var(--surface-2)]",
@@ -80,7 +83,7 @@ export function QuestionView({
                 className={cn(
                   "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs font-semibold",
                   isSel && !revealed && "border-[var(--primary)] text-[var(--primary)]",
-                  state === "correct" && "border-[var(--success)] bg-[var(--success)] text-white",
+                  state === "correct" && "anim-pop border-[var(--success)] bg-[var(--success)] text-white",
                   state === "wrong" && "border-[var(--danger)] bg-[var(--danger)] text-white"
                 )}
               >
@@ -88,12 +91,13 @@ export function QuestionView({
               </span>
               <span className="flex-1">{o.text}</span>
             </button>
+            </StaggerItem>
           );
         })}
-      </div>
+      </Stagger>
 
       {revealed && (
-        <div className="mt-4 space-y-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm">
+        <m.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={springSoft} className="mt-4 space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm shadow-[var(--e1)]">
           <div>
             <span className="font-semibold text-[var(--success)]">Correct: {correct.join(", ")}.</span>{" "}
             {question.correctExplanation}
@@ -115,7 +119,7 @@ export function QuestionView({
               <Markdown>{`**Strategy:** ${question.strategyNote}`}</Markdown>
             </div>
           )}
-        </div>
+        </m.div>
       )}
     </div>
   );
