@@ -5,8 +5,11 @@ import { useMemo } from "react";
 import { ArrowRight, CheckCircle2, Circle, GraduationCap, PlayCircle } from "lucide-react";
 import { getCompetenciesByDomain, getDomains, getQuestionsByCompetency } from "@/lib/content";
 import { LESSON_PASS } from "@/lib/gamify";
+import { haptic } from "@/lib/haptics";
 import { useProgress } from "@/store/progress";
-import { Badge, Bar, Button, Card, CardBody } from "@/components/ui";
+import { Badge, Button, Card, CardBody } from "@/components/ui";
+import { MotionBar, Stagger, StaggerItem } from "@/components/motion";
+import { DomainArt, type DomainCode } from "@/components/domain-art";
 
 type RowState = "done" | "current" | "todo";
 
@@ -51,27 +54,33 @@ export function useCurriculum() {
 export function CurriculumBoard() {
   const { units } = useCurriculum();
   return (
-    <div className="space-y-5">
+    <Stagger className="space-y-6" delay={0.05}>
       {units.map(({ domain, rows, pct }) => (
-        <Card key={domain.id}>
-          <CardBody className="space-y-1 p-0">
-            <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
-              <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">Domain {domain.code}</div>
-                <div className="text-[15px] font-bold">{domain.name}</div>
+        <StaggerItem key={domain.id} y={14}>
+          <Card className="liftable overflow-hidden">
+            <CardBody className="space-y-0 p-0">
+              {/* Art header */}
+              <div className="relative h-[104px] overflow-hidden border-b border-[var(--border)]">
+                <DomainArt code={domain.code as DomainCode} className="absolute inset-0 h-full w-full" />
+                <div className="relative flex h-full flex-col justify-end px-5 pb-3.5">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Domain {domain.code} · {domain.minQ}–{domain.maxQ} exam questions</div>
+                  <div className="mt-0.5 flex items-end justify-between gap-4">
+                    <h2 className="text-lg font-bold leading-tight">{domain.name}</h2>
+                    <div className="flex w-28 shrink-0 flex-col items-end gap-1.5 pb-0.5">
+                      <span className="text-xs font-semibold tabular-nums text-[var(--muted)]">{pct}%</span>
+                      <MotionBar value={pct} tone={pct === 100 ? "success" : "primary"} className="h-1.5" />
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex w-28 flex-col items-end gap-1">
-                <span className="text-xs font-semibold tabular-nums text-[var(--muted)]">{pct}%</span>
-                <Bar value={pct} tone={pct === 100 ? "success" : "primary"} />
+              <div className="divide-y divide-[var(--border)]">
+                {rows.map((r) => <ModuleRow key={r.id} row={r} />)}
               </div>
-            </div>
-            <div className="divide-y divide-[var(--border)]">
-              {rows.map((r) => <ModuleRow key={r.id} row={r} />)}
-            </div>
-          </CardBody>
-        </Card>
+            </CardBody>
+          </Card>
+        </StaggerItem>
       ))}
-    </div>
+    </Stagger>
   );
 }
 
@@ -79,8 +88,12 @@ function ModuleRow({ row }: { row: Row }) {
   const Icon = row.state === "done" ? CheckCircle2 : row.kind === "test" ? GraduationCap : row.state === "current" ? PlayCircle : Circle;
   const iconColor = row.state === "done" ? "text-[var(--success)]" : row.state === "current" ? "text-[var(--primary)]" : "text-[var(--muted)] opacity-50";
   return (
-    <Link href={`/lesson/${row.id}`} className="press flex cursor-pointer items-center gap-3 px-5 py-3.5 hover:bg-[var(--surface-2)]">
-      <Icon size={20} className={`shrink-0 ${iconColor}`} />
+    <Link
+      href={`/lesson/${row.id}`}
+      onClick={() => haptic("tap")}
+      className="group flex cursor-pointer items-center gap-3 px-5 py-3.5 transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]/50"
+    >
+      <Icon size={20} className={`shrink-0 transition-transform duration-200 group-hover:scale-110 ${iconColor}`} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-semibold">{row.kind === "test" ? row.name : `${row.code} · ${row.name}`}</span>
@@ -91,8 +104,9 @@ function ModuleRow({ row }: { row: Row }) {
           {row.best !== null && ` · best ${Math.round(row.best * 100)}%`}
         </div>
       </div>
-      <span className="text-xs font-semibold text-[var(--accent)]">
-        {row.state === "done" ? "Review" : row.state === "current" ? "Start" : "Open"} <ArrowRight size={12} className="inline" />
+      <span className="flex items-center gap-1 text-xs font-semibold text-[var(--accent)]">
+        {row.state === "done" ? "Review" : row.state === "current" ? "Start" : "Open"}
+        <ArrowRight size={13} className="transition-transform duration-200 group-hover:translate-x-0.5" />
       </span>
     </Link>
   );
@@ -102,23 +116,23 @@ export function ContinueCard() {
   const { current } = useCurriculum();
   if (!current) {
     return (
-      <Card><CardBody className="flex items-center justify-between gap-4">
+      <Card className="mesh"><CardBody className="flex items-center justify-between gap-4">
         <div>
-          <div className="text-[15px] font-bold">All modules complete 🎓</div>
+          <div className="text-[15px] font-bold">All modules complete</div>
           <p className="mt-0.5 text-sm text-[var(--muted)]">Keep sharp with mixed practice and full mock exams.</p>
         </div>
-        <Link href="/mock"><Button>Take a mock</Button></Link>
+        <Link href="/mock"><Button onClick={() => haptic("tap")}>Take a mock</Button></Link>
       </CardBody></Card>
     );
   }
   return (
-    <Card className="border-[var(--primary)]/40">
+    <Card className="mesh liftable border-[var(--primary)]/25">
       <CardBody className="flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">Continue where you left off</div>
-          <div className="mt-0.5 truncate text-[15px] font-bold">{current.kind === "test" ? current.name : `${current.code} · ${current.name}`}</div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Continue where you left off</div>
+          <div className="mt-1 truncate text-[15px] font-bold">{current.kind === "test" ? current.name : `${current.code} · ${current.name}`}</div>
         </div>
-        <Link href={`/lesson/${current.id}`}><Button>Continue <ArrowRight size={15} /></Button></Link>
+        <Link href={`/lesson/${current.id}`}><Button onClick={() => haptic("tap")} className="group">Continue <ArrowRight size={15} className="transition-transform duration-200 group-hover:translate-x-0.5" /></Button></Link>
       </CardBody>
     </Card>
   );

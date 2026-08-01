@@ -8,6 +8,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useHydrated, useProgress } from "@/store/progress";
 import { streakAlive } from "@/lib/gamify";
+import { haptic } from "@/lib/haptics";
 
 const primaryNav = [
   { href: "/", label: "Study Plan", icon: BookOpen },
@@ -45,7 +46,7 @@ function HeaderStats() {
   return (
     <div className="flex items-center gap-4 text-sm font-semibold text-[var(--muted)]">
       <span className="flex items-center gap-1.5" title="Consecutive study days">
-        <Flame size={16} className={alive ? "text-[var(--streak)]" : "opacity-40"} />
+        <Flame size={16} className={alive ? "anim-flame text-[var(--streak)]" : "opacity-40"} fill={alive ? "var(--streak)" : "none"} />
         <span className="tabular-nums">{streak}<span className="hidden sm:inline"> day{streak === 1 ? "" : "s"}</span></span>
       </span>
       <span className="flex items-center gap-1.5" title="Study points earned">
@@ -85,7 +86,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)]/90 px-4 py-3 backdrop-blur md:px-8">
+        <header className="glass sticky top-0 z-20 flex items-center justify-between border-b border-[var(--border)] px-4 py-3 md:px-8">
           <div className="flex items-center gap-2 text-sm font-bold md:hidden">
             <GraduationCap size={17} className="text-[var(--primary)]" /> AIGP Coach
           </div>
@@ -98,11 +99,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 pb-24 md:px-8 md:py-8 md:pb-10">{children}</main>
 
         {/* Mobile bottom nav */}
-        <nav className="fixed bottom-0 left-0 right-0 z-20 grid grid-cols-4 border-t border-[var(--border)] bg-[var(--surface)] md:hidden">
+        <nav className="glass fixed bottom-0 left-0 right-0 z-20 grid grid-cols-4 border-t border-[var(--border)] md:hidden">
           {primaryNav.map((n) => {
             const Icon = n.icon;
             return (
-              <Link key={n.href} href={n.href} className={cn("flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold", isActive(n.href) ? "text-[var(--primary)]" : "text-[var(--muted)]")}>
+              <Link key={n.href} href={n.href} onClick={() => haptic("tap")} className={cn("press flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold", isActive(n.href) ? "text-[var(--primary)]" : "text-[var(--muted)]")}>
                 <Icon size={20} />
                 {n.label}
               </Link>
