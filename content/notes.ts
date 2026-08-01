@@ -87,7 +87,9 @@ Balance innovation with governance — innovation without oversight breeds biase
 
 **Penalties:** €35M/7% (prohibited) · €15M/3% (most obligations + GPAI) · €7.5M/1% (incorrect info). SMEs pay the LOWER cap.
 
-**Dates:** in force Aug 2024 · prohibitions + AI literacy 2 Feb 2025 · GPAI + governance + penalties 2 Aug 2025 · high-risk Annex III + transparency 2 Aug 2026 · Annex I high-risk 2 Aug 2027.
+**Dates (as amended by the 2026 Digital Omnibus, in force 27 Jul 2026):** in force Aug 2024 · prohibitions + AI literacy 2 Feb 2025 · GPAI + governance + penalties 2 Aug 2025 · **Article 50 transparency 2 Aug 2026 (unchanged)** · **high-risk Annex III deferred to 2 Dec 2027** · **Annex I high-risk deferred to 2 Aug 2028**.
+
+⚠️ **Omnibus exam note:** the original statutory timeline (Annex III at 2 Aug 2026, Annex I at 2 Aug 2027) may still appear in older study materials. Know BOTH: the Omnibus moved the high-risk deadlines but left prohibitions, GPAI, and Art. 50 transparency where they were.
 
 **FRIA** is a **deployer** duty (public bodies + credit/insurance high-risk deployers).`,
   },
@@ -103,7 +105,9 @@ Balance innovation with governance — innovation without oversight breeds biase
 
 **US federal:** no comprehensive AI law. **NAIIA** = R&D coordination (NOT anti-discrimination). Existing law applies: **FTC §5**, EEOC, FCRA, ADA, Fair Housing Act.
 
-**US states:** Colorado AI Act (algorithmic discrimination), Texas TRAIGA (eff. 1 Jan 2026), Illinois BIPA, NYC LL144 (AEDT bias audits), California (CPPA ADMT, AB 2013).`,
+**US states:** **Colorado** — the original AI Act (SB 24-205) was **repealed before ever taking effect** and replaced by **SB 26-189** (signed 14 May 2026, effective **1 Jan 2027**): regulates **automated decision-making technology (ADMT)** that **"materially influences" consequential decisions** — consumer disclosures, post-adverse-outcome explanations, correction rights, meaningful human review; **AG-only enforcement** (no private right of action), 60-day cure. **Texas TRAIGA** (eff. **1 Jan 2026**) — **intent-based** (prohibited intentional harms), AG enforcement, sandbox. **Illinois BIPA** (biometric consent) + HB 3773 (AI employment discrimination, eff. 1 Jan 2026). **NYC LL144** (AEDT bias audits). **California** (CPPA ADMT regs, AB 2013 training-data transparency).
+
+**Colorado vs Texas (favorite comparison):** Colorado SB 189 = **impact/transparency-based** on ADMT in consequential decisions; TRAIGA = **intent-based** (liability generally requires intent to discriminate/manipulate/harm).`,
   },
   {
     id: "note-ii-d",

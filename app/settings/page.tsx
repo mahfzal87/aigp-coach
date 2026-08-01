@@ -135,7 +135,7 @@ export default function SettingsPage() {
 
         <Card><CardBody className="space-y-3">
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={settings.sound ?? true} onChange={(e) => setSettings({ sound: e.target.checked })} />
+            <input type="checkbox" checked={settings.sound ?? false} onChange={(e) => setSettings({ sound: e.target.checked })} />
             <span className="font-medium">Celebration &amp; feedback sounds</span>
           </label>
           <p className="text-xs text-[var(--muted)]">Plays a short chime when you complete a lesson. Confetti always respects your &ldquo;reduce motion&rdquo; setting.</p>

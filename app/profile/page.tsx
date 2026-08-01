@@ -47,7 +47,7 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Your stats" subtitle="Progress, readiness and trophies." />
+      <PageHeader title="Progress" subtitle="Mastery, readiness, and study consistency." />
 
       {/* Level + streak */}
       <Card>
@@ -88,11 +88,11 @@ export default function ProfilePage() {
 
       {/* Domain mastery */}
       <Card><CardBody>
-        <div className="mb-4 font-display text-base font-extrabold">Mastery by unit</div>
+        <div className="mb-4 font-display text-base font-extrabold">Mastery by domain</div>
         <div className="space-y-3">
           {readiness.domainMastery.map((d) => (
             <div key={d.code}>
-              <div className="mb-1 flex justify-between text-sm font-bold"><span>Unit {d.code} — {getDomain(d.code)?.name}</span><span className="text-[var(--muted)]">{d.insufficient ? "—" : d.mastery}</span></div>
+              <div className="mb-1 flex justify-between text-sm font-bold"><span>Domain {d.code} — {getDomain(d.code)?.name}</span><span className="text-[var(--muted)]">{d.insufficient ? "—" : d.mastery}</span></div>
               <Bar value={d.mastery} tone={d.mastery >= 80 ? "success" : d.mastery >= 60 ? "warning" : "danger"} />
             </div>
           ))}
@@ -102,14 +102,14 @@ export default function ProfilePage() {
 
       {/* Achievements */}
       <Card><CardBody>
-        <div className="mb-4 font-display text-base font-extrabold">Trophies <span className="text-sm font-bold text-[var(--muted)]">{earned.size}/{ACHIEVEMENTS.length}</span></div>
+        <div className="mb-4 font-display text-base font-extrabold">Milestones <span className="text-sm font-bold text-[var(--muted)]">{earned.size}/{ACHIEVEMENTS.length}</span></div>
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
           {ACHIEVEMENTS.map((a) => {
             const got = earned.has(a.id);
             const Icon = (Icons as unknown as Record<string, Icons.LucideIcon>)[a.icon] ?? Icons.Award;
             return (
               <div key={a.id} className="flex flex-col items-center text-center" title={a.desc}>
-                <div className="grid h-16 w-16 place-items-center rounded-2xl" style={{ background: got ? "var(--gold)" : "var(--surface-2)", boxShadow: got ? "0 4px 0 0 #d9a800" : "none" }}>
+                <div className="grid h-16 w-16 place-items-center rounded-2xl border" style={{ background: got ? "var(--gold)" : "var(--surface-2)", borderColor: got ? "var(--gold)" : "var(--border)" }}>
                   <Icon size={28} className={got ? "text-white" : "text-[var(--muted)] opacity-50"} />
                 </div>
                 <div className={`mt-1 text-[10px] font-extrabold ${got ? "" : "text-[var(--muted)]"}`}>{a.name}</div>
