@@ -1,67 +1,91 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, CloudDownload } from "lucide-react";
 import { getUpdates } from "@/lib/updates";
-import type { LawUpdate } from "@/lib/types";
+import type { LawUpdate, Severity } from "@/lib/types";
 import { fmtDate } from "@/lib/utils";
-import { useProgress } from "@/store/progress";
-import { Badge, Button, Card, CardBody, PageHeader } from "@/components/ui";
+import { Badge, Card, PageHeader } from "@/components/ui";
 import { Markdown } from "@/components/markdown";
+import { haptic } from "@/lib/haptics";
+import { cn } from "@/lib/utils";
 
-const TONE: Record<string, "danger" | "warning" | "default"> = { critical: "danger", important: "warning", info: "default" };
+const RAIL: Record<Severity, string> = { critical: "var(--danger)", important: "var(--warning)", info: "var(--accent)" };
+const TONE: Record<Severity, "danger" | "warning" | "default"> = { critical: "danger", important: "warning", info: "default" };
 
 export default function UpdatesPage() {
-  const updatesEnabled = useProgress((s) => s.settings.updatesApiEnabled);
   const [items, setItems] = useState<LawUpdate[]>([]);
-  const [fetching, setFetching] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
+  const [filter, setFilter] = useState<string>("All");
 
   useEffect(() => {
     getUpdates().then(setItems);
   }, []);
 
-  async function fetchLatest() {
-    setFetching(true);
-    setMsg(null);
-    try {
-      const res = await fetch("/api/fetch-updates", { method: "POST" });
-      const data = await res.json();
-      setMsg(data.message ?? "Done.");
-      if (data.items) setItems(data.items);
-    } catch {
-      setMsg("Could not reach the update service.");
-    } finally {
-      setFetching(false);
-    }
-  }
+  const jurisdictions = useMemo(() => {
+    const set = new Set<string>();
+    for (const u of items) set.add(u.jurisdiction.startsWith("United States") ? "United States" : u.jurisdiction);
+    return ["All", "Critical only", ...[...set].sort()];
+  }, [items]);
+
+  const shown = useMemo(() => {
+    let list = [...items].sort((a, b) => b.publishedDate.localeCompare(a.publishedDate));
+    if (filter === "Critical only") list = list.filter((u) => u.severity === "critical");
+    else if (filter !== "All") list = list.filter((u) => (u.jurisdiction.startsWith("United States") ? "United States" : u.jurisdiction) === filter);
+    return list;
+  }, [items, filter]);
 
   return (
-    <div>
-      <PageHeader
-        title="AI-governance updates"
-        subtitle="Curated changes to AI laws, standards and the BoK. Maintained from your coach; re-seeded as the landscape shifts."
-        action={updatesEnabled ? <Button variant="outline" onClick={fetchLatest} disabled={fetching}><RefreshCw size={16} className={fetching ? "animate-spin" : ""} /> Fetch latest</Button> : undefined}
-      />
-      {msg && <p className="mb-4 rounded-lg bg-[var(--surface-2)] p-3 text-sm text-[var(--muted)]">{msg}</p>}
-      <div className="space-y-4">
-        {items.map((u) => (
-          <Card key={u.id}>
-            <CardBody>
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <Badge tone={TONE[u.severity]}>{u.severity}</Badge>
-                {u.bokRelevant && <Badge tone="primary">BoK-relevant</Badge>}
-                <span className="text-xs text-[var(--muted)]">{u.jurisdiction} · {fmtDate(u.publishedDate)}</span>
-              </div>
-              <h2 className="mb-1 text-base font-semibold">{u.title}</h2>
-              <Markdown>{u.bodyMd}</Markdown>
-              {u.sourceUrl && (
-                <a href={u.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs text-[var(--primary)] hover:underline">Source ↗</a>
-              )}
-            </CardBody>
-          </Card>
+    <div className="space-y-5">
+      <PageHeader title="Law updates" subtitle="What changed, when, and the exam angle — curated by your coach and synced from the cloud." />
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-1.5">
+        {jurisdictions.map((j) => (
+          <button key={j} onClick={() => { haptic("tap"); setFilter(j); }} className={cn("press cursor-pointer rounded-full px-3 py-1 text-xs font-semibold", filter === j ? "bg-[var(--primary)] text-[var(--primary-fg)]" : "bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--foreground)]")}>{j}</button>
         ))}
       </div>
+
+      {/* Timeline */}
+      <div className="space-y-2.5">
+        {shown.map((u) => <UpdateRow key={u.id} u={u} />)}
+        {shown.length === 0 && <p className="text-sm text-[var(--muted)]">Nothing matches this filter.</p>}
+      </div>
+
+      <p className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
+        <CloudDownload size={13} /> Updates are curated and re-seeded by your coach as the legal landscape shifts — no configuration needed.
+      </p>
     </div>
+  );
+}
+
+function UpdateRow({ u }: { u: LawUpdate }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex">
+        <div className="w-1.5 shrink-0" style={{ background: RAIL[u.severity] }} />
+        <div className="min-w-0 flex-1">
+          <button onClick={() => { haptic("tap"); setOpen((o) => !o); }} className="press flex w-full cursor-pointer items-start gap-3 px-4 py-3.5 text-left">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--muted)]">
+                <span className="font-semibold tabular-nums">{fmtDate(u.publishedDate)}</span>
+                <span>·</span>
+                <span>{u.jurisdiction}</span>
+                <Badge tone={TONE[u.severity]}>{u.severity}</Badge>
+                {u.bokRelevant && <Badge tone="primary">exam-relevant</Badge>}
+              </div>
+              <div className="mt-1 text-sm font-bold leading-snug">{u.title}</div>
+            </div>
+            <ChevronDown size={16} className={cn("mt-1 shrink-0 text-[var(--muted)] transition-transform duration-200", open && "rotate-180")} />
+          </button>
+          {open && (
+            <div className="prose-note border-t border-[var(--border)] px-4 pb-4 pt-3 text-sm leading-relaxed">
+              <Markdown>{u.bodyMd}</Markdown>
+              {u.sourceUrl && <a href={u.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-semibold text-[var(--accent)] hover:underline">Source ↗</a>}
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
   );
 }
