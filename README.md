@@ -4,6 +4,15 @@
 
 **Clone it and run your own copy.** No accounts, no tracking, no API keys, no configuration. Your progress stays in your browser.
 
+```bash
+git clone https://github.com/mahfzal87/aigp-coach.git
+cd aigp-coach
+npm install
+npm run dev
+```
+
+Then open **http://localhost:3000**. That is the whole setup. Needs Node 20 or later.
+
 <img src="docs/study-plan.png" alt="AIGP Coach study plan: a readiness score out of 100, a projected scaled score, and the Body of Knowledge broken into domains and competencies with per-topic progress" width="100%">
 
 ---
@@ -47,18 +56,11 @@ Coverage: 4 domains, 13 competencies, 6 question types, 101 topics, 192 question
 
 **Stack:** Next.js 16, TypeScript, Tailwind v4, Zustand, Recharts. Progress lives in `localStorage`; there are no accounts and nothing is sent anywhere. Supabase is optional, and only so content can be updated without a redeploy.
 
-## Run your own copy
+## Running it
 
-```bash
-git clone https://github.com/mahfzal87/aigp-coach.git
-cd aigp-coach
-npm install
-npm run dev
-```
+Every question, topic and flashcard is bundled in the repo, so `npm install && npm run dev` is genuinely all it takes. Nothing to configure, no account to create, no API key to supply, and no network calls at runtime.
 
-Open `http://localhost:3000`. That is the whole setup. Every question, topic and flashcard is bundled in the repo, so there is nothing to configure, no account to create and no API key to supply. Requires Node 20 or later.
-
-**Deploy it somewhere private if you prefer.** It is a standard Next.js app and builds to a static-friendly output, so any host that runs Next will do:
+**Deploy your own instance if you want it on your phone.** It is a standard Next.js app, so any host that runs Next will do:
 
 ```bash
 npm run build && npm start
