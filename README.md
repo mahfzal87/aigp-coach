@@ -23,7 +23,7 @@ I was preparing for the IAPP's AI Governance Professional exam. The material I c
 
 The first is that question banks tell you the answer, not the reasoning. You learn that C was right. You do not learn why B was the trap, and you certainly do not learn that you fall for that exact trap every single time a scenario mentions deployer obligations.
 
-The second is that AI law does not sit still. The EU AI Act's obligations phase in on different dates, those dates were themselves amended in July 2026, and US state law moves every quarter. A PDF bought in January is quietly wrong by June, and it has the decency to say nothing about which parts.
+The second is that AI law does not sit still. The EU AI Act's obligations phase in on different dates, those dates were themselves amended in July 2026, and US state law moves every quarter. A PDF bought in January is wrong by June, and it has the decency to say nothing about which parts.
 
 So I could not answer the only question that mattered: **am I ready to sit this, and if not, what specifically is broken?**
 
@@ -39,7 +39,7 @@ I built the thing I wanted. Three decisions shaped it.
 
 <img src="docs/strategy.png" alt="The question strategy page: timing budget, a six-step method for attacking any question, and a per-question-type playbook" width="100%">
 
-**Make readiness a number with reasons attached.** The dashboard projects a scaled score against the pass mark, gives a Ready / Almost / Not-yet verdict, and then names the competencies dragging it down. Confidence is captured per question, so the analytics can surface overconfidence, which is high certainty paired with low accuracy, and which is the pattern that actually fails people.
+**Make readiness a number with reasons attached.** The dashboard projects a scaled score against the pass mark, gives a Ready / Almost / Not-yet verdict, and then names the competencies dragging it down. Confidence is captured per question, so the analytics can surface overconfidence, which is high certainty paired with low accuracy, and which is the pattern that fails people.
 
 ## What it does
 
@@ -82,7 +82,7 @@ The content is the actual product, and it is all plain TypeScript in `/content`:
 | `flashcards.ts` | Spaced-repetition cards |
 | `updates.ts` | The law-updates feed |
 
-Add your own questions, correct mine, or rewrite the topics in your own words, which is the version that actually sticks. If you fix something wrong, a PR is welcome.
+Add your own questions, correct mine, or rewrite the topics in your own words, which is the version that sticks. If you fix something wrong, a PR is welcome.
 
 ## What I would do differently
 
@@ -92,15 +92,19 @@ Add your own questions, correct mine, or rewrite the topics in your own words, w
 
 **Spaced repetition is bolted on, not designed in.** Flashcards run SM-2 on their own schedule while the question bank tracks mastery separately. They should have been one scheduler over one pool of items. Splitting them was a modelling shortcut on day two that got expensive by week six.
 
-**Freshness is manual, which is the real product risk.** The law-updates feed is exactly as current as the last time I edited a file. For a domain that decays this fast, the honest design is an ingestion pipeline with source links and review dates, not an array I maintain by hand. I scoped an in-app fetcher, looked at how much of it I would actually finish, and left it switched off rather than shipping half.
+**Freshness is manual, which is the real product risk.** The law-updates feed is exactly as current as the last time I edited a file. For a domain that decays this fast, the honest design is an ingestion pipeline with source links and review dates, not an array I maintain by hand. I scoped an in-app fetcher, looked at how much of it I would finish, and left it switched off rather than shipping half.
 
-## Credits
+## Credits and provenance
 
-The question bank mixes items I wrote with items adapted from community-shared AIGP study banks that circulate among candidates, including the bank shared by "Dr. David". Adapted items are tagged `community` in the source; the banks travel without per-item bylines, so crediting a named individual is not possible at item level. Thanks to everyone who has published free study material for this exam. If you recognise your work here and want it credited differently or gone, open an issue and I will sort it.
+Some of these questions are mine. The rest are adapted from AIGP study material that circulates freely among candidates, and they carry a `community` tag in the source so you can see which is which.
+
+I cannot trace those items back to an original author. That is a real limitation, not a disclaimer, and it is why this is shared for personal study rather than sold. If you published something I have adapted and want it credited differently or removed, open an issue and I will action it.
+
+Everything here is written against the published Body of Knowledge. If you are looking for recalled exam questions, this is the wrong repo, and honestly the wrong approach.
 
 ## Disclaimer
 
-Not affiliated with, endorsed by, or connected to the IAPP in any way. AIGP and CIPP are trademarks of the International Association of Privacy Professionals. This is an independent study aid built for my own preparation and shared as-is, and it reproduces no official exam content. Nothing here is legal advice.
+Not affiliated with, endorsed by, or connected to the IAPP in any way. AIGP and CIPP are trademarks of the International Association of Privacy Professionals. This is an independent study aid I built for my own preparation and shared as-is. Nothing here is legal advice.
 
 ## Licence
 

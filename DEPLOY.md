@@ -1,17 +1,17 @@
 # Deploying AIGP Coach
 
-The app is a standard Next.js app and **builds with no environment variables** (progress lives in your
-browser; Supabase is optional). Deploy in ~2 minutes.
+Standard Next.js app. It **builds with no environment variables**, because progress lives in your
+browser and Supabase is optional.
 
 ## Option A. Vercel CLI (fastest)
 
 ```bash
-cd /Users/ahmad/aigp-coach
+cd aigp-coach
 npx vercel login        # one-time: opens your browser to authenticate
 npx vercel --prod       # deploy; accept the defaults, it prints your live URL
 ```
 
-That's it. Every later `npx vercel --prod` ships an update.
+Every later `npx vercel --prod` ships an update.
 
 ## Option B. GitHub plus Vercel dashboard (auto-deploy on push)
 
@@ -33,7 +33,7 @@ Add these in Vercel → Project → Settings → Environment Variables only if y
 | `NEXT_PUBLIC_SUPABASE_URL` | **Cloud progress sync** (sync code) + mirroring content to Supabase. Not required to run. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same. |
 
-Without any of these, the app runs fully on its bundled content, which is what you want for studying. Configuration is a procrastination surface.
+Without any of these, the app runs fully on its bundled content, which is what you want for studying. If you are setting up environment variables before you have answered a single question, you are studying deployment, not law.
 
 ## Enabling cloud progress sync (sync code, no login)
 
@@ -46,7 +46,7 @@ Progress stays offline-first (localStorage) and mirrors to the cloud automatical
 
 ## Updating content
 
-This is the part you will actually spend time in. All content is plain TypeScript in `/content` (`questions.ts`, `questions-extra.ts`, `notes.ts`,
+This is the part you will spend time in. All content is plain TypeScript in `/content` (`questions.ts`, `questions-extra.ts`, `notes.ts`,
 `flashcards.ts`, `updates.ts`, `topics-*.ts`). Edit the files, commit, and redeploy with
 `npx vercel --prod` or a `git push`. If you are running Supabase, run `npm run seed` instead of
 redeploying.
