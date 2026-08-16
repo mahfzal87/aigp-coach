@@ -5,7 +5,10 @@ function o(label: string, text: string, isCorrect = false, sort = 0) {
   return { label, text, isCorrect, sort };
 }
 
-// Starter bank — IAPP-style, ported from the aigp-exam-coach skill (hand-written + community banks).
+// Starter bank — IAPP-style. Mixed provenance: items marked `source: "authored"` were written
+// for this project; items marked `source: "community"` are adapted from community-shared AIGP
+// study banks circulated by other candidates (see Credits in README.md). No official IAPP exam
+// content is reproduced here.
 // Every competency is covered; all six question types represented. Growable via the seed pipeline.
 export const questions: Question[] = [
   // ───────────── DOMAIN I ─────────────

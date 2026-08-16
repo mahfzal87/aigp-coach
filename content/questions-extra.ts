@@ -1,8 +1,13 @@
 import type { Question } from "@/lib/types";
 
-// Second question batch — ports the remaining items from the aigp-exam-coach skill
-// (Dr. David community bank + hand-written bank): EU AI Act article-level detail, ML
-// fundamentals, privacy harms, standards, and crossover law. Takes the bank past 100.
+// Second question batch: EU AI Act article-level detail, ML fundamentals, privacy harms,
+// standards, and crossover law.
+//
+// PROVENANCE: this batch mixes items written for this project with items adapted from
+// community-shared AIGP study banks circulated by other candidates — including the bank
+// shared by "Dr. David". Individual items are not separately tagged. See Credits in
+// README.md. No official IAPP exam content is reproduced here. If you authored an item
+// here and want it credited differently or removed, open an issue.
 function o(label: string, text: string, isCorrect = false, sort = 0) {
   return { label, text, isCorrect, sort };
 }
