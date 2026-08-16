@@ -33,7 +33,7 @@ Add these in Vercel → Project → Settings → Environment Variables only if y
 | `NEXT_PUBLIC_SUPABASE_URL` | **Cloud progress sync** (sync code) + mirroring content to Supabase. Not required to run. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same. |
 
-Without any of these, the app runs fully on its bundled content, which is what you want for studying.
+Without any of these, the app runs fully on its bundled content, which is what you want for studying. Configuration is a procrastination surface.
 
 ## Enabling cloud progress sync (sync code, no login)
 
@@ -46,7 +46,7 @@ Progress stays offline-first (localStorage) and mirrors to the cloud automatical
 
 ## Updating content
 
-All content is plain TypeScript in `/content` (`questions.ts`, `questions-extra.ts`, `notes.ts`,
+This is the part you will actually spend time in. All content is plain TypeScript in `/content` (`questions.ts`, `questions-extra.ts`, `notes.ts`,
 `flashcards.ts`, `updates.ts`, `topics-*.ts`). Edit the files, commit, and redeploy with
 `npx vercel --prod` or a `git push`. If you are running Supabase, run `npm run seed` instead of
 redeploying.
