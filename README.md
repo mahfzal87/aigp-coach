@@ -67,7 +67,7 @@ Fully functional with no configuration, because the content is bundled. Supabase
 
 ## Credits
 
-The question bank is a mix of items I wrote and items adapted from community-shared AIGP study banks circulated by other candidates, including the bank shared by "Dr. David", credited in the source comments where those items appear. Thanks to everyone who has published free study material for this exam. If you recognise your work here and want it credited differently or removed, open an issue and I'll fix it.
+The question bank is a mix of items I wrote and items adapted from community-shared AIGP study banks circulated by other candidates, including the bank shared by "Dr. David", credited in this README and in the provenance comments at the top of the question files. Adapted items are tagged `community` in the source; the banks circulate without per-item bylines, so attribution to a named individual is not possible at item level. Thanks to everyone who has published free study material for this exam. If you recognise your work here and want it credited differently or removed, open an issue and I'll fix it.
 
 ## Disclaimer
 

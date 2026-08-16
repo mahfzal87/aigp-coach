@@ -4,9 +4,11 @@ import type { Question } from "@/lib/types";
 // standards, and crossover law.
 //
 // PROVENANCE: this batch mixes items written for this project with items adapted from
-// community-shared AIGP study banks circulated by other candidates — including the bank
-// shared by "Dr. David". Individual items are not separately tagged. See Credits in
-// README.md. No official IAPP exam content is reproduced here. If you authored an item
+// community-shared AIGP study banks circulated by other candidates, including the bank
+// shared by "Dr. David". Items adapted from those banks carry src: "community"; items
+// written for this project carry src: "authored". Attribution to a specific original
+// author is not possible at item level because the banks circulate without per-item
+// bylines. See Credits in README.md. No official IAPP exam content is reproduced here. If you authored an item
 // here and want it credited differently or removed, open an issue.
 function o(label: string, text: string, isCorrect = false, sort = 0) {
   return { label, text, isCorrect, sort };
