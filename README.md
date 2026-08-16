@@ -1,67 +1,78 @@
 # AIGP Coach
 
-A personal study system for the **IAPP AIGP** exam (Body of Knowledge **v2.1**). Learn the material,
-practice with instant rationales, take blueprint-accurate timed mock exams, and get a **data-driven readiness
-verdict** that tells you whether you're ready to sit the exam.
+**A study system I built for the IAPP AIGP exam, because the prep material I could buy told me *what* to know and never *why I was getting questions wrong*.**
 
-Built with **Next.js 16 + TypeScript + Tailwind v4 + Supabase**. No login, no runtime AI cost — content is
-bundled and (optionally) mirrored to Supabase; your progress lives in your browser.
+Live: **[aigp-coach.vercel.app](https://aigp-coach.vercel.app)** · No login, no tracking, works offline after first load.
 
-## Features
+<img src="docs/study-plan.png" alt="AIGP Coach study plan: a readiness score out of 100, a projected scaled score, and the Body of Knowledge broken into domains and competencies with per-topic progress" width="100%">
 
-- **Dashboard / Readiness** — overall readiness gauge, projected scaled score (100–500), a Ready / Almost /
-  Not-yet verdict with reasons, domain heat-map, your weakest competencies, and an exam-date countdown.
-- **Learn** — structured notes per domain & competency (the BoK deep-dives) plus spaced-repetition flashcards.
-- **Practice** — filterable drills (competency / type / difficulty / unseen / wrong-only) with instant
-  feedback, full rationales, "why each wrong option fails," confidence capture, and **K/T/R** miss tagging.
-- **Mock exam** — blueprint-proportional, timed simulation (scales toward the real 100-Q / 2h45m), scaled
-  scoring, per-domain breakdown, and a full review.
-- **Strategy** — the convoluted-question playbook + technique drills by question type.
-- **Analytics** — mastery by competency, why-you-miss (K/T/R), confidence calibration, time-per-question.
-- **Updates** — a curated feed of AI-law / standards / BoK changes (EU AI Act, South Korea, Take It Down Act…).
-- **Reference** — searchable library; **Settings** — exam date, theme, and JSON export/import of progress.
+---
 
-## Run locally
+## The problem
+
+I was preparing for the IAPP's AI Governance Professional exam. The material available to me had two gaps I couldn't work around.
+
+The first is that question banks tell you the answer, not the reasoning. You learn that C was right. You don't learn why B was the trap, and you don't learn that you fall for that same trap in every scenario question about deployer obligations.
+
+The second is that AI law does not sit still. The EU AI Act's obligations phase in on different dates, the Commission keeps proposing changes to the timeline, and US state law moves every quarter. A PDF bought in January is misleading by June, and it doesn't tell you which parts went stale.
+
+So I couldn't answer the only question that mattered: **am I ready to sit this exam, and if not, what specifically is wrong?**
+
+## The approach
+
+I built the thing I wanted, and made three decisions that shaped it.
+
+**Diagnose the miss, not just the answer.** Every question carries a rationale, a line on why each wrong option fails, and a trap type. After answering I tag the miss as Knowledge, Technique, or Read-error — I didn't know it, I knew it but attacked the question wrong, or I misread the stem. Those need completely different remedies, and lumping them together is why "just do more questions" stops working.
+
+<img src="docs/practice.png" alt="A practice question with the answer revealed, showing the correct option, the reasoning, and a why-the-others-fail breakdown for each distractor" width="100%">
+
+**Treat exam technique as a separate skill.** Past a certain point the gap isn't knowledge, it's how you read a convoluted stem. So question type is a first-class attribute — Best/Most, NOT/Least, ordering, role-ID, distinction, recall — each with its own playbook and its own drill.
+
+<img src="docs/strategy.png" alt="The question strategy page: timing budget, a six-step method for attacking any question, and a per-question-type playbook" width="100%">
+
+**Make readiness a number with reasons behind it.** The dashboard projects a scaled score against the pass mark and gives a Ready / Almost / Not-yet verdict, then names the competencies dragging it down. Confidence is captured per question, so the analytics can show overconfidence — high certainty, low accuracy — which is the pattern that actually fails people.
+
+## What it does
+
+| | |
+|---|---|
+| **Learn** | 101 topics mapped to the Body of Knowledge v2.1, plain-English explanations, spaced-repetition flashcards |
+| **Practice** | 192 questions, filterable by competency, type, difficulty, unseen, or previously-wrong |
+| **Mock exam** | Blueprint-proportional and timed, scaled scoring, per-domain breakdown |
+| **Strategy** | Six-step question attack, playbooks and drills per question type |
+| **Analytics** | Mastery by competency, Knowledge/Technique/Read-error split, confidence calibration, time per question |
+| **Law updates** | A dated feed of what changed, so stale content is visible rather than silent |
+
+Coverage: 4 domains, 13 competencies, 6 question types, 101 topics, 192 questions, 32 flashcards.
+
+**Stack:** Next.js 16, TypeScript, Tailwind v4, Zustand, Recharts. Progress lives in `localStorage`; there are no accounts and nothing is sent anywhere. Supabase is optional, and only so content can be updated without a redeploy.
+
+## Run it
 
 ```bash
-npm install
-npm run dev      # http://localhost:3000
+npm install && npm run dev
 ```
 
-That's it — the app is fully functional on bundled content with **no configuration**.
+Fully functional with no configuration — content is bundled. Supabase setup and deployment notes are in [DEPLOY.md](DEPLOY.md).
 
-## Optional: Supabase (so content/updates can change without a redeploy)
+## What I'd do differently
 
-1. Create a free project at [supabase.com](https://supabase.com).
-2. In the SQL editor, run `supabase/migrations/0001_init.sql`.
-3. Copy `.env.local.example` → `.env.local` and fill in your project URL, anon key, and service-role key.
-4. Seed the database from the bundled content:
-   ```bash
-   npm run seed
-   ```
-The app reads the **anon** key (public, read-only via RLS). The **service-role** key is used only by the
-seed script and must never reach the browser.
+**I built content and product at the same time, and content won.** Roughly two thirds of the effort went into writing questions and topic explanations, not into the app. That was the right call for a study tool with one user, but I'd been telling myself I was building a product. I was building a textbook with a progress bar.
 
-## Deploy to Vercel
+**The readiness score is under-validated.** It projects a scaled score from a weighted competency model I designed myself. The weights come from the published exam blueprint, so the shape is defensible, but I have no outcome data to calibrate against — one person's result won't validate it either. I'd rather ship a number with visible reasoning than a vague "you're doing well," but I should have labelled the confidence interval on it instead of presenting a clean integer.
 
-```bash
-npm i -g vercel
-vercel            # follow the prompts
-```
-If you set up Supabase, add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` as Vercel
-environment variables. (The service-role key is not needed at runtime — only for seeding.)
+**Spaced repetition is bolted on, not designed in.** Flashcards run SM-2 on their own schedule while the question bank tracks mastery separately. They should have been one scheduling system over one pool of items. Splitting them was a modelling shortcut early on that got expensive to unpick.
 
-## How content stays current ("managed from Claude Code")
+**Freshness is manual, and that's the real product risk.** The law-updates feed is only as current as the last time I edited a file. For a domain where the content decays this fast, the honest design is an ingestion pipeline with source links and review dates, not a curated array. I scoped an in-app fetcher and left it feature-flagged off rather than half-build it.
 
-All content lives in `/content` (`curriculum.ts`, `notes.ts`, `questions.ts`, `flashcards.ts`, `updates.ts`)
-and is the single source of truth. To grow the question bank or add a law update, edit those files (ask your
-coach to do it), then either redeploy (bundled mode) or run `npm run seed` (Supabase mode). An optional,
-feature-flagged in-app "Fetch latest" button lives in `app/api/fetch-updates` (off by default).
+## Credits
 
-> **Note:** the question bank ships with a strong starter set covering every competency and question type.
-> It's designed to grow toward a full 100+ — ask your coach to expand it.
+The question bank is a mix of items I wrote and items adapted from community-shared AIGP study banks circulated by other candidates — including the bank shared by "Dr. David," credited in the source comments where those items appear. Thanks to everyone who has published free study material for this exam. If you recognise your work here and want it credited differently or removed, open an issue and I'll fix it.
 
-## Privacy
+## Disclaimer
 
-No accounts, no tracking. Your attempts, mock results, flashcard schedule and settings are stored only in
-your browser's `localStorage`. Use **Settings → Export** to back them up.
+Not affiliated with, endorsed by, or connected to the IAPP. AIGP and CIPP are trademarks of the International Association of Privacy Professionals. This is an independent study aid built for my own preparation and shared as-is; it reproduces no official exam content. Nothing here is legal advice.
+
+## Licence
+
+Code is MIT. Study content is shared for personal, non-commercial study use.
