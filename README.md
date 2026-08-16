@@ -2,7 +2,7 @@
 
 **A study system I built for the IAPP AIGP exam, because the prep material I could buy told me *what* to know and never *why I was getting questions wrong*.**
 
-Live: **[aigp-coach.vercel.app](https://aigp-coach.vercel.app)** · No login, no tracking, works offline after first load.
+**Clone it and run your own copy.** No accounts, no tracking, no API keys, no configuration. Your progress stays in your browser.
 
 <img src="docs/study-plan.png" alt="AIGP Coach study plan: a readiness score out of 100, a projected scaled score, and the Body of Knowledge broken into domains and competencies with per-topic progress" width="100%">
 
@@ -47,13 +47,40 @@ Coverage: 4 domains, 13 competencies, 6 question types, 101 topics, 192 question
 
 **Stack:** Next.js 16, TypeScript, Tailwind v4, Zustand, Recharts. Progress lives in `localStorage`; there are no accounts and nothing is sent anywhere. Supabase is optional, and only so content can be updated without a redeploy.
 
-## Run it
+## Run your own copy
 
 ```bash
-npm install && npm run dev
+git clone https://github.com/mahfzal87/aigp-coach.git
+cd aigp-coach
+npm install
+npm run dev
 ```
 
-Fully functional with no configuration, because the content is bundled. Supabase setup and deployment notes are in [DEPLOY.md](DEPLOY.md).
+Open `http://localhost:3000`. That is the whole setup. Every question, topic and flashcard is bundled in the repo, so there is nothing to configure, no account to create and no API key to supply. Requires Node 20 or later.
+
+**Deploy it somewhere private if you prefer.** It is a standard Next.js app and builds to a static-friendly output, so any host that runs Next will do:
+
+```bash
+npm run build && npm start
+```
+
+I deliberately do not run a public instance for other people. Progress is stored in your browser's `localStorage`, so a shared deployment would mean either shared progress or accounts, and I did not want to hold anyone's study data. Running your own copy keeps it yours.
+
+**Optional:** Supabase can be wired up so content updates without a redeploy. It is off by default and the app is fully functional without it. Setup notes are in [DEPLOY.md](DEPLOY.md).
+
+## Make it your own
+
+The content is the point, and it is all plain TypeScript in `/content`:
+
+| File | What is in it |
+|---|---|
+| `curriculum.ts` | Domains and competencies, with the exam blueprint weights |
+| `topics-i.ts` … `topics-iv.ts` | The 101 topic explanations |
+| `questions*.ts` | The question bank |
+| `flashcards.ts` | Spaced-repetition cards |
+| `updates.ts` | The law-updates feed |
+
+Add your own questions, correct mine, or rewrite the topics in your own words, which is the version that actually sticks. If you fix something that is wrong, a PR is welcome.
 
 ## What I'd do differently
 
