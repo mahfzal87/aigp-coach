@@ -1,6 +1,6 @@
 import type { LawUpdate } from "@/lib/types";
 
-// Curated AI-governance updates. Maintained from Claude Code: add entries here, re-seed.
+// Curated AI-governance updates. Add entries here, then redeploy or re-seed.
 export const updates: LawUpdate[] = [
   {
     id: "upd-bok-2-1",

@@ -3,17 +3,17 @@
 The app is a standard Next.js app and **builds with no environment variables** (progress lives in your
 browser; Supabase is optional). Deploy in ~2 minutes.
 
-## Option A — Vercel CLI (fastest)
+## Option A. Vercel CLI (fastest)
 
 ```bash
 cd /Users/ahmad/aigp-coach
 npx vercel login        # one-time: opens your browser to authenticate
-npx vercel --prod       # deploy; accept the defaults — it prints your live URL
+npx vercel --prod       # deploy; accept the defaults, it prints your live URL
 ```
 
 That's it. Every later `npx vercel --prod` ships an update.
 
-## Option B — GitHub + Vercel dashboard (auto-deploy on push)
+## Option B. GitHub plus Vercel dashboard (auto-deploy on push)
 
 ```bash
 # create an empty repo on github.com first, then:
@@ -32,9 +32,8 @@ Add these in Vercel → Project → Settings → Environment Variables only if y
 |----------|-----------|
 | `NEXT_PUBLIC_SUPABASE_URL` | **Cloud progress sync** (sync code) + mirroring content to Supabase. Not required to run. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same. |
-| `ANTHROPIC_API_KEY` (+ search key) | The optional in-app "Fetch latest updates" button. Off by default. |
 
-Without any of these, the app runs fully on its bundled content — which is what you want for studying.
+Without any of these, the app runs fully on its bundled content, which is what you want for studying.
 
 ## Enabling cloud progress sync (sync code, no login)
 
@@ -45,8 +44,9 @@ Without any of these, the app runs fully on its bundled content — which is wha
 
 Progress stays offline-first (localStorage) and mirrors to the cloud automatically a couple of seconds after each change.
 
-## Updating content (managed from Claude Code)
+## Updating content
 
-Edit files in `/content` (`questions-extra.ts`, `notes.ts`, `flashcards.ts`, `updates.ts`), commit, and
-redeploy (`npx vercel --prod` or `git push`). Ask Claude Code to "add 20 more Domain II questions" and it
-will edit `/content` for you.
+All content is plain TypeScript in `/content` (`questions.ts`, `questions-extra.ts`, `notes.ts`,
+`flashcards.ts`, `updates.ts`, `topics-*.ts`). Edit the files, commit, and redeploy with
+`npx vercel --prod` or a `git push`. If you are running Supabase, run `npm run seed` instead of
+redeploying.
