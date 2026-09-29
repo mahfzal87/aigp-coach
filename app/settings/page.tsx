@@ -93,7 +93,7 @@ export default function SettingsPage() {
             <Button variant="outline" onClick={() => fileRef.current?.click()}><Upload size={16} /> Import progress</Button>
             <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={(e) => e.target.files?.[0] && doImport(e.target.files[0])} />
           </div>
-          <p className="text-xs text-[var(--muted)]">Progress is stored in this browser. Turn on cloud sync below to back it up and move between devices.</p>
+          <p className="text-xs text-[var(--muted)]">Progress is stored in this browser only. Safari (Mac and iPhone) deletes site storage after ~7 days without a visit, and each browser/device keeps its own copy — so turn on cloud sync below and keep your code somewhere safe.</p>
         </CardBody></Card>
 
         {/* Cloud sync (sync code, no login) */}

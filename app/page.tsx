@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { CalendarDays, Flame, Target } from "lucide-react";
+import { CalendarDays, CloudOff, Flame, Target, X } from "lucide-react";
 import { computeReadiness } from "@/lib/readiness";
 import { streakAlive, todayStr, DAILY_GOAL_XP } from "@/lib/gamify";
 import { useHydrated, useProgress } from "@/store/progress";
-import { Badge, Card, CardBody } from "@/components/ui";
+import { Badge, Button, Card, CardBody } from "@/components/ui";
 import { AnimatedNumber, MotionBar, Reveal } from "@/components/motion";
 import { ContinueCard, CurriculumBoard } from "@/components/curriculum";
 import type { Verdict } from "@/lib/types";
@@ -35,6 +35,9 @@ export default function StudyPlanPage() {
   const lastActive = useProgress((s) => s.lastActiveDate);
   const dailyXp = useProgress((s) => s.dailyXp);
   const dailyDate = useProgress((s) => s.dailyDate);
+  const syncEnabled = useProgress((s) => s.settings.syncEnabled ?? false);
+  const nudgeDismissed = useProgress((s) => s.settings.syncNudgeDismissed ?? false);
+  const setSettings = useProgress((s) => s.setSettings);
 
   const readiness = useMemo(() => computeReadiness(attempts, mocks), [attempts, mocks]);
 
@@ -93,6 +96,22 @@ export default function StudyPlanPage() {
           </CardBody>
         </Card>
       </Reveal>
+
+      {attempts.length >= 10 && !syncEnabled && !nudgeDismissed && (
+        <Reveal delay={0.04}>
+          <Card className="border-[var(--warning)]/40">
+            <CardBody className="flex items-center gap-3 py-3.5">
+              <CloudOff size={18} className="shrink-0 text-[var(--warning)]" />
+              <p className="min-w-0 flex-1 text-sm">
+                <span className="font-semibold">Your progress lives only in this browser.</span>{" "}
+                <span className="text-[var(--muted)]">Safari clears unused site data after ~7 days — back it up once and it follows you everywhere.</span>
+              </p>
+              <Link href="/settings"><Button size="sm" variant="accent">Back it up</Button></Link>
+              <button aria-label="Dismiss backup reminder" onClick={() => setSettings({ syncNudgeDismissed: true })} className="press grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-lg text-[var(--muted)] hover:bg-[var(--surface-2)]"><X size={15} /></button>
+            </CardBody>
+          </Card>
+        </Reveal>
+      )}
 
       <Reveal delay={0.06}><ContinueCard /></Reveal>
 

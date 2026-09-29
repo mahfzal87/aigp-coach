@@ -158,6 +158,7 @@ export interface Settings {
   sound?: boolean; // celebration/feedback sounds (default off)
   haptics?: boolean; // vibration feedback where supported (default on)
   syncEnabled?: boolean; // cloud progress sync via sync code
+  syncNudgeDismissed?: boolean; // hide the "back up your progress" banner
   syncCode?: string; // anonymous sync code (AIGP-XXXX-XXXX)
 }
 
