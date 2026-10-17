@@ -7,6 +7,7 @@ import { XP_PER_ATTEMPT, XP_PER_CORRECT, todayStr, updateStreak } from "@/lib/ga
 import type {
   Attempt,
   FlashcardState,
+  LessonSession,
   MockSession,
   ProgressExport,
   Settings,
@@ -36,12 +37,15 @@ interface ProgressState {
   dailyXp: number;
   dailyDate: string | null;
   lessons: Record<string, LessonResult>; // competencyId or test id -> result
+  lessonSessions: Record<string, LessonSession>; // in-flight module positions
 
   recordAttempt: (a: Omit<Attempt, "id" | "ts">) => void;
   setRootCause: (attemptId: string, rc: Attempt["rootCause"]) => void;
   gradeFlashcard: (cardId: string, grade: number) => void;
   saveMock: (m: MockSession) => void;
   completeLesson: (id: string, score: number, bonusXp: number) => void;
+  saveLessonSession: (id: string, session: LessonSession) => void;
+  clearLessonSession: (id: string) => void;
   markNoteRead: (noteId: string) => void;
   setSettings: (s: Partial<Settings>) => void;
   reset: () => void;
@@ -69,6 +73,7 @@ export const useProgress = create<ProgressState>()(
       dailyXp: 0,
       dailyDate: null,
       lessons: {},
+      lessonSessions: {},
 
       recordAttempt: (a) =>
         set((s) => {
@@ -104,6 +109,17 @@ export const useProgress = create<ProgressState>()(
           };
         }),
 
+      saveLessonSession: (id, session) =>
+        set((s) => ({ lessonSessions: { ...s.lessonSessions, [id]: session } })),
+
+      clearLessonSession: (id) =>
+        set((s) => {
+          if (!(id in s.lessonSessions)) return s;
+          const next = { ...s.lessonSessions };
+          delete next[id];
+          return { lessonSessions: next };
+        }),
+
       completeLesson: (id, score, bonusXp) =>
         set((s) => {
           const prev = s.lessons[id];
@@ -121,7 +137,7 @@ export const useProgress = create<ProgressState>()(
 
       setSettings: (p) => set((s) => ({ settings: { ...s.settings, ...p } })),
 
-      reset: () => set({ attempts: [], flashcards: {}, mocks: [], readNotes: [], settings: { updatesApiEnabled: false }, xp: 0, streakCount: 0, longestStreak: 0, lastActiveDate: null, dailyXp: 0, dailyDate: null, lessons: {} }),
+      reset: () => set({ attempts: [], flashcards: {}, mocks: [], readNotes: [], settings: { updatesApiEnabled: false }, xp: 0, streakCount: 0, longestStreak: 0, lastActiveDate: null, dailyXp: 0, dailyDate: null, lessons: {}, lessonSessions: {} }),
 
       exportData: () => {
         const s = get();
@@ -138,6 +154,7 @@ export const useProgress = create<ProgressState>()(
           longestStreak: s.longestStreak,
           lastActiveDate: s.lastActiveDate,
           lessons: s.lessons,
+          lessonSessions: s.lessonSessions,
         };
       },
 
@@ -153,6 +170,7 @@ export const useProgress = create<ProgressState>()(
           longestStreak: data.longestStreak ?? 0,
           lastActiveDate: data.lastActiveDate ?? null,
           lessons: data.lessons ?? {},
+          lessonSessions: data.lessonSessions ?? {},
         }),
     }),
     {

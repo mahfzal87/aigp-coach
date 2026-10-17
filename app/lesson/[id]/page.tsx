@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, CheckCircle2, Lightbulb, RotateCcw, X } from "lucide-react";
 import {
   getCompetenciesByDomain,
@@ -11,13 +11,14 @@ import {
   getFlashcards,
   getQuestion,
   getQuestionsByCompetency,
+  getTopicForQuestion,
   getTopicsByCompetency,
 } from "@/lib/content";
 import { isAnswerCorrect, shuffle } from "@/lib/scoring";
 import { LESSON_PASS, XP_LESSON_BONUS, XP_TEST_BONUS } from "@/lib/gamify";
 import { celebrate } from "@/lib/celebrate";
 import type { Question, Topic } from "@/lib/types";
-import { useProgress } from "@/store/progress";
+import { useHydrated, useProgress } from "@/store/progress";
 import { Badge, Button, Card, CardBody } from "@/components/ui";
 import { QuestionView } from "@/components/quiz/question-view";
 import { m, MotionBar, Reveal, springSoft } from "@/components/motion";
@@ -29,6 +30,9 @@ export default function LessonPage() {
   const { id } = useParams<{ id: string }>();
   const recordAttempt = useProgress((s) => s.recordAttempt);
   const completeLesson = useProgress((s) => s.completeLesson);
+  const saveLessonSession = useProgress((s) => s.saveLessonSession);
+  const clearLessonSession = useProgress((s) => s.clearLessonSession);
+  const hydrated = useHydrated();
   const sound = useProgress((s) => s.settings.sound ?? false);
 
   const isTest = id.startsWith("test-");
@@ -41,6 +45,28 @@ export default function LessonPage() {
   const [missed, setMissed] = useState<{ q: Question; topicTitle?: string }[]>([]);
   const [done, setDone] = useState(false);
   const [startTs, setStartTs] = useState(Date.now());
+  const [resumedAt, setResumedAt] = useState<number | null>(null);
+  const restoredRef = useRef(false);
+
+  // Granular persistence: restore the saved in-module position once hydrated.
+  // (Domain tests are short and re-shuffled, so they always start fresh.)
+  useEffect(() => {
+    if (!hydrated || restoredRef.current || isTest || !meta) return;
+    restoredRef.current = true;
+    const sess = useProgress.getState().lessonSessions[id];
+    if (sess && sess.total === meta.steps.length && sess.step > 0 && sess.step < meta.steps.length) {
+      setStep(sess.step);
+      setCorrectCount(sess.correctCount);
+      const restoredMissed: { q: Question; topicTitle?: string }[] = [];
+      for (const qid of sess.missedIds) {
+        const q = getQuestion(qid);
+        if (q) restoredMissed.push({ q, topicTitle: getTopicForQuestion(qid)?.title });
+      }
+      setMissed(restoredMissed);
+      setResumedAt(sess.step);
+      setStartTs(Date.now());
+    }
+  }, [hydrated, id, isTest, meta]);
 
   if (!meta) {
     return <div className="text-sm text-[var(--muted)]">Module not found. <Link href="/" className="text-[var(--accent)] underline">Back to study plan</Link></div>;
@@ -54,6 +80,7 @@ export default function LessonPage() {
   function finish(finalCorrect: number) {
     const score = totalQ ? finalCorrect / totalQ : 1;
     completeLesson(id, score, isTest ? XP_TEST_BONUS : XP_LESSON_BONUS);
+    clearLessonSession(id);
     if (score >= LESSON_PASS) haptic(isTest ? "milestone" : "success");
     if (isTest && score >= LESSON_PASS) celebrate({ sound, big: false });
     setDone(true);
@@ -62,6 +89,9 @@ export default function LessonPage() {
   function next() {
     if (step + 1 >= steps.length) finish(correctCount);
     else {
+      if (!isTest) {
+        saveLessonSession(id, { step: step + 1, correctCount, missedIds: missed.map((mm) => mm.q.id), total: steps.length, updatedAt: Date.now() });
+      }
       setStep((s) => s + 1);
       setSelected([]);
       setRevealed(false);
@@ -130,7 +160,7 @@ export default function LessonPage() {
 
         <div className="flex flex-col gap-2">
           <Button onClick={() => router.push("/")}>Back to study plan</Button>
-          <Button variant="outline" onClick={() => { setStep(0); setDone(false); setCorrectCount(0); setMissed([]); setSelected([]); setRevealed(false); }}><RotateCcw size={15} /> Run again</Button>
+          <Button variant="outline" onClick={() => { clearLessonSession(id); setResumedAt(null); setStep(0); setDone(false); setCorrectCount(0); setMissed([]); setSelected([]); setRevealed(false); }}><RotateCcw size={15} /> Run again</Button>
           {meta.competencyId && (
             <Link href={`/learn/${meta.competencyId}`} className="w-full"><Button variant="ghost" className="w-full"><BookOpen size={15} /> Read the study notes</Button></Link>
           )}
@@ -149,6 +179,13 @@ export default function LessonPage() {
       </div>
 
       <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">{meta.title}</div>
+
+      {resumedAt !== null && !revealed && step === resumedAt && (
+        <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/6 px-3 py-2 text-xs">
+          <span className="font-semibold text-[var(--accent)]">Resumed where you left off — step {resumedAt + 1} of {steps.length}.</span>
+          <button onClick={() => { haptic("tap"); clearLessonSession(id); setResumedAt(null); setStep(0); setCorrectCount(0); setMissed([]); setSelected([]); setRevealed(false); setStartTs(Date.now()); }} className="press cursor-pointer font-semibold text-[var(--muted)] underline-offset-2 hover:underline">Start over</button>
+        </div>
+      )}
 
       <m.div key={step} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={springSoft}>
       {cur.kind === "topic" ? (

@@ -22,10 +22,12 @@ interface Row {
   topicCount: number;
   best: number | null;
   state: RowState;
+  session?: { step: number; total: number; updatedAt: number };
 }
 
 export function useCurriculum() {
   const lessons = useProgress((s) => s.lessons);
+  const lessonSessions = useProgress((s) => s.lessonSessions);
   return useMemo(() => {
     let foundCurrent = false;
     const units = getDomains().map((d) => {
@@ -35,7 +37,9 @@ export function useCurriculum() {
         const done = (best ?? 0) >= LESSON_PASS;
         let state: RowState = done ? "done" : "todo";
         if (!done && !foundCurrent) { state = "current"; foundCurrent = true; }
-        return { id: c.id, code: c.code, name: c.name, kind: "lesson", qCount: getQuestionsByCompetency(c.id).length, topicCount: getTopicsByCompetency(c.id).length, best, state };
+        const sess = lessonSessions[c.id];
+        const session = sess && sess.step > 0 ? { step: sess.step, total: sess.total, updatedAt: sess.updatedAt } : undefined;
+        return { id: c.id, code: c.code, name: c.name, kind: "lesson", qCount: getQuestionsByCompetency(c.id).length, topicCount: getTopicsByCompetency(c.id).length, best, state, session };
       });
       const testId = `test-${d.code}`;
       const testBest = lessons[testId]?.bestScore ?? null;
@@ -47,9 +51,12 @@ export function useCurriculum() {
       const pct = Math.round((rows.filter((r) => r.state === "done").length / rows.length) * 100);
       return { domain: d, rows, pct };
     });
-    const current = units.flatMap((u) => u.rows).find((r) => r.state === "current") ?? null;
-    return { units, current };
-  }, [lessons]);
+    const allRows = units.flatMap((u) => u.rows);
+    // An in-flight session beats the default pointer: resume the most recent one.
+    const resume = allRows.filter((r) => r.session).sort((a, b) => (b.session!.updatedAt ?? 0) - (a.session!.updatedAt ?? 0))[0] ?? null;
+    const current = resume ?? allRows.find((r) => r.state === "current") ?? null;
+    return { units, current, resume };
+  }, [lessons, lessonSessions]);
 }
 
 export function CurriculumBoard() {
@@ -98,15 +105,16 @@ function ModuleRow({ row }: { row: Row }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-semibold">{row.kind === "test" ? row.name : `${row.code} · ${row.name}`}</span>
-          {row.state === "current" && <Badge tone="primary">Up next</Badge>}
+          {row.session ? <Badge tone="accent">In progress</Badge> : row.state === "current" && <Badge tone="primary">Up next</Badge>}
         </div>
         <div className="mt-0.5 text-xs text-[var(--muted)]">
           {row.kind === "test" ? "12 questions, checks the whole domain" : row.topicCount > 0 ? `${row.topicCount} topics · learn → test each` : `${row.qCount} questions in bank`}
+          {row.session && ` · paused at ${row.session.step + 1}/${row.session.total}`}
           {row.best !== null && ` · best ${Math.round(row.best * 100)}%`}
         </div>
       </div>
       <span className="flex items-center gap-1 text-xs font-semibold text-[var(--accent)]">
-        {row.state === "done" ? "Review" : row.state === "current" ? "Start" : "Open"}
+        {row.session ? "Resume" : row.state === "done" ? "Review" : row.state === "current" ? "Start" : "Open"}
         <ArrowRight size={13} className="transition-transform duration-200 group-hover:translate-x-0.5" />
       </span>
     </Link>
@@ -132,6 +140,7 @@ export function ContinueCard() {
         <div className="min-w-0">
           <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Continue where you left off</div>
           <div className="mt-1 truncate text-[15px] font-bold">{current.kind === "test" ? current.name : `${current.code} · ${current.name}`}</div>
+          {current.session && <div className="mt-0.5 text-xs font-semibold text-[var(--accent)]">Paused at step {current.session.step + 1} of {current.session.total} — picks up right there</div>}
         </div>
         <Link href={`/lesson/${current.id}`}><Button onClick={() => haptic("tap")} className="group">Continue <ArrowRight size={15} className="transition-transform duration-200 group-hover:translate-x-0.5" /></Button></Link>
       </CardBody>

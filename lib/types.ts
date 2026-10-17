@@ -162,6 +162,15 @@ export interface Settings {
   syncCode?: string; // anonymous sync code (AIGP-XXXX-XXXX)
 }
 
+// Mid-module position so a lesson can resume exactly where it stopped.
+export interface LessonSession {
+  step: number; // step index to resume at
+  correctCount: number;
+  missedIds: string[]; // question ids missed so far
+  total: number; // steps length when saved — mismatch (content changed) invalidates
+  updatedAt: number;
+}
+
 export interface ProgressExport {
   version: number;
   exportedAt: string;
@@ -175,6 +184,7 @@ export interface ProgressExport {
   longestStreak?: number;
   lastActiveDate?: string | null;
   lessons?: Record<string, { score: number; bestScore: number; at: number }>;
+  lessonSessions?: Record<string, LessonSession>;
 }
 
 // ─── Derived analytics types ───
