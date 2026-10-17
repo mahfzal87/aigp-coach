@@ -16,6 +16,7 @@ const primaryNav = [
   { href: "/mock", label: "Mock Exam", icon: GraduationCap },
   { href: "/profile", label: "Progress", icon: BarChart3 },
 ];
+const mobileNav = [...primaryNav, { href: "/reference", label: "Library", icon: FileText }];
 const secondaryNav = [
   { href: "/strategy", label: "Strategy", icon: Layers },
   { href: "/reference", label: "Reference", icon: FileText },
@@ -99,8 +100,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 pb-24 md:px-8 md:py-8 md:pb-10">{children}</main>
 
         {/* Mobile bottom nav */}
-        <nav className="glass fixed bottom-0 left-0 right-0 z-20 grid grid-cols-4 border-t border-[var(--border)] md:hidden">
-          {primaryNav.map((n) => {
+        <nav className="glass fixed bottom-0 left-0 right-0 z-20 grid grid-cols-5 border-t border-[var(--border)] md:hidden">
+          {mobileNav.map((n) => {
             const Icon = n.icon;
             return (
               <Link key={n.href} href={n.href} onClick={() => haptic("tap")} className={cn("press flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold", isActive(n.href) ? "text-[var(--primary)]" : "text-[var(--muted)]")}>

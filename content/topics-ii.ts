@@ -633,7 +633,7 @@ export const topicsII: Topic[] = [
       "**Article 50** covers the limited-risk tier: people must be told they are interacting with AI **at the time of the first interaction or exposure — in advance**, not after the first exchange, not buried in sign-up terms, and not only on request. **AI-generated content must be labeled in a machine-readable way**, and **deepfakes** must be disclosed as artificially generated or manipulated. These duties apply from **2 August 2026** — the 2026 Digital Omnibus deferred the high-risk deadlines but left Article 50 untouched, making 'what applies from August 2026' a transparency question.",
     exampleMd:
       "Vela Apps launches its shopping chatbot in the EU in September 2026. Product manager Jonas wants the 'you are chatting with AI' notice tucked into the terms of service; counsel Maja overrules him — the banner must appear **when the chat first opens**, and the AI-generated product images the bot sends must carry **machine-readable AI-content labels**. Both duties are live now; the deferred high-risk dates are irrelevant to a chatbot.",
-    questionIds: ["q-ii-c-4", "z-ii-c-3"],
+    questionIds: ["q-ii-c-4", "z-ii-c-3", "z-ii-c-13"],
     sort: 6,
   },
   {
@@ -699,7 +699,7 @@ export const topicsII: Topic[] = [
       "The US still has **no comprehensive federal AI law** — federal power flows through sectoral statutes, FTC enforcement, and shifting executive orders (Biden's EO 14110 was rescinded in January 2025; the current EO 14179 posture is pro-innovation and deregulatory). The headline federal statute is the **Take It Down Act**: it criminalizes publishing **non-consensual intimate imagery, explicitly including AI deepfakes**, and requires covered platforms to remove flagged content within **48 hours** — **FTC-enforced**, with platform enforcement live since 19 May 2026. The states fill the gap: **Colorado repealed its AI Act and replaced it with SB 26-189** (automated decision-making technology that 'materially influences' consequential decisions; consumer disclosures, adverse-outcome explanations, correction rights, human review; **Attorney General-only enforcement**; effective **1 January 2027**) — contrast **Texas TRAIGA**, which is **intent-based** (effective 1 January 2026). Round out the map with **Illinois** (BIPA biometric consent; an HRA amendment on AI employment discrimination), **NYC Local Law 144** (bias audits of automated hiring tools), and **California** (training-data transparency and AI-provenance laws).",
     exampleMd:
       "Nimbus Social's counsel Dana handles a brutal quarter: a deepfake NCII report starts the **48-hour Take It Down clock**; the New York office schedules the **Local Law 144 bias audit** for its hiring screener; and for the same screening tool she builds one program covering **Texas TRAIGA** (document intent and testing) and **Colorado SB 26-189** (disclosures, adverse-outcome explanations, human review) — impact-based and intent-based regimes, one governance layer.",
-    questionIds: ["q-ii-c-6", "z-ii-c-5"],
+    questionIds: ["q-ii-c-6", "z-ii-c-5", "z-ii-c-11", "z-ii-c-12"],
     sort: 12,
   },
 

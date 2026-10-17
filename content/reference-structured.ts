@@ -28,6 +28,8 @@ export const FACTS: { n: number; fact: string; tag: FactTag }[] = [
   { n: 23, fact: "Federated learning trains where the data lives; differential privacy adds noise; synthetic data boosts accuracy; anonymization strips identifiers.", tag: "Develop" },
   { n: 24, fact: "Model card = summary (purpose, performance, limits, intended use). AI system inventory = full repository (docs, incident plans, source links, contacts).", tag: "Develop" },
   { n: 25, fact: "Deactivation triggers = regulatory or performance — never profit, never automatically on a new version. Feature flags localize without redeploy.", tag: "Deploy" },
+  { n: 26, fact: "California SB 53 (eff. 1 Jan 2026): FIRST US frontier-model law — >10²⁶ training operations; safety framework, Cal OES incident reports (15d / 24h imminent), up to $1M per violation. Don't confuse with the EU's 10²⁵ FLOPs.", tag: "US & global" },
+  { n: 27, fact: "Omnibus marking grace (to 2 Dec 2026) covers ONLY generative systems on the market before 2 Aug 2026 — new launches must watermark from day one; the rest of Art. 50 was never deferred.", tag: "EU" },
 ];
 
 export const DISTINCTIONS: { a: string; b: string; diff: string }[] = [
