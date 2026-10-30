@@ -8,6 +8,7 @@ import type {
   Attempt,
   FlashcardState,
   LessonSession,
+  MockRun,
   MockSession,
   ProgressExport,
   Settings,
@@ -38,11 +39,14 @@ interface ProgressState {
   dailyDate: string | null;
   lessons: Record<string, LessonResult>; // competencyId or test id -> result
   lessonSessions: Record<string, LessonSession>; // in-flight module positions
+  mockRun: MockRun | null; // paused / in-flight mock exam
 
   recordAttempt: (a: Omit<Attempt, "id" | "ts">) => void;
   setRootCause: (attemptId: string, rc: Attempt["rootCause"]) => void;
   gradeFlashcard: (cardId: string, grade: number) => void;
   saveMock: (m: MockSession) => void;
+  saveMockRun: (run: MockRun) => void;
+  clearMockRun: () => void;
   completeLesson: (id: string, score: number, bonusXp: number) => void;
   saveLessonSession: (id: string, session: LessonSession) => void;
   clearLessonSession: (id: string) => void;
@@ -74,6 +78,7 @@ export const useProgress = create<ProgressState>()(
       dailyDate: null,
       lessons: {},
       lessonSessions: {},
+      mockRun: null,
 
       recordAttempt: (a) =>
         set((s) => {
@@ -110,6 +115,10 @@ export const useProgress = create<ProgressState>()(
           };
         }),
 
+      saveMockRun: (run) => set({ mockRun: run }),
+
+      clearMockRun: () => set((s) => (s.mockRun === null ? s : { mockRun: null })),
+
       saveLessonSession: (id, session) =>
         set((s) => ({ lessonSessions: { ...s.lessonSessions, [id]: session } })),
 
@@ -138,7 +147,7 @@ export const useProgress = create<ProgressState>()(
 
       setSettings: (p) => set((s) => ({ settings: { ...s.settings, ...p } })),
 
-      reset: () => set({ attempts: [], flashcards: {}, mocks: [], readNotes: [], settings: { updatesApiEnabled: false }, xp: 0, streakCount: 0, longestStreak: 0, lastActiveDate: null, dailyXp: 0, dailyDate: null, lessons: {}, lessonSessions: {} }),
+      reset: () => set({ attempts: [], flashcards: {}, mocks: [], readNotes: [], settings: { updatesApiEnabled: false }, xp: 0, streakCount: 0, longestStreak: 0, lastActiveDate: null, dailyXp: 0, dailyDate: null, lessons: {}, lessonSessions: {}, mockRun: null }),
 
       exportData: () => {
         const s = get();
@@ -156,6 +165,7 @@ export const useProgress = create<ProgressState>()(
           lastActiveDate: s.lastActiveDate,
           lessons: s.lessons,
           lessonSessions: s.lessonSessions,
+          mockRun: s.mockRun,
         };
       },
 
@@ -172,6 +182,7 @@ export const useProgress = create<ProgressState>()(
           lastActiveDate: data.lastActiveDate ?? null,
           lessons: data.lessons ?? {},
           lessonSessions: data.lessonSessions ?? {},
+          mockRun: data.mockRun ?? null,
         }),
     }),
     {

@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, ArrowRight, BarChart3, ChevronDown, Clock, Crosshair, Eye, Flame, History, Layers, RotateCcw, Shuffle, Target, TrendingDown, TrendingUp, Trophy, XCircle, Zap } from "lucide-react";
+import { AlertTriangle, ArrowRight, BarChart3, ChevronDown, Clock, Crosshair, Eye, Flame, History, Layers, Pause, PlayCircle, RotateCcw, Shuffle, Target, TrendingDown, TrendingUp, Trophy, XCircle, Zap } from "lucide-react";
 import { Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { competencyToDomainCode, getDomains, getQuestion } from "@/lib/content";
 import { EXAM_DEFS, SPRINT_DEF, buildSprint, getExamDef, getExamQuestions, getExamStats, type ExamDef } from "@/lib/exams";
 import { TRAP_LABEL, computeMockInsights, type MockInsights, type MissRecord } from "@/lib/mock-insights";
 import { isAnswerCorrect, correctLabels, shuffle, toScaledScore } from "@/lib/scoring";
 import { haptic } from "@/lib/haptics";
-import type { DomainCode, MockSession, Question } from "@/lib/types";
+import type { DomainCode, MockRun, MockSession, Question } from "@/lib/types";
 import { useHydrated, useProgress } from "@/store/progress";
 import { Badge, Bar, Button, Card, CardBody, PageHeader, Stat } from "@/components/ui";
 import { Stagger, StaggerItem } from "@/components/motion";
@@ -36,6 +36,9 @@ export default function MockPage() {
   const recordAttempt = useProgress((s) => s.recordAttempt);
   const mocks = useProgress((s) => s.mocks);
   const attempts = useProgress((s) => s.attempts);
+  const mockRun = useProgress((s) => s.mockRun);
+  const saveMockRun = useProgress((s) => s.saveMockRun);
+  const clearMockRun = useProgress((s) => s.clearMockRun);
 
   const [phase, setPhase] = useState<"landing" | "run" | "result" | "drill">("landing");
   const [def, setDef] = useState<ExamDef | null>(null);
@@ -71,6 +74,24 @@ export default function MockPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [now, phase, deadline]);
 
+  // Crash-proof runs: persist the in-flight paper on every answer and navigation,
+  // so a pause, closed tab or crash never loses a mock exam.
+  useEffect(() => {
+    if (phase !== "run" || set.length === 0 || !deadline) return;
+    saveMockRun({
+      examId: def?.id,
+      examName: def?.name,
+      questionIds: set.map((q) => q.id),
+      answers,
+      idx,
+      remainingMs: Math.max(0, deadline - Date.now()),
+      startedAt: startedRef.current,
+      updatedAt: Date.now(),
+      totalMinutes: def?.minutes ?? Math.round(set.length * 1.65),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, idx, phase, set, deadline]);
+
   function start(d: ExamDef) {
     const base = d.kind === "sprint" ? buildSprint(seenCount, d.length) : getExamQuestions(d.id);
     if (base.length === 0) return;
@@ -85,6 +106,56 @@ export default function MockPage() {
     setShowAll(false);
     startedRef.current = Date.now();
     setDeadline(Date.now() + d.minutes * 60 * 1000);
+    setNow(Date.now());
+    setPhase("run");
+  }
+
+  function pauseExam() {
+    if (phase !== "run" || !deadline) return;
+    haptic("tap");
+    saveMockRun({
+      examId: def?.id,
+      examName: def?.name,
+      questionIds: set.map((q) => q.id),
+      answers,
+      idx,
+      remainingMs: Math.max(0, deadline - Date.now()),
+      startedAt: startedRef.current,
+      updatedAt: Date.now(),
+      totalMinutes: def?.minutes ?? Math.round(set.length * 1.65),
+    });
+    setSet([]);
+    setAnswers({});
+    setIdx(0);
+    setDeadline(0);
+    setDef(null);
+    setConfirmArm(false);
+    setPhase("landing");
+  }
+
+  function resumeRun() {
+    const run = useProgress.getState().mockRun;
+    if (!run) return;
+    const qs: Question[] = [];
+    for (const qid of run.questionIds) {
+      const q = getQuestion(qid);
+      if (q) qs.push(q);
+    }
+    if (qs.length === 0) {
+      clearMockRun();
+      return;
+    }
+    haptic("tap");
+    setDef(run.examId === "sprint" ? SPRINT_DEF : run.examId ? getExamDef(run.examId) ?? null : null);
+    setSet(qs);
+    setAnswers(run.answers);
+    setIdx(Math.min(run.idx, qs.length - 1));
+    setSession(null);
+    setReviewOnly(false);
+    setShowAll(false);
+    setConfirmArm(false);
+    startedRef.current = run.startedAt;
+    setDeadline(Date.now() + Math.max(60_000, run.remainingMs)); // resuming always grants at least a minute
     setNow(Date.now());
     setPhase("run");
   }
@@ -123,6 +194,7 @@ export default function MockPage() {
       durationMs: Date.now() - startedRef.current,
     };
     saveMock(ms);
+    clearMockRun();
     setSession(ms);
     setReviewOnly(false);
     setShowAll(false);
@@ -165,20 +237,22 @@ export default function MockPage() {
       <div className="space-y-8">
         <PageHeader title="Mock exams" subtitle="Fixed exam papers built from the hard pool — each cluster is a different set, so no paper repeats another. Timed, no feedback until you submit, full reasoning for every miss afterward." />
 
+        {mockRun && <ResumeBanner run={mockRun} onResume={resumeRun} onDiscard={() => { haptic("tap"); clearMockRun(); }} />}
+
         {ins.sessions.length > 0 && <InsightsBand ins={ins} />}
 
         <section>
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--muted)]"><Trophy size={15} /> Full-length forms</h2>
           <Stagger className="grid gap-4 md:grid-cols-3" delay={0.04}>
-            {fullDefs.map((d) => <StaggerItem key={d.id} y={10}><ExamCard def={d} mocks={mocks} onStart={() => start(d)} /></StaggerItem>)}
+            {fullDefs.map((d) => <StaggerItem key={d.id} y={10}><ExamCard def={d} mocks={mocks} guard={!!mockRun} onStart={() => start(d)} /></StaggerItem>)}
           </Stagger>
         </section>
 
         <section>
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--muted)]"><Target size={15} /> Targeted clusters</h2>
           <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" delay={0.04}>
-            {targetedDefs.map((d) => <StaggerItem key={d.id} y={10}><ExamCard def={d} mocks={mocks} onStart={() => start(d)} /></StaggerItem>)}
-            <StaggerItem y={10}><SprintCard onStart={() => start(SPRINT_DEF)} mocks={mocks} /></StaggerItem>
+            {targetedDefs.map((d) => <StaggerItem key={d.id} y={10}><ExamCard def={d} mocks={mocks} guard={!!mockRun} onStart={() => start(d)} /></StaggerItem>)}
+            <StaggerItem y={10}><SprintCard onStart={() => start(SPRINT_DEF)} mocks={mocks} guard={!!mockRun} /></StaggerItem>
           </Stagger>
         </section>
 
@@ -317,8 +391,9 @@ export default function MockPage() {
       <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">{def?.name}</div>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm font-medium"><Clock size={16} className={remaining < 5 * 60000 ? "text-[var(--danger)]" : ""} /> {fmtTime(remaining)}</div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <span className="text-sm text-[var(--muted)]">{answeredCount}/{set.length} answered</span>
+          <Button variant="outline" onClick={pauseExam} className="h-8 px-3 text-xs"><Pause size={13} /> Pause</Button>
           <Button variant={confirmArm ? "primary" : "outline"} onClick={submitNow} className="h-8 px-3 text-xs">
             {confirmArm ? `Sure? ${set.length - answeredCount} blank — tap again` : "Submit"}
           </Button>
@@ -352,13 +427,35 @@ export default function MockPage() {
 
 // ─── Cluster cards ───
 
-function ExamCard({ def, mocks, onStart }: { def: ExamDef; mocks: MockSession[]; onStart: () => void }) {
+// First tap arms a warning when a paused exam would be replaced; second tap starts.
+function useGuardedStart(guard: boolean, onStart: () => void) {
+  const [armed, setArmed] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  return {
+    armed,
+    fire: () => {
+      if (guard && !armed) {
+        haptic("tap");
+        setArmed(true);
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = setTimeout(() => setArmed(false), 5000);
+        return;
+      }
+      if (timer.current) clearTimeout(timer.current);
+      setArmed(false);
+      onStart();
+    },
+  };
+}
+
+function ExamCard({ def, mocks, guard, onStart }: { def: ExamDef; mocks: MockSession[]; guard: boolean; onStart: () => void }) {
   const stats = getExamStats(def.id);
   const tries = mocks.filter((m) => m.examId === def.id && m.finishedAt && typeof m.scaledScore === "number");
   const best = tries.reduce((b, m) => Math.max(b, m.scaledScore ?? 0), 0);
   const sorted = [...tries].sort((a, b) => (a.finishedAt ?? 0) - (b.finishedAt ?? 0));
   const latest = sorted[sorted.length - 1]?.scaledScore;
   const prev = sorted[sorted.length - 2]?.scaledScore;
+  const { armed, fire } = useGuardedStart(guard, onStart);
   const Icon = def.kind === "full" ? Trophy : def.kind === "gauntlet" ? Flame : def.kind === "trap" ? AlertTriangle : Layers;
   const disabled = stats.total === 0;
   return (
@@ -392,9 +489,56 @@ function ExamCard({ def, mocks, onStart }: { def: ExamDef; mocks: MockSession[];
               </>
             )}
           </span>
-          <Button onClick={onStart} disabled={disabled} className="h-8 px-3 text-xs">
-            {tries.length > 0 ? "Retake" : "Start"} <ArrowRight size={13} />
+          <Button variant={armed ? "danger" : "primary"} onClick={fire} disabled={disabled} className="h-8 px-3 text-xs">
+            {armed ? "Replaces paused exam — sure?" : <>{tries.length > 0 ? "Retake" : "Start"} <ArrowRight size={13} /></>}
           </Button>
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+// ─── Paused-exam banner ───
+
+function relTime(ts: number): string {
+  const m = Math.max(0, Math.round((Date.now() - ts) / 60000));
+  if (m < 1) return "just now";
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 48) return `${h} h ago`;
+  return `${Math.round(h / 24)} days ago`;
+}
+
+function ResumeBanner({ run, onResume, onDiscard }: { run: MockRun; onResume: () => void; onDiscard: () => void }) {
+  const [arm, setArm] = useState(false);
+  const answered = Object.values(run.answers).filter((a) => a.length > 0).length;
+  return (
+    <Card className="liftable border-[var(--primary)]/35">
+      <CardBody className="flex flex-wrap items-center gap-3">
+        <PlayCircle size={24} className="shrink-0 text-[var(--primary)]" />
+        <div className="min-w-0 flex-1">
+          <div className="text-[15px] font-bold">{run.examName ?? "Mock exam"} — paused</div>
+          <div className="mt-0.5 text-xs text-[var(--muted)]">
+            {answered}/{run.questionIds.length} answered · {fmtTime(run.remainingMs)} on the clock · paused {relTime(run.updatedAt)} — the timer is frozen
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            variant="ghost"
+            onClick={() => {
+              if (!arm) {
+                haptic("tap");
+                setArm(true);
+                setTimeout(() => setArm(false), 5000);
+                return;
+              }
+              onDiscard();
+            }}
+            className={cn("h-9 px-3 text-xs", arm && "text-[var(--danger)]")}
+          >
+            {arm ? "Tap again to discard" : "Discard"}
+          </Button>
+          <Button onClick={onResume} className="h-9 px-4 text-sm">Resume exam <ArrowRight size={14} /></Button>
         </div>
       </CardBody>
     </Card>
@@ -613,8 +757,9 @@ function MissVault({ misses, onDrill }: { misses: MissRecord[]; onDrill: () => v
   );
 }
 
-function SprintCard({ onStart, mocks }: { onStart: () => void; mocks: MockSession[] }) {
+function SprintCard({ onStart, mocks, guard }: { onStart: () => void; mocks: MockSession[]; guard: boolean }) {
   const tries = mocks.filter((m) => m.examId === "sprint");
+  const { armed, fire } = useGuardedStart(guard, onStart);
   return (
     <Card className="liftable flex h-full flex-col border-dashed">
       <CardBody className="flex flex-1 flex-col gap-3">
@@ -629,7 +774,9 @@ function SprintCard({ onStart, mocks }: { onStart: () => void; mocks: MockSessio
         </div>
         <div className="mt-auto flex items-center justify-between pt-1">
           <span className="text-xs text-[var(--muted)]">{tries.length === 0 ? "Daily variety drill" : `${tries.length} run${tries.length === 1 ? "" : "s"}`}</span>
-          <Button onClick={onStart} className="h-8 px-3 text-xs">Start <ArrowRight size={13} /></Button>
+          <Button variant={armed ? "danger" : "primary"} onClick={fire} className="h-8 px-3 text-xs">
+            {armed ? "Replaces paused exam — sure?" : <>Start <ArrowRight size={13} /></>}
+          </Button>
         </div>
       </CardBody>
     </Card>

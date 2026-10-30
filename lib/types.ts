@@ -164,6 +164,20 @@ export interface Settings {
   syncCode?: string; // anonymous sync code (AIGP-XXXX-XXXX)
 }
 
+// A mock exam in flight: persisted on every answer so a pause, tab close or crash
+// never loses the paper. remainingMs freezes the clock while paused.
+export interface MockRun {
+  examId?: string;
+  examName?: string;
+  questionIds: string[]; // exact shuffled order of this attempt
+  answers: Record<string, string[]>;
+  idx: number; // question the candidate was on
+  remainingMs: number;
+  startedAt: number;
+  updatedAt: number;
+  totalMinutes: number;
+}
+
 // Mid-module position so a lesson can resume exactly where it stopped.
 export interface LessonSession {
   step: number; // step index to resume at
@@ -187,6 +201,7 @@ export interface ProgressExport {
   lastActiveDate?: string | null;
   lessons?: Record<string, { score: number; bestScore: number; at: number }>;
   lessonSessions?: Record<string, LessonSession>;
+  mockRun?: MockRun | null;
 }
 
 // ─── Derived analytics types ───
