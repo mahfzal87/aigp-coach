@@ -36,7 +36,8 @@ export default function ProfilePage() {
 
   const lessonsCompleted = Object.entries(lessons).filter(([, l]) => l.bestScore >= LESSON_PASS).length;
   const perfectLessons = Object.values(lessons).filter((l) => l.bestScore >= 1).length;
-  const mocksPassed = mocks.filter((m) => (m.scaledScore ?? 0) >= 300).length;
+  // only full-length papers (90+ questions) count toward "Exam Ready"
+  const mocksPassed = mocks.filter((m) => (m.scaledScore ?? 0) >= 300 && m.questionIds.length >= 90).length;
 
   const earned = useMemo(() => {
     const input = { xp, level, streakCount: streak, attempts: attempts.length, correct: attempts.filter((a) => a.correct).length, lessonsCompleted, mocksPassed, perfectLessons };

@@ -30,7 +30,11 @@ export function updateStreak(
   prev: { streakCount: number; longestStreak: number; lastActiveDate: string | null },
   today: string
 ): { streakCount: number; longestStreak: number; lastActiveDate: string } {
-  if (prev.lastActiveDate === today) return { ...prev, lastActiveDate: today };
+  // Return ONLY the three streak fields. `prev` is often the whole store state, and
+  // spreading it back caused callers that merge `...streak` to overwrite their own
+  // updates with stale state (attempts silently dropped after the first of the day).
+  if (prev.lastActiveDate === today)
+    return { streakCount: prev.streakCount, longestStreak: prev.longestStreak, lastActiveDate: today };
   let count = 1;
   if (prev.lastActiveDate && dayDiff(prev.lastActiveDate, today) === 1) count = prev.streakCount + 1;
   return { streakCount: count, longestStreak: Math.max(prev.longestStreak, count), lastActiveDate: today };

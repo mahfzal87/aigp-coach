@@ -141,6 +141,8 @@ export interface FlashcardState {
 
 export interface MockSession {
   id: string;
+  examId?: string; // exam cluster id from lib/exams.ts ("form-a", "gauntlet", …)
+  examName?: string; // frozen display name (survives cluster renames)
   startedAt: number;
   finishedAt?: number;
   questionIds: string[];

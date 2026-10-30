@@ -82,11 +82,12 @@ export const useProgress = create<ProgressState>()(
           const streak = updateStreak(s, today);
           const dailyXp = (s.dailyDate === today ? s.dailyXp : 0) + gained;
           return {
+            // streak first — its keys must never shadow the updates below
+            ...streak,
             attempts: [...s.attempts, { ...a, id: uid(), ts: Date.now() }],
             xp: s.xp + gained,
             dailyXp,
             dailyDate: today,
-            ...streak,
           };
         }),
 
@@ -186,5 +187,4 @@ export const useProgress = create<ProgressState>()(
 export function useHydrated() {
   return useProgress((s) => s.hydrated);
 }
-
 export { uid };

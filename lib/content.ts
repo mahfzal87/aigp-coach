@@ -3,6 +3,7 @@ import { competencies } from "@/content/curriculum";
 import { questions as questionsBase } from "@/content/questions";
 import { questionsExtra } from "@/content/questions-extra";
 import { questionsBatch3 } from "@/content/questions-batch3";
+import { examPool } from "@/content/exam-pool-index";
 import { topics as topicsAll, topicQuestions } from "@/content/topics-index";
 import { flashcards } from "@/content/flashcards";
 import { notes } from "@/content/notes";
@@ -13,7 +14,7 @@ import type { Competency, Domain, DomainCode, Flashcard, Question, StudyNote, To
 // Combined bank (base + extra + topic-authored), de-duplicated by id.
 const questions: Question[] = (() => {
   const seen = new Set<string>();
-  return [...questionsBase, ...questionsExtra, ...questionsBatch3, ...topicQuestions].filter((q) => (seen.has(q.id) ? false : (seen.add(q.id), true)));
+  return [...questionsBase, ...questionsExtra, ...questionsBatch3, ...topicQuestions, ...examPool].filter((q) => (seen.has(q.id) ? false : (seen.add(q.id), true)));
 })();
 
 // ── Topics (the learn→test spine of each competency) ──

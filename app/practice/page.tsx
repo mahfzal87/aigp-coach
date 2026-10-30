@@ -38,6 +38,11 @@ export default function PracticePage() {
     () => new Set(attempts.filter((a) => !a.correct).map((a) => a.questionId)),
     [attempts]
   );
+  const seenCount = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const a of attempts) m.set(a.questionId, (m.get(a.questionId) ?? 0) + 1);
+    return m;
+  }, [attempts]);
 
   const queue = useMemo(() => {
     let qs = getQuestions();
@@ -46,8 +51,11 @@ export default function PracticePage() {
     if (difficulty !== "all") qs = qs.filter((q) => q.difficulty === Number(difficulty));
     if (unseenOnly) qs = qs.filter((q) => !seenIds.has(q.id));
     if (wrongOnly) qs = qs.filter((q) => wrongIds.has(q.id));
-    // light shuffle
-    return [...qs].sort(() => Math.random() - 0.5);
+    // Variety engine: shuffle, then stable-sort so least-seen questions come first.
+    // Questions you have drilled often only reappear once the fresh ones run out.
+    return [...qs]
+      .sort(() => Math.random() - 0.5)
+      .sort((a, b) => (seenCount.get(a.id) ?? 0) - (seenCount.get(b.id) ?? 0));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [competency, type, difficulty, unseenOnly, wrongOnly, started]);
 

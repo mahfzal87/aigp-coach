@@ -102,12 +102,14 @@ export function computeReadiness(attempts: Attempt[], mocks: MockSession[]): Rea
     drill += ((dd.minQ + dd.maxQ) / 2 / totalW) * d.mastery;
   }
 
-  // mock contribution
-  const finishedMocks = mocks.filter((m) => m.finishedAt && typeof m.scaledScore === "number");
-  const hasMock = finishedMocks.length > 0;
+  // mock contribution — only substantial sessions (50+ questions) count as scaled-score
+  // evidence; short sprints/deep-dives still train but don't drive the projection.
+  const finishedMocks = mocks.filter((m) => m.finishedAt && typeof m.scaledScore === "number" && m.questionIds.length >= 50);
+  // the readiness verdict wants a genuinely full-length paper
+  const hasMock = mocks.some((m) => m.finishedAt && typeof m.scaledScore === "number" && m.questionIds.length >= 90);
   let overall = drill;
   let projectedScaled: number;
-  if (hasMock) {
+  if (finishedMocks.length > 0) {
     const latest = finishedMocks.sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0))[0];
     const mockNorm = ((latest.scaledScore as number) - 100) / 400 * 100; // 0..100
     overall = 0.6 * drill + 0.4 * mockNorm;
