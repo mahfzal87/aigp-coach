@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, RotateCcw } from "lucide-react";
 import { getCompetencies, getQuestions } from "@/lib/content";
 import { isAnswerCorrect } from "@/lib/scoring";
@@ -27,6 +27,13 @@ export default function PracticePage() {
 
   const comps = getCompetencies();
   const [competency, setCompetency] = useState("all");
+
+  // deep link from mock insights: /practice?competency=ii-c preselects the filter
+  useEffect(() => {
+    const c = new URLSearchParams(window.location.search).get("competency");
+    if (c && comps.some((x) => x.id === c)) setCompetency(c);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [type, setType] = useState("all");
   const [difficulty, setDifficulty] = useState("all");
   const [unseenOnly, setUnseenOnly] = useState(false);
