@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { BarChart3, BookOpen, Brain, FileText, Flame, GraduationCap, Layers, Moon, Newspaper, Settings, Sun, Zap } from "lucide-react";
+import { BarChart3, BookOpen, Brain, FileText, Flame, GraduationCap, Layers, Moon, Newspaper, Scale, Settings, Sun, Zap } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useHydrated, useProgress } from "@/store/progress";
@@ -14,6 +14,7 @@ const primaryNav = [
   { href: "/", label: "Study Plan", icon: BookOpen },
   { href: "/practice", label: "Practice", icon: Brain },
   { href: "/mock", label: "Mock Exam", icon: GraduationCap },
+  { href: "/lawlab", label: "Law Lab", icon: Scale },
   { href: "/profile", label: "Progress", icon: BarChart3 },
 ];
 const mobileNav = [...primaryNav, { href: "/reference", label: "Library", icon: FileText }];
@@ -100,7 +101,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 pb-24 md:px-8 md:py-8 md:pb-10">{children}</main>
 
         {/* Mobile bottom nav */}
-        <nav className="glass fixed bottom-0 left-0 right-0 z-20 grid grid-cols-5 border-t border-[var(--border)] md:hidden">
+        <nav className="glass fixed bottom-0 left-0 right-0 z-20 grid grid-cols-6 border-t border-[var(--border)] md:hidden">
           {mobileNav.map((n) => {
             const Icon = n.icon;
             return (
