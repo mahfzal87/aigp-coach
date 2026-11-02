@@ -2,7 +2,7 @@
 
 **A study system for the IAPP AIGP exam, built because the material I could buy told me *what* to know and never *why I kept getting questions wrong*.**
 
-Clone it and run your own copy. No accounts, no tracking, no API keys, no configuration. Your progress stays in your browser.
+Use the hosted copy at **[aigp-coach.vercel.app](https://aigp-coach.vercel.app)**, or clone it and run your own. No accounts, no tracking, no API keys, no configuration. Your progress stays in your browser.
 
 ```bash
 git clone https://github.com/mahfzal87/aigp-coach.git
@@ -41,20 +41,33 @@ I built the thing I wanted. Three decisions shaped it.
 
 **Make readiness a number with reasons attached.** The dashboard projects a scaled score against the pass mark, gives a Ready / Almost / Not-yet verdict, and then names the competencies dragging it down. Confidence is captured per question, so the analytics can surface overconfidence, which is high certainty paired with low accuracy, and which is the pattern that fails people.
 
+<img src="docs/progress.png" alt="The progress page: level and streak, a readiness ring with a projected scaled score and verdict, totals for questions, accuracy, lessons and mocks, and mastery bars per domain" width="100%">
+
+**Fixed papers, where the record is the product.** The mock module is a cluster of fixed, mutually disjoint papers rather than random pulls: three blueprint-proportional 100-question forms, a 50-question Hard Gauntlet rated hardest throughout, a Trap Lab where every item carries a named trap, and a 25-question deep-dive per domain. Papers run on real exam timing, pause cleanly mid-run, and give no feedback until submission, then full reasoning for every miss. The mock homescreen keeps the whole record: score trajectory against the pass line, per-domain readiness with trend, weakest competencies, technique leaks, and a vault of every question ever missed.
+
+<img src="docs/mock-insights.png" alt="The mock exam record: latest and best scaled scores, papers finished, a score trajectory chart against the pass line, per-domain readiness bars with trend, weakest competencies and technique-leak rates" width="100%">
+
+**The laws get their own room.** Two days out from the exam my misses all had the same shape: laws, frameworks, and the deliberate confusion between them. Law Lab is the answer. Every instrument on the Body of Knowledge gets a tappable mindmap (15 maps, 233 facts you lock in one by one as you learn them cold), trigger keywords that map exam phrasing to the right law, 12 side-by-side tables for the pairs the exam loves to swap (DPIA vs FRIA, provider vs deployer, the two compute thresholds), and a timed trigger drill with a personal best. The red strip at the top is live: it names your weakest law competencies from your own attempt history, so the tab always opens with the reason it exists.
+
+<img src="docs/lawlab-mindmap.png" alt="A Law Lab mindmap of the EU AI Act: a root node with a progress ring, colored branches for risk tiers, prohibited practices and actor roles, and leaf facts with green locked-in checkmarks" width="100%">
+
+<img src="docs/lawlab-confusables.png" alt="Law Lab confusables mode: live weakness chips at the top, a lab mastery bar, and a side-by-side EU AI Act versus GDPR table ending in a one-line tell for choosing between them" width="100%">
+
 ## What it does
 
 | | |
 |---|---|
-| **Learn** | 101 topics mapped to the Body of Knowledge v2.1, plain-English explanations, spaced-repetition flashcards |
-| **Practice** | 192 questions, filterable by competency, type, difficulty, unseen, or previously-wrong |
-| **Mock exam** | Blueprint-proportional and timed, scaled scoring, per-domain breakdown |
+| **Learn** | 101 topics mapped to the Body of Knowledge v2.1, plain-English explanations, spaced-repetition flashcards, granular resume down to the exact question inside a lesson |
+| **Practice** | 406 original questions, filterable by competency, type, difficulty, unseen, or previously-wrong — every answer comes with the rationale and a why-the-others-fail breakdown |
+| **Mock exam** | Nine fixed papers: three full 100-question forms, a Hard Gauntlet, a Trap Lab, four domain deep-dives. Timed, pausable, scaled scoring, insights homescreen, miss vault |
+| **Law Lab** | 15 law/framework mindmaps with 233 lockable facts, trigger keywords, 12 confusable tables, a timed trigger drill |
 | **Strategy** | Six-step question attack, playbooks and drills per question type |
 | **Analytics** | Mastery by competency, the Knowledge/Technique/Read-error split, confidence calibration, time per question |
-| **Law updates** | A dated feed of what changed, so stale content is visible rather than silently rotting |
+| **Reference** | A 106-term glossary, every framework broken into its distinct sections, and a dated law-updates feed so stale content is visible rather than silently rotting |
 
-Coverage: 4 domains, 13 competencies, 6 question types, 101 topics, 192 questions, 32 flashcards.
+Coverage: 4 domains, 13 competencies, 6 question types, 101 topics, 406 questions (224 of them in a separate hard pool the mock papers draw from), 33 flashcards, 106 glossary terms, 233 Law Lab facts.
 
-**Stack:** Next.js 16, TypeScript, Tailwind v4, Zustand, Recharts. Progress lives in `localStorage`. There are no accounts and nothing is sent anywhere.
+**Stack:** Next.js 16, TypeScript, Tailwind v4, Zustand, Recharts, Framer Motion. Progress lives in `localStorage`. There are no accounts, and nothing is sent anywhere unless you mint a sync code (below).
 
 ## Running it
 
@@ -66,9 +79,9 @@ Everything is bundled, so `npm install && npm run dev` really is the whole thing
 npm run build && npm start
 ```
 
-I deliberately do not run a public instance for other people. Progress lives in `localStorage`, so a shared deployment means either shared progress or building accounts, and I did not want to be quietly holding a stranger's exam results. Run your own copy and it stays yours.
+**There is a hosted copy at [aigp-coach.vercel.app](https://aigp-coach.vercel.app).** Your progress still never leaves your browser — the server only serves the app. If you want the same progress on two devices, Settings can mint an anonymous sync code (random, unguessable, no email, no account) that backs your progress blob up under that code; enter it on the other device to restore. Without a code, nothing is sent anywhere.
 
-**Optional:** Supabase can be wired in so content updates without a redeploy. Off by default. Notes in [DEPLOY.md](DEPLOY.md).
+**Optional:** Supabase can be wired in for the sync codes and for content updates without a redeploy. Off by default in a clone. Notes in [DEPLOY.md](DEPLOY.md).
 
 ## Make it your own
 
@@ -78,7 +91,10 @@ The content is the actual product, and it is all plain TypeScript in `/content`:
 |---|---|
 | `curriculum.ts` | Domains and competencies, with the exam blueprint weights |
 | `topics-i.ts` … `topics-iv.ts` | The 101 topic explanations |
-| `questions*.ts` | The question bank |
+| `questions*.ts` | The practice question bank |
+| `exam-pool-*.ts` | The hard pool the fixed mock papers are built from |
+| `lawlab.ts` | The Law Lab: mindmaps, keywords, confusables, traps |
+| `glossary.ts` | The 106-term glossary |
 | `flashcards.ts` | Spaced-repetition cards |
 | `updates.ts` | The law-updates feed |
 
@@ -88,7 +104,7 @@ Add your own questions, correct mine, or rewrite the topics in your own words, w
 
 **I built content and product at the same time, and content won.** Roughly two thirds of the effort went into writing questions and topic explanations rather than into the app. That was the right call for a study tool with one user. It was not the thing I had been telling myself I was doing. I thought I was building a product. I was building a textbook with a progress bar.
 
-**The readiness score is under-validated.** It projects a scaled score from a weighted competency model I designed myself. The weights come from the published blueprint so the shape is defensible, but I have no outcome data to calibrate against, and one person's result is never going to provide any. I would still rather ship a number with visible reasoning than a soothing "you're doing great." I should have put an honest error bar on it instead of a clean integer that looks like it knows something.
+**The readiness score is under-validated.** It projects a scaled score from a weighted competency model I designed myself. The weights come from the published blueprint so the shape is defensible, but I have no outcome data to calibrate against, and one person's result is never going to provide any. I would still rather ship a number with visible reasoning than a soothing "you're doing great." I should have put an honest error bar on it instead of a clean integer that looks like it knows something. *Postscript: the model now has exactly one data point. I sat the retake and passed. n=1 validates nothing, but I am keeping it.*
 
 **Spaced repetition is bolted on, not designed in.** Flashcards run SM-2 on their own schedule while the question bank tracks mastery separately. They should have been one scheduler over one pool of items. Splitting them was a modelling shortcut on day two that got expensive by week six.
 
