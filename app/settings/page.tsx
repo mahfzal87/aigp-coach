@@ -5,6 +5,7 @@ import { Cloud, Copy, Download, RefreshCw, Trash2, Upload } from "lucide-react";
 import { useHydrated, useProgress } from "@/store/progress";
 import type { ProgressExport } from "@/lib/types";
 import { genSyncCode, normalizeCode, pullProgress, pushProgress, syncConfigured } from "@/lib/sync";
+import { AccountCard } from "@/components/account";
 import { Badge, Button, Card, CardBody, PageHeader } from "@/components/ui";
 
 export default function SettingsPage() {
@@ -96,11 +97,14 @@ export default function SettingsPage() {
           <p className="text-xs text-[var(--muted)]">Progress is stored in this browser only. Safari (Mac and iPhone) deletes site storage after ~7 days without a visit, and each browser/device keeps its own copy — so turn on cloud sync below and keep your code somewhere safe.</p>
         </CardBody></Card>
 
+        {/* Account (email + password, optional) */}
+        <AccountCard />
+
         {/* Cloud sync (sync code, no login) */}
         <Card><CardBody className="space-y-3">
           <div className="flex items-center gap-2">
             <Cloud size={18} className="text-[var(--accent)]" />
-            <span className="font-display font-extrabold">Cloud sync</span>
+            <span className="font-display font-extrabold">Sync code</span>
             {settings.syncEnabled && <Badge tone="success">On</Badge>}
           </div>
 

@@ -2,7 +2,7 @@
 
 **A study system for the IAPP AIGP exam, built because the material I could buy told me *what* to know and never *why I kept getting questions wrong*.**
 
-Use the hosted copy at **[aigp-coach.vercel.app](https://aigp-coach.vercel.app)**, or clone it and run your own. No accounts, no tracking, no API keys, no configuration. Your progress stays in your browser.
+Use the hosted copy at **[aigp-coach.vercel.app](https://aigp-coach.vercel.app)**, or clone it and run your own. No account required, no tracking, no API keys, no configuration. Your progress stays in your browser.
 
 ```bash
 git clone https://github.com/mahfzal87/aigp-coach.git
@@ -67,7 +67,7 @@ I built the thing I wanted. Three decisions shaped it.
 
 Coverage: 4 domains, 13 competencies, 6 question types, 101 topics, 406 questions (224 of them in a separate hard pool the mock papers draw from), 33 flashcards, 106 glossary terms, 233 Law Lab facts.
 
-**Stack:** Next.js 16, TypeScript, Tailwind v4, Zustand, Recharts, Framer Motion. Progress lives in `localStorage`. There are no accounts, and nothing is sent anywhere unless you mint a sync code (below).
+**Stack:** Next.js 16, TypeScript, Tailwind v4, Zustand, Recharts, Framer Motion. Progress lives in `localStorage` first; nothing is sent anywhere unless you create an optional account or mint a sync code (both below).
 
 ## Running it
 
@@ -79,9 +79,9 @@ Everything is bundled, so `npm install && npm run dev` really is the whole thing
 npm run build && npm start
 ```
 
-**There is a hosted copy at [aigp-coach.vercel.app](https://aigp-coach.vercel.app).** Your progress still never leaves your browser — the server only serves the app. If you want the same progress on two devices, Settings can mint an anonymous sync code (random, unguessable, no email, no account) that backs your progress blob up under that code; enter it on the other device to restore. Without a code, nothing is sent anywhere.
+**There is a hosted copy at [aigp-coach.vercel.app](https://aigp-coach.vercel.app).** Your progress still never leaves your browser by default — the server only serves the app. If you want the same progress on two devices, you have two options in Settings: create an **account** (email + password; progress backs up automatically and you stay signed in until you log out), or mint an anonymous **sync code** (random, unguessable, no email) and enter it on the other device to restore. Without either, nothing is sent anywhere.
 
-**Optional:** Supabase can be wired in for the sync codes and for content updates without a redeploy. Off by default in a clone. Notes in [DEPLOY.md](DEPLOY.md).
+**Optional:** one free Supabase project powers the accounts, the sync codes, and content updates without a redeploy. All off by default in a clone — copy `.env.example` to `.env.local`, run the two SQL files in `supabase/`, and they switch on. Forks that want a private instance can set `NEXT_PUBLIC_REQUIRE_AUTH=true` to put the whole app behind login. Step-by-step in [DEPLOY.md](DEPLOY.md). There is no LLM key to configure anywhere — nothing in the app calls a model.
 
 ## Make it your own
 
