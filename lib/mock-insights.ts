@@ -82,9 +82,9 @@ export function computeMockInsights(mocks: MockSession[]): MockInsights {
 
   const byId = new Map(getQuestions().map((q) => [q.id, q]));
 
-  const domAll: Record<DomainCode, { c: number; t: number }> = { I: { c: 0, t: 0 }, II: { c: 0, t: 0 }, III: { c: 0, t: 0 }, IV: { c: 0, t: 0 } };
-  const domPrior: Record<DomainCode, { c: number; t: number }> = { I: { c: 0, t: 0 }, II: { c: 0, t: 0 }, III: { c: 0, t: 0 }, IV: { c: 0, t: 0 } };
-  const domLatest: Record<DomainCode, { c: number; t: number }> = { I: { c: 0, t: 0 }, II: { c: 0, t: 0 }, III: { c: 0, t: 0 }, IV: { c: 0, t: 0 } };
+  const domAll: Record<DomainCode, { c: number; t: number }> = { I: { c: 0, t: 0 }, II: { c: 0, t: 0 }, III: { c: 0, t: 0 }, IV: { c: 0, t: 0 }, V: { c: 0, t: 0 } };
+  const domPrior: Record<DomainCode, { c: number; t: number }> = { I: { c: 0, t: 0 }, II: { c: 0, t: 0 }, III: { c: 0, t: 0 }, IV: { c: 0, t: 0 }, V: { c: 0, t: 0 } };
+  const domLatest: Record<DomainCode, { c: number; t: number }> = { I: { c: 0, t: 0 }, II: { c: 0, t: 0 }, III: { c: 0, t: 0 }, IV: { c: 0, t: 0 }, V: { c: 0, t: 0 } };
   const comp = new Map<string, { c: number; t: number }>();
   const trap = new Map<string, { m: number; s: number }>();
   const typ = new Map<string, { m: number; s: number }>();

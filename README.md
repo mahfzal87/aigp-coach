@@ -13,6 +13,8 @@ npm run dev
 
 Then open **http://localhost:3000**. That is the whole setup. Node 20 or later.
 
+**It now runs more than one exam.** Every IAPP exam lives in the app as a self-contained content pack — curriculum, question bank, fixed mock papers, Law Lab, glossary — and the switcher in the top-left corner moves between them. **AIGP** is the original, full-depth pack. **CIPP/E** (BoK v1.3.3, the five-domain 2025–26 structure) shipped as the second pack, authored to a stricter question standard: every item is built to come down to two options that both look right, the way the real paper does, and the rationale names the exact discriminator that separates them. Each exam keeps its own progress, streak, mocks and readiness model, driven by its official blueprint weights.
+
 <img src="docs/study-plan.png" alt="AIGP Coach study plan: a readiness score out of 100, a projected scaled score, and the Body of Knowledge broken into domains and competencies with per-topic progress" width="100%">
 
 ---
@@ -85,7 +87,7 @@ npm run build && npm start
 
 ## Make it your own
 
-The content is the actual product, and it is all plain TypeScript in `/content`:
+The content is the actual product, and it is all plain TypeScript. Each exam is a pack under `content/exams/<slug>/` (assembled in its `pack.ts`, registered in `lib/exam-registry.ts`) — adding a new certification never touches a page. The AIGP pack's source files live in `/content`:
 
 | File | What is in it |
 |---|---|

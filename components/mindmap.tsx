@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { haptic } from "@/lib/haptics";
-import { mapLeafKey, type LawMapDef } from "@/content/lawlab";
+import { mapLeafKey, type LawMapDef } from "@/lib/lawlab-types";
 
 // Markmap-style horizontal mindmap: root → branches → lockable fact leaves.
 // Nodes are laid out with normal flex flow; connector curves are measured

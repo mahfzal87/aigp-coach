@@ -2,10 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { BookA, ChevronDown, Landmark, Scale, Search } from "lucide-react";
-import { getCompetency, getNotes } from "@/lib/content";
-import { DISTINCTIONS, EU_TIMELINE, FACTS, PENALTY_LADDER, type FactTag } from "@/content/reference-structured";
-import { INSTRUMENTS, type Instrument } from "@/content/frameworks";
-import { GLOSSARY, type GlossaryTag } from "@/content/glossary";
+import { getCompetency, getNotes, getPackExtras } from "@/lib/content";
+import type { ExamPack } from "@/lib/exam-pack";
 import { Badge, Card, CardBody, PageHeader } from "@/components/ui";
 import { Markdown } from "@/components/markdown";
 import { Stagger, StaggerItem } from "@/components/motion";
@@ -14,33 +12,39 @@ import { cn } from "@/lib/utils";
 
 const TABS = ["Facts", "Distinctions", "Frameworks", "Glossary", "Deep dives"] as const;
 type Tab = (typeof TABS)[number];
-const FACT_TAGS: ("All" | FactTag)[] = ["All", "EU", "US & global", "Frameworks", "Develop", "Deploy"];
-const GLOSSARY_TAGS: ("All" | GlossaryTag)[] = ["All", "AI & ML", "Laws (EU)", "Laws (US & global)", "Frameworks & standards", "Risk & governance", "Privacy & security"];
+type Library = ExamPack["library"];
+type Instrument = Library["instruments"][number];
+export type InstrumentExtras = Pick<Library, "timeline" | "timelineTitle" | "penaltyLadder" | "penaltyTitle" | "penaltyNote">;
 
-const KIND_TONE: Record<Instrument["kind"], "danger" | "accent" | "primary" | "warning"> = {
+const KIND_TONE: Record<string, "danger" | "accent" | "primary" | "warning"> = {
   Law: "danger",
   Framework: "accent",
   Standard: "primary",
   Principles: "warning",
+  Treaty: "accent",
+  Directive: "danger",
 };
 
 export default function ReferencePage() {
+  const LIB = getPackExtras().library;
+  const FACT_TAGS = ["All", ...LIB.factTags];
+  const GLOSSARY_TAGS = ["All", ...LIB.glossaryTags];
   const [tab, setTab] = useState<Tab>("Facts");
   const [q, setQ] = useState("");
-  const [factTag, setFactTag] = useState<(typeof FACT_TAGS)[number]>("All");
-  const [glossTag, setGlossTag] = useState<(typeof GLOSSARY_TAGS)[number]>("All");
+  const [factTag, setFactTag] = useState<string>("All");
+  const [glossTag, setGlossTag] = useState<string>("All");
   const term = q.trim().toLowerCase();
 
-  const facts = useMemo(() => FACTS.filter((f) => (factTag === "All" || f.tag === factTag) && (!term || f.fact.toLowerCase().includes(term))), [factTag, term]);
-  const dists = useMemo(() => DISTINCTIONS.filter((d) => !term || (d.a + d.b + d.diff).toLowerCase().includes(term)), [term]);
+  const facts = useMemo(() => LIB.facts.filter((f) => (factTag === "All" || f.tag === factTag) && (!term || f.fact.toLowerCase().includes(term))), [LIB, factTag, term]);
+  const dists = useMemo(() => LIB.distinctions.filter((d) => !term || (d.a + d.b + d.diff).toLowerCase().includes(term)), [LIB, term]);
   const notes = useMemo(() => getNotes().filter((n) => !term || (n.title + n.bodyMd).toLowerCase().includes(term)), [term]);
   const instruments = useMemo(
-    () => INSTRUMENTS.filter((i) => !term || (i.name + " " + i.jurisdiction + " " + i.sections.map((s) => s.heading + " " + s.bullets.join(" ")).join(" ")).toLowerCase().includes(term)),
-    [term]
+    () => LIB.instruments.filter((i) => !term || (i.name + " " + i.jurisdiction + " " + i.sections.map((s) => s.heading + " " + s.bullets.join(" ")).join(" ")).toLowerCase().includes(term)),
+    [LIB, term]
   );
   const glossary = useMemo(
-    () => GLOSSARY.filter((g) => (glossTag === "All" || g.tag === glossTag) && (!term || (g.term + " " + g.def).toLowerCase().includes(term))).sort((a, b) => a.term.localeCompare(b.term)),
-    [glossTag, term]
+    () => LIB.glossary.filter((g) => (glossTag === "All" || g.tag === glossTag) && (!term || (g.term + " " + g.def).toLowerCase().includes(term))).sort((a, b) => a.term.localeCompare(b.term)),
+    [LIB, glossTag, term]
   );
 
   return (
@@ -111,7 +115,7 @@ export default function ReferencePage() {
         <div className="space-y-2.5">
           <p className="flex items-center gap-1.5 px-1 text-xs text-[var(--muted)]"><Landmark size={13} /> Every law, framework, and standard on the exam — expand one for its sections as bullets.</p>
           {instruments.map((ins) => (
-            <InstrumentCard key={ins.id} ins={ins} defaultOpen={Boolean(term)} />
+            <InstrumentCard key={ins.id} ins={ins} defaultOpen={Boolean(term)} extras={ins.id === LIB.instruments[0]?.id ? LIB : null} />
           ))}
           {instruments.length === 0 && <p className="text-sm text-[var(--muted)]">No frameworks match.</p>}
         </div>
@@ -155,7 +159,7 @@ export default function ReferencePage() {
   );
 }
 
-function InstrumentCard({ ins, defaultOpen }: { ins: Instrument; defaultOpen: boolean }) {
+function InstrumentCard({ ins, defaultOpen, extras }: { ins: Instrument; defaultOpen: boolean; extras: InstrumentExtras | null }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <Card className="overflow-hidden">
@@ -164,7 +168,7 @@ function InstrumentCard({ ins, defaultOpen }: { ins: Instrument; defaultOpen: bo
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-bold">{ins.name}</span>
-            <Badge tone={KIND_TONE[ins.kind]}>{ins.kind}</Badge>
+            <Badge tone={KIND_TONE[ins.kind] ?? "primary"}>{ins.kind}</Badge>
           </div>
           <div className="mt-0.5 text-xs text-[var(--muted)]">{ins.jurisdiction} · {ins.status}</div>
         </div>
@@ -187,18 +191,18 @@ function InstrumentCard({ ins, defaultOpen }: { ins: Instrument; defaultOpen: bo
             ))}
           </div>
 
-          {ins.id === "eu-ai-act" && (
+          {extras && (
             <div className="mt-5 space-y-5 border-t border-[var(--border)] pt-5">
               <div>
-                <div className="mb-3 text-sm font-bold">Timeline at a glance</div>
+                <div className="mb-3 text-sm font-bold">{extras.timelineTitle}</div>
                 <div className="space-y-0">
-                  {EU_TIMELINE.map((t, i) => (
+                  {extras.timeline.map((t, i) => (
                     <div key={t.date} className="flex gap-4">
                       <div className="flex flex-col items-center">
                         <div className={cn("mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2", t.status === "done" && "border-[var(--success)] bg-[var(--success)]", t.status === "active" && "border-[var(--primary)] bg-[var(--primary)] ring-4 ring-[var(--primary)]/20", t.status === "deferred" && "border-[var(--warning)] bg-transparent")} />
-                        {i < EU_TIMELINE.length - 1 && <div className="w-px flex-1 bg-[var(--border)]" />}
+                        {i < extras.timeline.length - 1 && <div className="w-px flex-1 bg-[var(--border)]" />}
                       </div>
-                      <div className={i < EU_TIMELINE.length - 1 ? "pb-4" : ""}>
+                      <div className={i < extras.timeline.length - 1 ? "pb-4" : ""}>
                         <div className="text-sm font-bold tabular-nums">{t.date} {t.status === "deferred" && <Badge tone="warning" className="ml-1">deferred</Badge>}{t.status === "active" && <Badge tone="primary" className="ml-1">now live</Badge>}</div>
                         <p className="text-sm leading-relaxed text-[var(--muted)]">{t.label}</p>
                       </div>
@@ -207,10 +211,10 @@ function InstrumentCard({ ins, defaultOpen }: { ins: Instrument; defaultOpen: bo
                 </div>
               </div>
               <div>
-                <div className="mb-1 flex items-center gap-2 text-sm font-bold"><Scale size={15} className="text-[var(--accent)]" /> Penalty ladder</div>
-                <p className="mb-3 text-xs text-[var(--muted)]">Higher of the fixed amount or % of global annual turnover. SMEs pay the LOWER cap.</p>
+                <div className="mb-1 flex items-center gap-2 text-sm font-bold"><Scale size={15} className="text-[var(--accent)]" /> {extras.penaltyTitle}</div>
+                <p className="mb-3 text-xs text-[var(--muted)]">{extras.penaltyNote}</p>
                 <div className="space-y-3">
-                  {PENALTY_LADDER.map((p) => (
+                  {extras.penaltyLadder.map((p) => (
                     <div key={p.tier}>
                       <div className="mb-1 flex items-baseline justify-between text-sm">
                         <span className="font-semibold">{p.what}</span>

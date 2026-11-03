@@ -1,6 +1,6 @@
 // ─── Content types (source of truth in /content, mirrored in Supabase) ───
 
-export type DomainCode = "I" | "II" | "III" | "IV";
+export type DomainCode = "I" | "II" | "III" | "IV" | "V";
 
 export interface Domain {
   id: string; // slug, e.g. "domain-i"
@@ -73,6 +73,10 @@ export interface Question {
   trapType: TrapType;
   bokRef: string;
   source: "authored" | "community" | "curated";
+  // The designated near-miss distractor: the option that is true/defensible in
+  // general but wrong here on one precise discriminator. Real papers come down
+  // to two options that both look right; authoring enforces it going forward.
+  nearMiss?: string;
 }
 
 export interface Flashcard {

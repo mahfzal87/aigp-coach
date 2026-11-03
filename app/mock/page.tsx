@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, ArrowRight, BarChart3, ChevronDown, Clock, Crosshair, Eye, Flame, History, Layers, Pause, PlayCircle, RotateCcw, Shuffle, Target, TrendingDown, TrendingUp, Trophy, XCircle, Zap } from "lucide-react";
 import { Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { competencyToDomainCode, getDomains, getQuestion } from "@/lib/content";
-import { EXAM_DEFS, SPRINT_DEF, buildSprint, getExamDef, getExamQuestions, getExamStats, type ExamDef } from "@/lib/exams";
+import { buildSprint, getExamDef, getExamDefs, getExamQuestions, getExamStats, getSprintDef, type ExamDef } from "@/lib/exams";
 import { TRAP_LABEL, computeMockInsights, type MockInsights, type MissRecord } from "@/lib/mock-insights";
 import { isAnswerCorrect, correctLabels, shuffle, toScaledScore } from "@/lib/scoring";
 import { haptic } from "@/lib/haptics";
@@ -146,7 +146,7 @@ export default function MockPage() {
       return;
     }
     haptic("tap");
-    setDef(run.examId === "sprint" ? SPRINT_DEF : run.examId ? getExamDef(run.examId) ?? null : null);
+    setDef(run.examId === "sprint" ? getSprintDef() : run.examId ? getExamDef(run.examId) ?? null : null);
     setSet(qs);
     setAnswers(run.answers);
     setIdx(Math.min(run.idx, qs.length - 1));
@@ -170,7 +170,7 @@ export default function MockPage() {
 
   function finish() {
     let correct = 0;
-    const perDomain: Record<DomainCode, { correct: number; total: number }> = { I: { correct: 0, total: 0 }, II: { correct: 0, total: 0 }, III: { correct: 0, total: 0 }, IV: { correct: 0, total: 0 } };
+    const perDomain: Record<DomainCode, { correct: number; total: number }> = { I: { correct: 0, total: 0 }, II: { correct: 0, total: 0 }, III: { correct: 0, total: 0 }, IV: { correct: 0, total: 0 }, V: { correct: 0, total: 0 } };
     for (const q of set) {
       const chosen = answers[q.id] ?? [];
       const ok = chosen.length > 0 && isAnswerCorrect(q, chosen);
@@ -230,8 +230,8 @@ export default function MockPage() {
 
   // ── Landing: exam clusters ──
   if (phase === "landing") {
-    const fullDefs = EXAM_DEFS.filter((d) => d.kind === "full");
-    const targetedDefs = EXAM_DEFS.filter((d) => d.kind !== "full");
+    const fullDefs = getExamDefs().filter((d) => d.kind === "full");
+    const targetedDefs = getExamDefs().filter((d) => d.kind !== "full");
     const history = [...mocks].sort((a, b) => (b.finishedAt ?? b.startedAt) - (a.finishedAt ?? a.startedAt));
     return (
       <div className="space-y-8">
@@ -252,7 +252,7 @@ export default function MockPage() {
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--muted)]"><Target size={15} /> Targeted clusters</h2>
           <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" delay={0.04}>
             {targetedDefs.map((d) => <StaggerItem key={d.id} y={10}><ExamCard def={d} mocks={mocks} guard={!!mockRun} onStart={() => start(d)} /></StaggerItem>)}
-            <StaggerItem y={10}><SprintCard onStart={() => start(SPRINT_DEF)} mocks={mocks} guard={!!mockRun} /></StaggerItem>
+            <StaggerItem y={10}><SprintCard onStart={() => start(getSprintDef())} mocks={mocks} guard={!!mockRun} /></StaggerItem>
           </Stagger>
         </section>
 
@@ -760,6 +760,7 @@ function MissVault({ misses, onDrill }: { misses: MissRecord[]; onDrill: () => v
 function SprintCard({ onStart, mocks, guard }: { onStart: () => void; mocks: MockSession[]; guard: boolean }) {
   const tries = mocks.filter((m) => m.examId === "sprint");
   const { armed, fire } = useGuardedStart(guard, onStart);
+  const SPRINT_DEF = getSprintDef();
   return (
     <Card className="liftable flex h-full flex-col border-dashed">
       <CardBody className="flex flex-1 flex-col gap-3">

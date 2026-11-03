@@ -1,7 +1,8 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
+import { lawlabStorageKey } from "@/lib/exam-state";
 
 // Law Lab progress — which mindmap leaves are "locked in" + best drill score.
 // Local-only (device) by design: it's a cram surface, not part of the sync blob.
@@ -37,7 +38,18 @@ export const useLawLab = create<LawLabState>()(
       setDrillBest: (n) => set((s) => (n > s.drillBest ? { drillBest: n } : s)),
     }),
     {
+      // Physical key is per exam (lib/exam-state.ts); ExamGate rehydrates after
+      // activating a non-default exam.
       name: "aigp-lawlab",
+      storage: createJSONStorage(() => ({
+        getItem: (_n) => (typeof window === "undefined" ? null : window.localStorage.getItem(lawlabStorageKey())),
+        setItem: (_n, value) => {
+          if (typeof window !== "undefined") window.localStorage.setItem(lawlabStorageKey(), value);
+        },
+        removeItem: (_n) => {
+          if (typeof window !== "undefined") window.localStorage.removeItem(lawlabStorageKey());
+        },
+      })),
       onRehydrateStorage: () => (state) => {
         if (state) state.hydrated = true;
       },

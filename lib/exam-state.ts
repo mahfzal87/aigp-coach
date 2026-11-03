@@ -1,0 +1,57 @@
+// Active-exam state. The module-level slug ALWAYS starts as the default exam so
+// the server render and the first client (hydration) render agree; ExamGate
+// activates the stored choice after mount and remounts the app subtree.
+// Switching exams writes the choice and does a full reload for clean state.
+
+export const DEFAULT_EXAM = "aigp";
+export const EXAM_SLUGS = ["aigp", "cippe"] as const;
+export type ExamSlug = (typeof EXAM_SLUGS)[number];
+
+const KEY = "coach-active-exam";
+
+let active: ExamSlug = DEFAULT_EXAM;
+
+export function getActiveExam(): ExamSlug {
+  return active;
+}
+
+export function readStoredExam(): ExamSlug {
+  try {
+    const v = localStorage.getItem(KEY);
+    return (EXAM_SLUGS as readonly string[]).includes(v ?? "") ? (v as ExamSlug) : DEFAULT_EXAM;
+  } catch {
+    return DEFAULT_EXAM;
+  }
+}
+
+// Called once by ExamGate (client, post-mount). Changes which exam the content
+// accessors and the per-exam storage keys resolve to.
+export function activateStoredExam(): ExamSlug {
+  active = readStoredExam();
+  return active;
+}
+
+// Server-side use only (the audit route loops every pack). Never call from UI —
+// the UI path is switchExam(), which reloads for clean state.
+export function __setActiveExamUnsafe(slug: ExamSlug) {
+  active = slug;
+}
+
+export function switchExam(slug: ExamSlug) {
+  try {
+    localStorage.setItem(KEY, slug);
+  } catch {
+    /* storage unavailable — switch still applies for this load via reload default */
+  }
+  window.location.assign("/");
+}
+
+// Physical localStorage keys are per exam. The AIGP keys keep their legacy names
+// so existing users migrate with zero data movement.
+export function progressStorageKey(): string {
+  return active === "aigp" ? "aigp-coach-progress" : `coach-progress__${active}`;
+}
+
+export function lawlabStorageKey(): string {
+  return active === "aigp" ? "aigp-lawlab" : `coach-lawlab__${active}`;
+}

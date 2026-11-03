@@ -2,28 +2,13 @@
 // framework and policy instrument on the AIGP exam. Built for the final cram:
 // each leaf is one lockable fact. Current as of October 2026 (post-Digital-Omnibus).
 
-export type LawRegion = "EU" | "US" | "Global" | "APAC" | "Org";
-export type LawKind = "Law" | "Framework" | "Standard" | "Principles" | "Treaty" | "Policy";
+import type { Confusable, LawMapDef } from "@/lib/lawlab-types";
+import { totalLeaves } from "@/lib/lawlab-types";
 
-export interface LawBranch {
-  id: string;
-  t: string; // branch label
-  leaves: string[]; // one fact per leaf — lockable
-}
-
-export interface LawMapDef {
-  id: string;
-  name: string;
-  short: string; // compact name used in the drill options
-  kind: LawKind;
-  region: LawRegion;
-  tagline: string;
-  weight: 1 | 2 | 3; // exam yield
-  branches: LawBranch[];
-  keywords: { term: string; cue: string }[]; // trigger word -> what it signals
-  distinctions: { vs: string; point: string }[];
-  traps: string[];
-}
+// Canonical Law Lab types + helpers live in lib/lawlab-types.ts (shared by all
+// exam packs); re-exported here for back-compat.
+export { mapLeafKey, totalLeaves } from "@/lib/lawlab-types";
+export type { Confusable, LawBranch, LawKind, LawMapDef, LawRegion } from "@/lib/lawlab-types";
 
 export const LAW_MAPS: LawMapDef[] = [
   // ───────────────────────────── EU ─────────────────────────────
@@ -994,14 +979,6 @@ export const LAW_MAPS: LawMapDef[] = [
 
 // ───────────────────────── Confusables (side-by-sides) ─────────────────────────
 
-export interface Confusable {
-  id: string;
-  a: string;
-  b: string;
-  rows: { dim: string; a: string; b: string }[];
-  tell: string; // the one-line exam tell
-}
-
 export const CONFUSABLES: Confusable[] = [
   {
     id: "aiact-gdpr",
@@ -1144,11 +1121,4 @@ export const CONFUSABLES: Confusable[] = [
   },
 ];
 
-// Flat leaf counting helpers
-export function mapLeafKey(mapId: string, branchId: string, i: number) {
-  return `${mapId}.${branchId}.${i}`;
-}
-export function totalLeaves(def: LawMapDef) {
-  return def.branches.reduce((n, b) => n + b.leaves.length, 0);
-}
 export const LAWLAB_TOTAL = LAW_MAPS.reduce((n, m) => n + totalLeaves(m), 0);

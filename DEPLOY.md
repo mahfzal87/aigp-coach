@@ -8,7 +8,7 @@ is optional. There is **no LLM or AI API key** anywhere — nothing in the app c
 
 1. Fork the repo, then `npm install && npm run dev`. That already works — stop here if you just want to study.
 2. Want cloud sync and accounts? Create a free project at [supabase.com](https://supabase.com).
-3. In the project's **SQL Editor**, run `supabase/progress_sync.sql` and `supabase/accounts.sql` (both are idempotent).
+3. In the project's **SQL Editor**, run `supabase/progress_sync.sql`, `supabase/accounts.sql` and `supabase/multi_exam.sql` (all idempotent).
 4. Copy `.env.example` to `.env.local` and paste your **Project URL** and **anon key** (Supabase → Settings → API).
 5. Deploy (below) with the same two variables set. Done.
 
@@ -72,6 +72,16 @@ use either or both.
 
 Progress stays offline-first (localStorage) and mirrors to the cloud automatically a couple of
 seconds after each change.
+
+## Multi-exam packs
+
+Each exam is a self-contained pack: `content/exams/<slug>/` holds its curriculum (official BoK
+domains/competencies with blueprint weights), topics, question bank + hard pool, paper definitions,
+Law Lab maps/confusables, glossary and updates feed, assembled in that folder's `pack.ts`. Register
+new packs in `lib/exam-registry.ts` and add the slug in `lib/exam-state.ts`. Progress is stored per
+exam (separate localStorage keys; cloud rows are keyed `(code|user, exam_id)`), the exam switcher
+lives under the logo, and `GET /api/audit` integrity-checks every pack. Shipped packs: **AIGP**
+(full) and **CIPP/E** (BoK v1.3.3).
 
 ## Updating content
 

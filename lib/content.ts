@@ -1,87 +1,106 @@
-import { domains } from "@/content/curriculum";
-import { competencies } from "@/content/curriculum";
-import { questions as questionsBase } from "@/content/questions";
-import { questionsExtra } from "@/content/questions-extra";
-import { questionsBatch3 } from "@/content/questions-batch3";
-import { examPool } from "@/content/exam-pool-index";
-import { topics as topicsAll, topicQuestions } from "@/content/topics-index";
-import { flashcards } from "@/content/flashcards";
-import { notes } from "@/content/notes";
+import { getActivePack } from "@/lib/exam-registry";
+import type { ExamMeta, ExamPack } from "@/lib/exam-pack";
 import type { Competency, Domain, DomainCode, Flashcard, Question, StudyNote, Topic } from "@/lib/types";
 
-// Bundled content is the source of truth (also seeded to Supabase). Synchronous accessors.
+// Bundled content is the source of truth. Synchronous accessors over the
+// ACTIVE exam pack (lib/exam-registry.ts) — pages never import content files
+// directly, so adding an exam never touches a page.
 
-// Combined bank (base + extra + topic-authored), de-duplicated by id.
-const questions: Question[] = (() => {
-  const seen = new Set<string>();
-  return [...questionsBase, ...questionsExtra, ...questionsBatch3, ...topicQuestions, ...examPool].filter((q) => (seen.has(q.id) ? false : (seen.add(q.id), true)));
-})();
+interface Derived {
+  questions: Question[];
+  questionToTopic: Map<string, Topic>;
+  poolIds: Set<string>;
+}
+
+// Derivations (merge + de-dupe + indexes) are computed once per pack.
+const derivedCache = new Map<string, Derived>();
+
+function derived(): Derived {
+  const pack = getActivePack();
+  let d = derivedCache.get(pack.meta.slug);
+  if (!d) {
+    const seen = new Set<string>();
+    const questions = pack.questions.filter((q) => (seen.has(q.id) ? false : (seen.add(q.id), true)));
+    const questionToTopic = new Map<string, Topic>();
+    for (const t of pack.topics) for (const qid of t.questionIds) if (!questionToTopic.has(qid)) questionToTopic.set(qid, t);
+    d = { questions, questionToTopic, poolIds: new Set(pack.examPool.map((q) => q.id)) };
+    derivedCache.set(pack.meta.slug, d);
+  }
+  return d;
+}
+
+export function getActiveMeta(): ExamMeta {
+  return getActivePack().meta;
+}
+
+export function getPackExtras(): Pick<ExamPack, "lawlab" | "library" | "strategyTiles" | "paperDefs" | "updates"> {
+  return getActivePack();
+}
+
+export function isPoolQuestion(q: Question): boolean {
+  return derived().poolIds.has(q.id);
+}
 
 // ── Topics (the learn→test spine of each competency) ──
-const questionToTopic: Map<string, Topic> = (() => {
-  const m = new Map<string, Topic>();
-  for (const t of topicsAll) for (const qid of t.questionIds) if (!m.has(qid)) m.set(qid, t);
-  return m;
-})();
 
 export function getTopics(): Topic[] {
-  return topicsAll;
+  return getActivePack().topics;
 }
 
 export function getTopicsByCompetency(competencyId: string): Topic[] {
-  return topicsAll.filter((t) => t.competencyId === competencyId).sort((a, b) => a.sort - b.sort);
+  return getActivePack().topics.filter((t) => t.competencyId === competencyId).sort((a, b) => a.sort - b.sort);
 }
 
 export function getTopicForQuestion(questionId: string): Topic | undefined {
-  return questionToTopic.get(questionId);
+  return derived().questionToTopic.get(questionId);
 }
 
 export function getDomains(): Domain[] {
-  return [...domains].sort((a, b) => a.sort - b.sort);
+  return [...getActivePack().domains].sort((a, b) => a.sort - b.sort);
 }
 
 export function getDomain(idOrCode: string): Domain | undefined {
-  return domains.find((d) => d.id === idOrCode || d.code === idOrCode);
+  return getActivePack().domains.find((d) => d.id === idOrCode || d.code === idOrCode);
 }
 
 export function getCompetencies(): Competency[] {
-  return [...competencies].sort((a, b) => a.sort - b.sort);
+  return [...getActivePack().competencies].sort((a, b) => a.sort - b.sort);
 }
 
 export function getCompetenciesByDomain(domainId: string): Competency[] {
-  return competencies.filter((c) => c.domainId === domainId).sort((a, b) => a.sort - b.sort);
+  return getActivePack().competencies.filter((c) => c.domainId === domainId).sort((a, b) => a.sort - b.sort);
 }
 
 export function getCompetency(id: string): Competency | undefined {
-  return competencies.find((c) => c.id === id);
+  return getActivePack().competencies.find((c) => c.id === id);
 }
 
 export function getQuestions(): Question[] {
-  return questions;
+  return derived().questions;
 }
 
 export function getQuestionsByCompetency(competencyId: string): Question[] {
-  return questions.filter((q) => q.competencyId === competencyId);
+  return derived().questions.filter((q) => q.competencyId === competencyId);
 }
 
 export function getQuestion(id: string): Question | undefined {
-  return questions.find((q) => q.id === id);
+  return derived().questions.find((q) => q.id === id);
 }
 
 export function getFlashcards(): Flashcard[] {
-  return flashcards;
+  return getActivePack().flashcards;
 }
 
 export function getNotes(): StudyNote[] {
-  return [...notes].sort((a, b) => a.sort - b.sort);
+  return [...getActivePack().notes].sort((a, b) => a.sort - b.sort);
 }
 
 export function getNotesByCompetency(competencyId: string): StudyNote[] {
-  return notes.filter((n) => n.competencyId === competencyId).sort((a, b) => a.sort - b.sort);
+  return getActivePack().notes.filter((n) => n.competencyId === competencyId).sort((a, b) => a.sort - b.sort);
 }
 
 export function getStrategyNotes(): StudyNote[] {
-  return notes.filter((n) => n.competencyId === null);
+  return getActivePack().notes.filter((n) => n.competencyId === null);
 }
 
 // Map competencyId -> domainCode (used widely in scoring/readiness).

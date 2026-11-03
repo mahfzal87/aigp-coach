@@ -6,13 +6,14 @@
 
 import { useId } from "react";
 
-export type DomainCode = "I" | "II" | "III" | "IV";
+export type DomainCode = "I" | "II" | "III" | "IV" | "V";
 
 const THEMES: Record<DomainCode, { a: string; b: string; ink: string }> = {
   I: { a: "#16a34a", b: "#0ea5e9", ink: "#16a34a" }, // foundations — green/sky
   II: { a: "#2563eb", b: "#7c3aed", ink: "#2563eb" }, // laws — blue/violet
   III: { a: "#d97706", b: "#dc2626", ink: "#d97706" }, // development — amber/red
   IV: { a: "#0d9488", b: "#2563eb", ink: "#0d9488" }, // deployment — teal/blue
+  V: { a: "#be185d", b: "#7c3aed", ink: "#be185d" }, // compliance practice — rose/violet
 };
 
 export function DomainArt({ code, className, opacity = 1 }: { code: DomainCode; className?: string; opacity?: number }) {

@@ -1,7 +1,8 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
+import { progressStorageKey } from "@/lib/exam-state";
 import { newCardState, review as sm2Review } from "@/lib/sm2";
 import { XP_PER_ATTEMPT, XP_PER_CORRECT, todayStr, updateStreak } from "@/lib/gamify";
 import type {
@@ -186,7 +187,19 @@ export const useProgress = create<ProgressState>()(
         }),
     }),
     {
+      // Logical name only — the PHYSICAL key is per exam (lib/exam-state.ts), so
+      // each exam keeps its own progress. ExamGate calls persist.rehydrate()
+      // after activating a non-default exam.
       name: "aigp-coach-progress",
+      storage: createJSONStorage(() => ({
+        getItem: (_n) => (typeof window === "undefined" ? null : window.localStorage.getItem(progressStorageKey())),
+        setItem: (_n, value) => {
+          if (typeof window !== "undefined") window.localStorage.setItem(progressStorageKey(), value);
+        },
+        removeItem: (_n) => {
+          if (typeof window !== "undefined") window.localStorage.removeItem(progressStorageKey());
+        },
+      })),
       onRehydrateStorage: () => (state) => {
         if (state) state.hydrated = true;
       },

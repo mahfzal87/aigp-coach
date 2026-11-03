@@ -112,7 +112,7 @@ export default function SettingsPage() {
             <p className="text-xs text-[var(--muted)]">Cloud sync needs Supabase configured (set <code className="rounded bg-[var(--surface-2)] px-1">NEXT_PUBLIC_SUPABASE_URL</code> and <code className="rounded bg-[var(--surface-2)] px-1">NEXT_PUBLIC_SUPABASE_ANON_KEY</code>, then run <code className="rounded bg-[var(--surface-2)] px-1">supabase/progress_sync.sql</code>). Until then, use Export/Import above. See <code className="rounded bg-[var(--surface-2)] px-1">DEPLOY.md</code>.</p>
           ) : (
             <>
-              <p className="text-xs text-[var(--muted)]">No account needed. We save your progress under a private <strong>sync code</strong>. Keep the code safe — anyone with it can load your progress.</p>
+              <p className="text-xs text-[var(--muted)]">No account needed. We save your progress under a private <strong>sync code</strong>, one cloud copy per exam. Keep the code safe — anyone with it can load your progress.</p>
 
               {settings.syncEnabled && settings.syncCode ? (
                 <div className="flex flex-wrap items-center gap-2">
@@ -151,7 +151,7 @@ export default function SettingsPage() {
 
         <Card><CardBody className="space-y-3">
           <div className="text-sm font-medium text-[var(--danger)]">Danger zone</div>
-          <Button variant="danger" onClick={() => { if (confirm("Erase all your progress? This cannot be undone.")) { reset(); setMsg("Progress reset."); } }}><Trash2 size={16} /> Reset all progress</Button>
+          <Button variant="danger" onClick={() => { if (confirm("Erase all your progress for the current exam? This cannot be undone.")) { reset(); setMsg("Progress reset for this exam."); } }}><Trash2 size={16} /> Reset this exam&apos;s progress</Button>
         </CardBody></Card>
       </div>
     </div>

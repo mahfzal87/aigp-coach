@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { AlertTriangle, Check, Crosshair, Swords, X } from "lucide-react";
 import { getQuestions } from "@/lib/content";
-import { ATTACK_STEPS, DECISION_RULES, TIME_TILES, TRAP_WORDS, TYPE_PLAYBOOK } from "@/content/strategy-structured";
+import { ATTACK_STEPS, DECISION_RULES, TRAP_WORDS, TYPE_PLAYBOOK } from "@/content/strategy-structured";
+import { getPackExtras } from "@/lib/content";
 import type { QuestionType } from "@/lib/types";
 import { Badge, Button, Card, CardBody, PageHeader } from "@/components/ui";
 import { Stagger, StaggerItem } from "@/components/motion";
@@ -29,7 +30,7 @@ export default function StrategyPage() {
 
       {/* Time discipline */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {TIME_TILES.map((t) => (
+        {getPackExtras().strategyTiles.map((t) => (
           <Card key={t.label}><CardBody className="p-4">
             <div className="text-2xl font-bold tabular-nums text-[var(--primary)]">{t.stat}</div>
             <div className="text-xs font-semibold">{t.label}</div>

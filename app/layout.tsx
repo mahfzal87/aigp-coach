@@ -7,8 +7,8 @@ import { AppShell } from "@/components/app-shell";
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], weight: ["400", "500", "600", "700", "800"] });
 
 export const metadata: Metadata = {
-  title: "AIGP Coach — structured prep for the IAPP AIGP exam",
-  description: "Learn the BoK domain by domain, drill IAPP-style questions, track your mastery, and know when you're ready.",
+  title: "AIGP Coach — structured prep for IAPP exams (AIGP · CIPP/E)",
+  description: "Learn each BoK domain by domain, drill IAPP-style questions, sit fixed mock papers, track your mastery, and know when you're ready. AIGP and CIPP/E.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

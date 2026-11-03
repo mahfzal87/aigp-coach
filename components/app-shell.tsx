@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import { BarChart3, BookOpen, Brain, FileText, Flame, GraduationCap, Layers, Moon, Newspaper, Scale, Settings, Sun, Zap } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { ExamSwitcher } from "@/components/exam-switcher";
 import { useHydrated, useProgress } from "@/store/progress";
 import { streakAlive } from "@/lib/gamify";
 import { haptic } from "@/lib/haptics";
@@ -73,7 +74,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <div>
             <div className="text-[15px] font-bold leading-none">AIGP Coach</div>
-            <div className="mt-0.5 text-[10px] font-medium text-[var(--muted)]">BoK v2.1 · 2026</div>
+            <div className="mt-0.5"><ExamSwitcher /></div>
           </div>
         </div>
         <nav className="flex-1 space-y-0.5 px-3">
@@ -91,6 +92,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <header className="glass sticky top-0 z-20 flex items-center justify-between border-b border-[var(--border)] px-4 py-3 md:px-8">
           <div className="flex items-center gap-2 text-sm font-bold md:hidden">
             <GraduationCap size={17} className="text-[var(--primary)]" /> AIGP Coach
+            <ExamSwitcher compact />
           </div>
           <div className="ml-auto flex items-center gap-4">
             <HeaderStats />

@@ -1,4 +1,4 @@
-import { competencyToDomainCode, getCompetencies, getDomains, getQuestionsByCompetency } from "@/lib/content";
+import { getActiveMeta, getCompetencies, getDomains, getQuestionsByCompetency } from "@/lib/content";
 import { toScaledScore } from "@/lib/scoring";
 import type {
   Attempt,
@@ -141,7 +141,7 @@ export function computeReadiness(attempts: Attempt[], mocks: MockSession[]): Rea
     reasons.push(`Projected ~${projectedPercent}% (scaled ${projectedScaled}/500), every domain ≥ 80, and a full mock completed.`);
   } else if (projectedPercent >= 83) {
     verdict = "almost";
-    if (!hasMock) reasons.push("Take at least one full 100-question mock to confirm readiness.");
+    if (!hasMock) reasons.push(`Take at least one full ${getActiveMeta().questionsTotal}-question mock to confirm readiness.`);
     const weakDomain = domains.find((d) => d.mastery < 80);
     if (weakDomain) reasons.push(`Domain ${weakDomain.code} is below 80 (${weakDomain.mastery}).`);
     if (projectedPercent < 92) reasons.push(`Projected ~${projectedPercent}% — push toward 92%+ for a safe margin.`);

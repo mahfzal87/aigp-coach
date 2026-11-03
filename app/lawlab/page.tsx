@@ -18,20 +18,23 @@ import {
 import { cn } from "@/lib/utils";
 import { haptic } from "@/lib/haptics";
 import { celebrate, buzzFail } from "@/lib/celebrate";
-import { CONFUSABLES, LAW_MAPS, LAWLAB_TOTAL, mapLeafKey, totalLeaves, type LawMapDef, type LawRegion } from "@/content/lawlab";
+import { mapLeafKey, totalLeaves, type LawMapDef, type LawRegion } from "@/lib/lawlab-types";
+import { getCompetency, getPackExtras } from "@/lib/content";
 import { useLawLab, useLawLabHydrated } from "@/store/lawlab";
 import { useHydrated, useProgress } from "@/store/progress";
 import { Badge, Bar, Card, CardBody, PageHeader } from "@/components/ui";
 import { MindMap } from "@/components/mindmap";
 
-const COMP_LABEL: Record<string, string> = {
-  "i-c": "I.C Policies across the life cycle",
-  "ii-a": "II.A Privacy laws",
-  "ii-b": "II.B Other existing laws",
-  "ii-c": "II.C AI-specific laws",
-  "ii-d": "II.D Standards & tools",
+// Active pack's Law Lab data (maps, confusables, weakness competency list).
+const lab = () => getPackExtras().lawlab;
+const LAW_MAPS = () => lab().maps;
+const CONFUSABLES = () => lab().confusables;
+const lawlabTotal = () => lab().maps.reduce((n, m) => n + totalLeaves(m), 0);
+const LAW_COMPS_F = () => lab().weaknessCompetencies;
+const compLabel = (cid: string) => {
+  const c = getCompetency(cid);
+  return c ? `${c.code} ${c.name}` : cid;
 };
-const LAW_COMPS = Object.keys(COMP_LABEL);
 
 type Mode = "maps" | "confuse" | "drill";
 const REGIONS: ("All" | LawRegion)[] = ["All", "EU", "US", "APAC", "Global", "Org"];
@@ -47,7 +50,7 @@ export default function LawLabPage() {
     <div>
       <PageHeader
         title="Law Lab"
-        subtitle="Mindmaps, trigger keywords and look-alike distinctions for every law, framework and policy on the exam. Tap a fact to lock it in."
+        subtitle={lab().blurb + " Tap a fact to lock it in."}
       />
       <WeaknessStrip />
       <MasteryBand />
@@ -89,7 +92,7 @@ function WeaknessStrip() {
   const mocks = useProgress((s) => s.mocks);
 
   const data = useMemo(() => {
-    const per = LAW_COMPS.map((cid) => {
+    const per = LAW_COMPS_F().map((cid) => {
       const list = attempts.filter((a) => a.competencyId === cid);
       const c = list.filter((a) => a.correct).length;
       return { cid, n: list.length, pct: list.length ? Math.round((100 * c) / list.length) : NaN };
@@ -116,7 +119,7 @@ function WeaknessStrip() {
         <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
           {data.worst.map((w) => (
             <span key={w.cid} className="rounded-full bg-[var(--danger)]/10 px-2.5 py-1 text-[var(--danger)]">
-              {COMP_LABEL[w.cid]} · {w.pct}%
+              {compLabel(w.cid)} · {w.pct}%
             </span>
           ))}
           {data.latestII !== null && (
@@ -135,7 +138,7 @@ function MasteryBand() {
   const locked = useLawLab((s) => s.locked);
   const drillBest = useLawLab((s) => s.drillBest);
   const n = Object.keys(locked).length;
-  const pct = Math.round((100 * n) / LAWLAB_TOTAL);
+  const pct = Math.round((100 * n) / lawlabTotal());
   return (
     <Card className="mb-4">
       <CardBody className="py-3.5">
@@ -144,7 +147,7 @@ function MasteryBand() {
             Lab mastery <span className="tabular-nums text-[var(--primary)]">{pct}%</span>
           </span>
           <span className="flex items-center gap-3 text-xs font-semibold text-[var(--muted)]">
-            <span className="tabular-nums">{n}/{LAWLAB_TOTAL} facts locked</span>
+            <span className="tabular-nums">{n}/{lawlabTotal()} facts locked</span>
             <span className="flex items-center gap-1">
               <Trophy size={13} className="text-[var(--gold)]" /> drill best {drillBest}/10
             </span>
@@ -159,8 +162,8 @@ function MasteryBand() {
 // ── Mindmaps ──
 function MapsSection() {
   const [region, setRegion] = useState<(typeof REGIONS)[number]>("All");
-  const [open, setOpen] = useState<Set<string>>(() => new Set([LAW_MAPS[0].id]));
-  const maps = LAW_MAPS.filter((m) => region === "All" || m.region === region);
+  const [open, setOpen] = useState<Set<string>>(() => new Set(LAW_MAPS().length ? [LAW_MAPS()[0].id] : []));
+  const maps = LAW_MAPS().filter((m) => region === "All" || m.region === region);
 
   return (
     <div className="space-y-3">
@@ -335,9 +338,9 @@ function ConfusablesSection() {
   return (
     <div className="space-y-3">
       <p className="text-xs text-[var(--muted)]">
-        The exam's favorite move is swapping these. Read each pair until the tell is automatic.
+        The exam&apos;s favorite move is swapping these. Read each pair until the tell is automatic.
       </p>
-      {CONFUSABLES.map((c) => (
+      {CONFUSABLES().map((c) => (
         <Card key={c.id}>
           <CardBody className="space-y-3 py-4">
             <div className="flex items-center gap-2 text-sm font-bold">
@@ -373,11 +376,11 @@ interface DrillQ {
 }
 
 function buildDrill(): DrillQ[] {
-  const pool = LAW_MAPS.flatMap((m) => m.keywords.map((k) => ({ ...k, answer: m.short, region: m.region })));
-  const shorts = [...new Set(LAW_MAPS.map((m) => m.short))];
+  const pool = LAW_MAPS().flatMap((m) => m.keywords.map((k) => ({ ...k, answer: m.short, region: m.region })));
+  const shorts = [...new Set(LAW_MAPS().map((m) => m.short))];
   const picked = [...pool].sort(() => Math.random() - 0.5).slice(0, 10);
   return picked.map((p) => {
-    const sameRegion = LAW_MAPS.filter((m) => m.region === p.region && m.short !== p.answer).map((m) => m.short);
+    const sameRegion = LAW_MAPS().filter((m) => m.region === p.region && m.short !== p.answer).map((m) => m.short);
     const others = shorts.filter((s) => s !== p.answer && !sameRegion.includes(s));
     const distractors = [...sameRegion.sort(() => Math.random() - 0.5).slice(0, 2), ...others.sort(() => Math.random() - 0.5)].slice(0, 3);
     return { term: p.term, cue: p.cue, answer: p.answer, options: [p.answer, ...distractors].sort(() => Math.random() - 0.5) };

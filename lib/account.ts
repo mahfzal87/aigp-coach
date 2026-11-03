@@ -1,12 +1,13 @@
 import type { Session } from "@supabase/supabase-js";
+import { getActiveExam } from "@/lib/exam-state";
 import { getSupabase, supabaseConfigured } from "@/lib/supabase";
 import type { ProgressExport } from "@/lib/types";
 
 // Optional accounts (email + password) on top of Supabase Auth.
 // The session lives in this browser and auto-refreshes, so there is no expiry
 // from the user's point of view: you stay signed in until you log out.
-// Progress mirrors to account_progress (one row per user, owner-only RLS).
-// Schema: supabase/accounts.sql.
+// Progress mirrors to account_progress (one row per user PER EXAM, owner-only
+// RLS). Schema: supabase/accounts.sql + supabase/multi_exam.sql.
 
 export const authConfigured = supabaseConfigured;
 
@@ -56,14 +57,14 @@ export async function pushAccountProgress(userId: string, data: ProgressExport):
   if (!sb || !userId) return { ok: false, error: "not-configured" };
   const { error } = await sb
     .from(TABLE)
-    .upsert({ user_id: userId, data, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+    .upsert({ user_id: userId, exam_id: getActiveExam(), data, updated_at: new Date().toISOString() }, { onConflict: "user_id,exam_id" });
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
 export async function pullAccountProgress(userId: string): Promise<{ ok: boolean; data?: ProgressExport; error?: string }> {
   const sb = getSupabase();
   if (!sb || !userId) return { ok: false, error: "not-configured" };
-  const { data, error } = await sb.from(TABLE).select("data").eq("user_id", userId).maybeSingle();
+  const { data, error } = await sb.from(TABLE).select("data").eq("user_id", userId).eq("exam_id", getActiveExam()).maybeSingle();
   if (error) return { ok: false, error: error.message };
   if (!data) return { ok: false, error: "not-found" };
   return { ok: true, data: data.data as ProgressExport };

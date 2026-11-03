@@ -1,10 +1,14 @@
-import { updates as bundledUpdates } from "@/content/updates";
+import { getPackExtras } from "@/lib/content";
+import { getActiveExam } from "@/lib/exam-state";
 import { getSupabase } from "@/lib/supabase";
 import type { LawUpdate } from "@/lib/types";
 
-// Reads the law-updates feed from Supabase when configured; otherwise from bundled content.
+// Reads the law-updates feed from Supabase when configured; otherwise from the
+// active pack's bundled feed. The DB table only holds AIGP rows, so other exams
+// always read their bundle.
 export async function getUpdates(): Promise<LawUpdate[]> {
-  const sb = getSupabase();
+  const bundledUpdates = getPackExtras().updates;
+  const sb = getActiveExam() === "aigp" ? getSupabase() : null;
   if (sb) {
     try {
       const { data, error } = await sb
