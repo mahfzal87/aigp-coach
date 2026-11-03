@@ -39,7 +39,7 @@ Then on **vercel.com → Add New → Project → Import** the repo. Framework au
 |----------|-----------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Accounts, the anonymous sync code, and mirroring content to Supabase. Not required to run. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same. |
-| `NEXT_PUBLIC_REQUIRE_AUTH` | `true` locks the whole app behind login — a private instance. Default: accounts optional. |
+| `NEXT_PUBLIC_REQUIRE_AUTH` | `true` turns on the account-first flow: register/login screen → first name → exam tiles → app. The hosted copy runs with this on; clones default to open mode (accounts optional). |
 
 Without any of these, the app runs fully on its bundled content, which is what you want for studying.
 If you are setting up environment variables before you have answered a single question, you are

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { getActiveExam, switchExam } from "@/lib/exam-state";
+import { clearStoredExam, getActiveExam, switchExam } from "@/lib/exam-state";
 import { listPacks } from "@/lib/exam-registry";
 import { getActiveMeta } from "@/lib/content";
 import { cn } from "@/lib/utils";
@@ -64,7 +64,17 @@ export function ExamSwitcher({ compact }: { compact?: boolean }) {
               </span>
             </button>
           ))}
-          <div className="border-t border-[var(--border)] px-3 py-2 text-[10px] leading-snug text-[var(--muted)]">
+          <button
+            onClick={() => {
+              setOpen(false);
+              clearStoredExam();
+              window.location.assign("/");
+            }}
+            className="w-full cursor-pointer border-t border-[var(--border)] px-3 py-2 text-left text-[11px] font-semibold text-[var(--primary)] hover:bg-[var(--surface-2)]"
+          >
+            Browse all exams →
+          </button>
+          <div className="px-3 pb-2 pt-1 text-[10px] leading-snug text-[var(--muted)]">
             Each exam keeps its own progress, mocks and streak.
           </div>
         </div>

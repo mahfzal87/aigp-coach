@@ -2,7 +2,7 @@
 
 **A study system for the IAPP AIGP exam, built because the material I could buy told me *what* to know and never *why I kept getting questions wrong*.**
 
-Use the hosted copy at **[aigp-coach.vercel.app](https://aigp-coach.vercel.app)**, or clone it and run your own. No account required, no tracking, no API keys, no configuration. Your progress stays in your browser.
+Use the hosted copy at **[aigp-coach.vercel.app](https://aigp-coach.vercel.app)** — create a free account, tell it your first name, pick your exam from the tiles, and go; your progress backs up to your account automatically and you stay signed in until you log out. Or clone it and run your own with **no account at all**: a clone keeps everything in your browser — no tracking, no API keys, no configuration.
 
 ```bash
 git clone https://github.com/mahfzal87/aigp-coach.git
@@ -81,7 +81,7 @@ Everything is bundled, so `npm install && npm run dev` really is the whole thing
 npm run build && npm start
 ```
 
-**There is a hosted copy at [aigp-coach.vercel.app](https://aigp-coach.vercel.app).** Your progress still never leaves your browser by default — the server only serves the app. If you want the same progress on two devices, you have two options in Settings: create an **account** (email + password; progress backs up automatically and you stay signed in until you log out), or mint an anonymous **sync code** (random, unguessable, no email) and enter it on the other device to restore. Without either, nothing is sent anywhere.
+**The hosted copy at [aigp-coach.vercel.app](https://aigp-coach.vercel.app) is account-first:** register or log in (email + password, instant — no confirmation email), set your first name, choose an exam from the tiles, study. Progress backs up to your account automatically a few seconds after each change and follows you to any device; sessions auto-refresh, so you stay signed in until you log out. The anonymous **sync code** still exists in Settings as a second restore path. **Clones run open by default** — no login screen, progress in `localStorage` only — and flip to the account-first flow with `NEXT_PUBLIC_REQUIRE_AUTH=true`.
 
 **Optional:** one free Supabase project powers the accounts, the sync codes, and content updates without a redeploy. All off by default in a clone — copy `.env.example` to `.env.local`, run the two SQL files in `supabase/`, and they switch on. Forks that want a private instance can set `NEXT_PUBLIC_REQUIRE_AUTH=true` to put the whole app behind login. Step-by-step in [DEPLOY.md](DEPLOY.md). There is no LLM key to configure anywhere — nothing in the app calls a model.
 

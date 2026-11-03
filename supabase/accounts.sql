@@ -60,3 +60,9 @@ create policy "own progress insert" on public.account_progress
 drop policy if exists "own progress update" on public.account_progress;
 create policy "own progress update" on public.account_progress
   for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- First name for personalisation (mirrored from auth user_metadata).
+alter table public.profiles add column if not exists first_name text;
+drop policy if exists "own profile update" on public.profiles;
+create policy "own profile update" on public.profiles
+  for update to authenticated using (auth.uid() = id) with check (auth.uid() = id);

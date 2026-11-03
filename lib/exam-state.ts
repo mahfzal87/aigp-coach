@@ -24,6 +24,23 @@ export function readStoredExam(): ExamSlug {
   }
 }
 
+// Whether the user has picked an exam on this device (drives the tiles screen).
+export function hasStoredExam(): boolean {
+  try {
+    return (EXAM_SLUGS as readonly string[]).includes(localStorage.getItem(KEY) ?? "");
+  } catch {
+    return true; // storage unavailable — don't trap the user on the picker
+  }
+}
+
+export function clearStoredExam(): void {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 // Called once by ExamGate (client, post-mount). Changes which exam the content
 // accessors and the per-exam storage keys resolve to.
 export function activateStoredExam(): ExamSlug {
@@ -48,8 +65,12 @@ export function switchExam(slug: ExamSlug) {
 
 // Physical localStorage keys are per exam. The AIGP keys keep their legacy names
 // so existing users migrate with zero data movement.
+export function progressKeyFor(slug: ExamSlug): string {
+  return slug === "aigp" ? "aigp-coach-progress" : `coach-progress__${slug}`;
+}
+
 export function progressStorageKey(): string {
-  return active === "aigp" ? "aigp-coach-progress" : `coach-progress__${active}`;
+  return progressKeyFor(active);
 }
 
 export function lawlabStorageKey(): string {

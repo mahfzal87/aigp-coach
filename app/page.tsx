@@ -6,6 +6,8 @@ import { CalendarDays, CloudOff, Flame, Target, X } from "lucide-react";
 import { computeReadiness } from "@/lib/readiness";
 import { streakAlive, todayStr, DAILY_GOAL_XP } from "@/lib/gamify";
 import { useHydrated, useProgress } from "@/store/progress";
+import { firstNameOf } from "@/lib/account";
+import { useSession } from "@/components/account";
 import { Badge, Button, Card, CardBody } from "@/components/ui";
 import { AnimatedNumber, MotionBar, Reveal } from "@/components/motion";
 import { ContinueCard, CurriculumBoard } from "@/components/curriculum";
@@ -28,6 +30,8 @@ function greeting(): string {
 
 export default function StudyPlanPage() {
   const hydrated = useHydrated();
+  const { session } = useSession();
+  const firstName = firstNameOf(session);
   const attempts = useProgress((s) => s.attempts);
   const mocks = useProgress((s) => s.mocks);
   const examDate = useProgress((s) => s.settings.examDate);
@@ -57,7 +61,7 @@ export default function StudyPlanPage() {
           <CardBody className="space-y-4 py-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">{greeting()}, Ahmad</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">{greeting()}{firstName ? `, ${firstName}` : ""}</div>
                 <h1 className="mt-1 text-2xl font-bold tracking-tight">Study Plan</h1>
               </div>
               <div className="flex items-center gap-2">

@@ -38,6 +38,24 @@ export async function signOut(): Promise<void> {
   await getSupabase()?.auth.signOut();
 }
 
+// First name for personalisation. Source of truth is the auth user's metadata
+// (travels with the session, zero extra reads); mirrored to profiles.first_name
+// for the SaaS side of the house.
+export function firstNameOf(session: Session | null): string {
+  const n = session?.user.user_metadata?.first_name;
+  return typeof n === "string" ? n.trim() : "";
+}
+
+export async function setFirstName(name: string): Promise<{ ok: boolean; error?: string }> {
+  const sb = getSupabase();
+  if (!sb) return { ok: false, error: "not-configured" };
+  const first = name.trim().slice(0, 40);
+  const { data, error } = await sb.auth.updateUser({ data: { first_name: first } });
+  if (error) return { ok: false, error: error.message };
+  if (data.user) await sb.from("profiles").update({ first_name: first }).eq("id", data.user.id);
+  return { ok: true };
+}
+
 export async function getSession(): Promise<Session | null> {
   const sb = getSupabase();
   if (!sb) return null;
