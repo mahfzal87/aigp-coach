@@ -1,5 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
-import { getActiveExam } from "@/lib/exam-state";
+import { clearStoredExam, getActiveExam } from "@/lib/exam-state";
 import { getSupabase, supabaseConfigured } from "@/lib/supabase";
 import type { ProgressExport } from "@/lib/types";
 
@@ -36,6 +36,8 @@ export async function signIn(email: string, password: string): Promise<{ ok: boo
 
 export async function signOut(): Promise<void> {
   await getSupabase()?.auth.signOut();
+  // Forget the exam choice so the next login lands on the exam picker.
+  clearStoredExam();
 }
 
 // First name for personalisation. Source of truth is the auth user's metadata

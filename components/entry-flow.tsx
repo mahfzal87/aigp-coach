@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { ArrowRight, Check, GraduationCap, Sparkles } from "lucide-react";
 import { authRequired, firstNameOf, setFirstName } from "@/lib/account";
-import { hasStoredExam, progressKeyFor, switchExam, type ExamSlug } from "@/lib/exam-state";
+import { hasStoredExam, switchExam } from "@/lib/exam-state";
 import { listPacks } from "@/lib/exam-registry";
 import { AccountForm, useSession } from "@/components/account";
 import { Badge, Button, Card, CardBody } from "@/components/ui";
@@ -40,7 +40,7 @@ export function EntryFlow({ children }: { children: ReactNode }) {
   if (!ready || !mounted) return <Splash />;
   if (!session) return <Welcome />;
   if (!firstNameOf(session) && !nameSkipped()) return <NameStep onDone={() => bump((x) => x + 1)} />;
-  if (!hasStoredExam()) return <ExamTiles firstName={firstNameOf(session)} />;
+  if (!hasStoredExam()) return <ExamTiles />;
   return <>{children}</>;
 }
 
@@ -165,75 +165,35 @@ function NameStep({ onDone }: { onDone: () => void }) {
   );
 }
 
-function peekStats(slug: ExamSlug): { attempts: number; streak: number } | null {
-  try {
-    const raw = localStorage.getItem(progressKeyFor(slug));
-    if (!raw) return null;
-    const s = JSON.parse(raw)?.state;
-    const attempts = Array.isArray(s?.attempts) ? s.attempts.length : 0;
-    if (!attempts) return null;
-    return { attempts, streak: typeof s?.streakCount === "number" ? s.streakCount : 0 };
-  } catch {
-    return null;
-  }
-}
-
-export function ExamTiles({ firstName }: { firstName?: string }) {
+// Post-login exam picker: just the cards, nothing else. Picking one loads its
+// dashboard; logging out clears the choice so the next login lands here again.
+export function ExamTiles() {
   const packs = listPacks();
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-10 md:py-16">
-      <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-        {firstName ? `Welcome, ${firstName}` : "Welcome"}
-      </div>
-      <h1 className="font-display text-2xl font-extrabold">Choose your exam</h1>
-      <p className="mb-6 mt-1 text-sm text-[var(--muted)]">Each exam keeps its own progress, mock record and readiness. You can switch any time from the top-left corner.</p>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {packs.map((p) => {
-          const stats = peekStats(p.meta.slug);
-          const qs = p.questions.length;
-          const papers = p.paperDefs.length;
-          return (
-            <Card key={p.meta.slug} className="liftable">
-              <CardBody className="flex h-full flex-col gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-display text-xl font-extrabold">{p.meta.name}</span>
-                    <Badge tone="primary">{p.meta.bokLabel}</Badge>
-                  </div>
-                  <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">{p.meta.fullName}</p>
-                </div>
-                <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--muted)]">
-                  <span className="font-semibold text-[var(--foreground)]">{qs} questions</span>
-                  <span>{p.topics.length} topics</span>
-                  <span>{papers} papers</span>
-                  <span>{p.lawlab.maps.length} law maps</span>
-                </div>
-                {stats && (
-                  <p className="text-xs font-semibold text-[var(--primary)]">
-                    {stats.attempts} answered on this device{stats.streak > 0 ? ` · ${stats.streak}-day streak` : ""}
-                  </p>
-                )}
-                <div className="mt-auto pt-1">
-                  <Button variant="accent" onClick={() => switchExam(p.meta.slug)}>
-                    {stats ? "Continue" : "Start"} <ArrowRight size={15} />
-                  </Button>
-                </div>
-              </CardBody>
-            </Card>
-          );
-        })}
-        {COMING_SOON.map((c) => (
-          <Card key={c.name} className="border-dashed opacity-70">
-            <CardBody className="flex h-full flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <span className="font-display text-xl font-extrabold">{c.name}</span>
-                <Badge tone="warning">In the works</Badge>
-              </div>
-              <p className="text-xs leading-relaxed text-[var(--muted)]">{c.fullName}</p>
-              <p className="mt-auto pt-1 text-xs text-[var(--muted)]">Same engine — fixed papers, near-miss rationales, Law Lab.</p>
-            </CardBody>
-          </Card>
-        ))}
+    <div className="grid min-h-screen place-items-center p-4">
+      <div className="w-full max-w-xl">
+        <div className="mb-6 flex items-center justify-center gap-2.5">
+          <div className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--primary)] text-[var(--primary-fg)]">
+            <GraduationCap size={16} />
+          </div>
+          <span className="font-display text-lg font-extrabold">Choose your exam</span>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {packs.map((p) => (
+            <button
+              key={p.meta.slug}
+              onClick={() => switchExam(p.meta.slug)}
+              className="press liftable cursor-pointer rounded-2xl border-2 border-[var(--border)] bg-[var(--surface)] p-6 text-center transition-colors hover:border-[var(--primary)]"
+            >
+              <span className="font-display block text-3xl font-extrabold">{p.meta.name}</span>
+              <span className="mt-2 block text-xs leading-snug text-[var(--muted)]">{p.meta.fullName}</span>
+              <Badge tone="primary" className="mt-3">{p.meta.bokLabel}</Badge>
+            </button>
+          ))}
+        </div>
+        <p className="mt-6 text-center text-xs text-[var(--muted)]">
+          Coming soon: {COMING_SOON.map((c) => c.name).join(" · ")}
+        </p>
       </div>
     </div>
   );
