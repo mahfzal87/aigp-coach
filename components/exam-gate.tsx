@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState, type ReactNode } from "react";
-import { activateStoredExam, DEFAULT_EXAM, type ExamSlug } from "@/lib/exam-state";
+import { activateStoredExam, DEFAULT_EXAM, lawlabStorageKey, progressStorageKey, type ExamSlug } from "@/lib/exam-state";
 import { useProgress } from "@/store/progress";
 import { useLawLab } from "@/store/lawlab";
 import { SyncManager } from "@/components/sync-manager";
@@ -19,11 +19,30 @@ export function ExamGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     const stored = activateStoredExam();
     if (stored === DEFAULT_EXAM) return;
-    // Order matters: the slug is already flipped, so reset() writes initial
-    // state to the NEW exam's key (never clobbering the default exam's data),
-    // and rehydrate() then loads whatever that exam already had.
+    // The slug is already flipped, so the stores now persist to the NEW exam's
+    // keys. Memory still holds the default exam's state, which must not leak
+    // into this exam when it has nothing saved yet — hence the reset. But the
+    // persist middleware writes on every set, so the reset would overwrite
+    // this exam's saved data: snapshot it first, restore it, then rehydrate.
+    const keys = [progressStorageKey(), lawlabStorageKey()];
+    const saved = keys.map((k) => {
+      try {
+        return localStorage.getItem(k);
+      } catch {
+        return null;
+      }
+    });
     useProgress.getState().reset();
     useLawLab.setState({ locked: {}, drillBest: 0 });
+    keys.forEach((k, i) => {
+      const v = saved[i];
+      if (v === null) return;
+      try {
+        localStorage.setItem(k, v);
+      } catch {
+        /* storage unavailable */
+      }
+    });
     Promise.all([useProgress.persist.rehydrate(), useLawLab.persist.rehydrate()]).finally(() => setSlug(stored));
   }, []);
 
