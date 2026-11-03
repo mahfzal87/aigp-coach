@@ -11,7 +11,11 @@ export function pct(n: number) {
 
 export function fmtDate(iso: string) {
   try {
-    return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    // Date-only strings parse as UTC midnight, which shows the previous day
+    // west of UTC — build them as local dates instead.
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+    const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(iso);
+    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
   } catch {
     return iso;
   }
@@ -19,7 +23,8 @@ export function fmtDate(iso: string) {
 
 export function daysUntil(iso?: string): number | null {
   if (!iso) return null;
-  const d = new Date(iso).getTime();
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  const d = (m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(iso)).getTime();
   if (Number.isNaN(d)) return null;
   return Math.ceil((d - Date.now()) / (24 * 60 * 60 * 1000));
 }

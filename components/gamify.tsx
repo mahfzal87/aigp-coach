@@ -12,32 +12,70 @@ export function StatChips({ xp, streak, lastActiveDate, className }: { xp: numbe
     <div className={cn("flex items-center gap-3 font-extrabold", className)}>
       <span className="flex items-center gap-1 text-[var(--streak)]" title="Day streak">
         <Flame size={20} className={alive ? "" : "opacity-40"} fill={alive ? "var(--streak)" : "none"} />
-        <span className="text-sm">{streak}</span>
+        <span className="text-sm tabular-nums">{streak}</span>
       </span>
-      <span className="flex items-center gap-1 text-[var(--gold)]" title="Total XP">
+      <span className="flex items-center gap-1 text-[var(--gold)]" title="Total points">
         <Zap size={20} fill="var(--gold)" />
-        <span className="text-sm">{xp}</span>
+        <span className="text-sm tabular-nums">{xp.toLocaleString()}</span>
       </span>
       <span className="flex items-center gap-1 text-[var(--accent)]" title="Level">
         <Star size={20} fill="var(--accent)" />
-        <span className="text-sm">Lvl {level}</span>
+        <span className="text-sm tabular-nums">Lvl {level}</span>
       </span>
     </div>
   );
 }
 
 // Circular progress ring with a value + label in the center.
-export function Ring({ value, size = 132, stroke = 12, color = "var(--primary)", children }: { value: number; size?: number; stroke?: number; color?: string; children?: React.ReactNode }) {
+// Colours are applied as CSS (style), so var() tokens resolve in every browser.
+export function Ring({
+  value,
+  size = 132,
+  stroke = 12,
+  color = "var(--primary)",
+  trackColor = "var(--surface-2)",
+  label,
+  children,
+}: {
+  value: number;
+  size?: number;
+  stroke?: number;
+  color?: string;
+  trackColor?: string;
+  /** Accessible description, e.g. "Level 9, 89% to level 10". */
+  label?: string;
+  children?: React.ReactNode;
+}) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
-  const off = c - (Math.max(0, Math.min(100, value)) / 100) * c;
+  const pct = Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
+  const off = c - (pct / 100) * c;
   return (
-    <div className="relative inline-grid place-items-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="absolute inset-0">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--surface-2)" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={c} strokeDashoffset={off} transform={`rotate(-90 ${size / 2} ${size / 2})`} style={{ transition: "stroke-dashoffset 0.6s ease" }} />
+    <div
+      className="relative inline-grid shrink-0 place-items-center"
+      style={{ width: size, height: size }}
+      role={label ? "img" : undefined}
+      aria-label={label}
+    >
+      <svg width={size} height={size} className="absolute inset-0" aria-hidden>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} style={{ stroke: trackColor }} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={off}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          className="motion-safe:transition-[stroke-dashoffset] motion-safe:duration-500"
+          style={{ stroke: color, opacity: pct > 0 ? 1 : 0 }}
+        />
       </svg>
-      <div className="relative z-10 text-center">{children}</div>
+      <div className="relative z-10 text-center" aria-hidden={label ? true : undefined}>
+        {children}
+      </div>
     </div>
   );
 }
