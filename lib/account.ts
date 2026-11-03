@@ -1,5 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
-import { clearStoredExam, getActiveExam } from "@/lib/exam-state";
+import { clearStoredExam, EXAM_SLUGS, getActiveExam, progressKeyFor } from "@/lib/exam-state";
 import { getSupabase, supabaseConfigured } from "@/lib/supabase";
 import type { ProgressExport } from "@/lib/types";
 
@@ -34,10 +34,37 @@ export async function signIn(email: string, password: string): Promise<{ ok: boo
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
+// Pushes are debounced, so the last few answers may not have reached the
+// account yet: flush before signing out. In account-first mode the device
+// cache is then wiped and the page reloads to the welcome screen — otherwise
+// the next person to log in on this browser would inherit this user's
+// progress (and the reconcile step would push it into their account). In open
+// mode local progress is the primary store, so it stays.
 export async function signOut(): Promise<void> {
-  await getSupabase()?.auth.signOut();
-  // Forget the exam choice so the next login lands on the exam picker.
-  clearStoredExam();
+  const sb = getSupabase();
+  if (sb) {
+    const { data } = await sb.auth.getSession();
+    const uid = data.session?.user.id;
+    if (uid) {
+      const { useProgress } = await import("@/store/progress");
+      await pushAccountProgress(uid, useProgress.getState().exportData()).catch(() => undefined);
+    }
+    await sb.auth.signOut();
+  }
+  if (authRequired) {
+    // Forget the exam choice so the next login lands on the exam picker.
+    clearStoredExam();
+    const { useProgress } = await import("@/store/progress");
+    // Reset first so any late store write persists an empty state, never this user's.
+    useProgress.getState().reset();
+    try {
+      for (const slug of EXAM_SLUGS) localStorage.removeItem(progressKeyFor(slug));
+      localStorage.removeItem("coach-name-skip");
+    } catch {
+      /* storage unavailable */
+    }
+    window.location.assign("/");
+  }
 }
 
 // First name for personalisation. Source of truth is the auth user's metadata
@@ -56,6 +83,14 @@ export async function setFirstName(name: string): Promise<{ ok: boolean; error?:
   if (error) return { ok: false, error: error.message };
   if (data.user) await sb.from("profiles").update({ first_name: first }).eq("id", data.user.id);
   return { ok: true };
+}
+
+// The SaaS plan from profiles.plan ('free' for everyone today).
+export async function getPlan(userId: string): Promise<string | null> {
+  const sb = getSupabase();
+  if (!sb || !userId) return null;
+  const { data } = await sb.from("profiles").select("plan").eq("id", userId).maybeSingle();
+  return (data?.plan as string | undefined) ?? null;
 }
 
 export async function getSession(): Promise<Session | null> {

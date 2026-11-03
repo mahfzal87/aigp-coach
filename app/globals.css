@@ -166,6 +166,15 @@ h1, h2, h3, h4, .font-display {
   .anim-flame { animation: flame-pulse 2.4s ease-in-out infinite; transform-origin: 50% 80%; }
 }
 
+/* Bottom sheets slide up from the tab bar */
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sheet-up { animation: sheet-up 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+}
+
 .prose-note h3 { font-weight: 700; margin-top: 1.15em; margin-bottom: 0.35em; font-size: 1rem; }
 .prose-note p { margin: 0.55em 0; line-height: 1.7; }
 .prose-note ul { margin: 0.55em 0; padding-left: 1.25em; list-style: disc; }
@@ -173,3 +182,111 @@ h1, h2, h3, h4, .font-display {
 .prose-note strong { font-weight: 700; }
 .prose-note code { background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 6px; font-size: 0.88em; font-family: ui-monospace, monospace; }
 .prose-note a { color: var(--accent); text-decoration: underline; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Glass Box v2 — per-exam light, minimal liquid glass, the readiness orb.
+   (Additive: new tokens/classes; the shell + primitives opt in.)
+   ══════════════════════════════════════════════════════════════════════════ */
+:root,
+[data-exam="aigp"] {
+  --exam-primary: #0e9f6e;
+  --exam-primary-shade: #0b7f58;
+  --glow: #34d3c0;
+  --spark: #c6f432;
+  --field-a: #5fe3cf;
+  --field-b: #23b98a;
+  --field-c: #d7f76a;
+}
+[data-exam="cippe"] {
+  --exam-primary: #2446d9;
+  --exam-primary-shade: #1b36ad;
+  --glow: #6f8cff;
+  --spark: #ffc93c;
+  --field-a: #8aa2ff;
+  --field-b: #3d5ef0;
+  --field-c: #ffd666;
+}
+.dark,
+.dark [data-exam="aigp"],
+.dark[data-exam="aigp"] {
+  --exam-primary: #2fd3a0;
+  --exam-primary-shade: #1fb486;
+  --glow: #3fe0cc;
+  --field-a: #0f8f7d;
+  --field-b: #0a6b50;
+  --field-c: #0b5f86;
+}
+.dark [data-exam="cippe"],
+.dark[data-exam="cippe"] {
+  --exam-primary: #7d96ff;
+  --exam-primary-shade: #6380ff;
+  --glow: #8ea4ff;
+  --field-a: #2a3fb8;
+  --field-b: #16247a;
+  --field-c: #5a3fa0;
+}
+
+:root {
+  --canvas: #eef1f6;
+  --glass-tint: rgba(255, 255, 255, 0.62);
+  --glass-tint-strong: rgba(255, 255, 255, 0.8);
+  --glass-edge: rgba(255, 255, 255, 0.7);
+  --glass-hairline: rgba(20, 23, 43, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.95);
+  --glass-shadow: rgba(24, 30, 70, 0.14);
+  --field-opacity: 0.5;
+  --orb-body: rgba(255, 255, 255, 0.4);
+  --orb-shine: rgba(255, 255, 255, 0.95);
+  --orb-spec: rgba(255, 255, 255, 0.75);
+}
+.dark {
+  --canvas: #080a12;
+  --glass-tint: rgba(22, 26, 42, 0.55);
+  --glass-tint-strong: rgba(26, 30, 48, 0.78);
+  --glass-edge: rgba(255, 255, 255, 0.1);
+  --glass-hairline: rgba(255, 255, 255, 0.07);
+  --glass-highlight: rgba(255, 255, 255, 0.1);
+  --glass-shadow: rgba(0, 0, 0, 0.5);
+  --field-opacity: 0.62;
+  --orb-body: rgba(255, 255, 255, 0.05);
+  --orb-shine: rgba(255, 255, 255, 0.16);
+  --orb-spec: rgba(255, 255, 255, 0.2);
+}
+
+/* Minimal glass: tint + blur, a 1px edge, a 1px top highlight, one soft float. */
+.glass-panel {
+  background: var(--glass-tint);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid var(--glass-edge);
+  box-shadow: inset 0 1px 0 0 var(--glass-highlight), 0 18px 40px -20px var(--glass-shadow);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass-panel { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+
+/* The exam's light — a fixed, slowly drifting field behind everything. */
+.exam-light { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: var(--canvas); }
+.exam-light > span { position: absolute; border-radius: 9999px; filter: blur(80px); opacity: var(--field-opacity); will-change: transform; }
+.exam-light__a { width: 62vmax; height: 62vmax; left: -20vmax; top: -26vmax; background: var(--field-a); }
+.exam-light__b { width: 54vmax; height: 54vmax; right: -18vmax; top: 8vmax; background: var(--field-b); opacity: calc(var(--field-opacity) * 0.8) !important; }
+.exam-light__c { width: 44vmax; height: 44vmax; left: 22vmax; bottom: -26vmax; background: var(--field-c); opacity: calc(var(--field-opacity) * 0.7) !important; }
+.exam-light__grain {
+  inset: 0; border-radius: 0 !important; filter: none !important; opacity: 0.04 !important;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+@keyframes drift-a { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(9vmax, 6vmax, 0) scale(1.08); } }
+@keyframes drift-b { from { transform: translate3d(0, 0, 0) scale(1.05); } to { transform: translate3d(-8vmax, 7vmax, 0) scale(0.95); } }
+@keyframes drift-c { from { transform: translate3d(0, 0, 0) scale(0.96); } to { transform: translate3d(6vmax, -7vmax, 0) scale(1.06); } }
+@media (prefers-reduced-motion: no-preference) {
+  .exam-light__a { animation: drift-a 110s ease-in-out infinite alternate; }
+  .exam-light__b { animation: drift-b 135s ease-in-out infinite alternate; }
+  .exam-light__c { animation: drift-c 95s ease-in-out infinite alternate; }
+}
+
+/* The readiness orb's surface waves (SVG user units). */
+@keyframes orb-wave { from { transform: translateX(0); } to { transform: translateX(-200px); } }
+@media (prefers-reduced-motion: no-preference) {
+  .orb-wave { animation: orb-wave 7s linear infinite; }
+  .orb-wave-slow { animation: orb-wave 12s linear infinite reverse; }
+}

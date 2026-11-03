@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTheme } from "next-themes";
-import { BarChart3, BookOpen, Brain, FileText, Flame, GraduationCap, Layers, Moon, Newspaper, Scale, Settings, Sun, Zap } from "lucide-react";
+import { BarChart3, BookOpen, Brain, ChevronRight, FileText, Flame, GraduationCap, Layers, MoreHorizontal, Newspaper, Scale, X, Zap } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { ExamSwitcher } from "@/components/exam-switcher";
+import { UserMenu } from "@/components/user-menu";
 import { useHydrated, useProgress } from "@/store/progress";
 import { streakAlive } from "@/lib/gamify";
 import { haptic } from "@/lib/haptics";
@@ -18,26 +18,11 @@ const primaryNav = [
   { href: "/lawlab", label: "Law Lab", icon: Scale },
   { href: "/profile", label: "Progress", icon: BarChart3 },
 ];
-const mobileNav = [...primaryNav, { href: "/reference", label: "Library", icon: FileText }];
 const secondaryNav = [
   { href: "/strategy", label: "Strategy", icon: Layers },
   { href: "/reference", label: "Reference", icon: FileText },
   { href: "/updates", label: "Law Updates", icon: Newspaper },
-  { href: "/settings", label: "Settings", icon: Settings },
 ];
-
-function ThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme();
-  const [m, setM] = useState(false);
-  useEffect(() => setM(true), []);
-  if (!m) return <div className="h-9 w-9" />;
-  const dark = resolvedTheme === "dark";
-  return (
-    <button aria-label="Toggle theme" onClick={() => setTheme(dark ? "light" : "dark")} className="press grid h-9 w-9 cursor-pointer place-items-center rounded-lg hover:bg-[var(--surface-2)]">
-      {dark ? <Sun size={17} /> : <Moon size={17} />}
-    </button>
-  );
-}
 
 function HeaderStats() {
   const hydrated = useHydrated();
@@ -67,7 +52,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen">
       {/* Desktop sidebar */}
-      <aside className="hidden w-60 shrink-0 border-r border-[var(--border)] bg-[var(--surface)] md:flex md:flex-col">
+      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 border-r border-[var(--border)] bg-[var(--surface)] md:flex md:flex-col">
         <div className="flex items-center gap-2.5 px-5 py-5">
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--primary)] text-[var(--primary-fg)]">
             <GraduationCap size={18} />
@@ -77,15 +62,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="mt-0.5"><ExamSwitcher /></div>
           </div>
         </div>
-        <nav className="flex-1 space-y-0.5 px-3">
+        <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-3">
           {primaryNav.map((n) => <NavLink key={n.href} {...n} active={isActive(n.href)} />)}
           <div className="my-3 border-t border-[var(--border)]" />
           {secondaryNav.map((n) => <NavLink key={n.href} {...n} active={isActive(n.href)} small />)}
         </nav>
-        <div className="flex items-center justify-between border-t border-[var(--border)] px-4 py-3">
-          <span className="text-xs text-[var(--muted)]">Theme</span>
-          <ThemeToggle />
-        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -94,34 +75,101 @@ export function AppShell({ children }: { children: ReactNode }) {
             <GraduationCap size={17} className="text-[var(--primary)]" /> AIGP Coach
             <ExamSwitcher compact />
           </div>
-          <div className="ml-auto flex items-center gap-4">
+          <div className="ml-auto flex items-center gap-3 sm:gap-4">
             <HeaderStats />
-            <div className="md:hidden"><ThemeToggle /></div>
+            <UserMenu />
           </div>
         </header>
 
         <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 pb-24 md:px-8 md:py-8 md:pb-10">{children}</main>
 
-        {/* Mobile bottom nav */}
-        <nav className="glass fixed bottom-0 left-0 right-0 z-20 grid grid-cols-6 border-t border-[var(--border)] md:hidden">
-          {mobileNav.map((n) => {
-            const Icon = n.icon;
-            return (
-              <Link key={n.href} href={n.href} onClick={() => haptic("tap")} className={cn("press flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold", isActive(n.href) ? "text-[var(--primary)]" : "text-[var(--muted)]")}>
-                <Icon size={20} />
-                {n.label}
-              </Link>
-            );
-          })}
-        </nav>
+        <MobileNav pathname={pathname} isActive={isActive} />
       </div>
     </div>
   );
 }
 
+// Phone navigation: the five primary destinations plus a "More" sheet holding
+// every secondary page, so nothing is unreachable without the sidebar.
+function MobileNav({ pathname, isActive }: { pathname: string; isActive: (href: string) => boolean }) {
+  // Open for the route it was opened on — navigating closes it.
+  const [openOn, setOpenOn] = useState<string | null>(null);
+  const open = openOn === pathname;
+  const moreActive = secondaryNav.some((n) => isActive(n.href));
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpenOn(null);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  const tab = "press flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold";
+  return (
+    <>
+      <nav aria-label="Primary" className="glass fixed bottom-0 left-0 right-0 z-30 grid grid-cols-6 border-t border-[var(--border)] pb-[env(safe-area-inset-bottom)] md:hidden">
+        {primaryNav.map((n) => {
+          const Icon = n.icon;
+          const active = isActive(n.href);
+          return (
+            <Link key={n.href} href={n.href} aria-current={active ? "page" : undefined} onClick={() => haptic("tap")} className={cn(tab, active ? "text-[var(--primary)]" : "text-[var(--muted)]")}>
+              <Icon size={20} />
+              {n.label}
+            </Link>
+          );
+        })}
+        <button
+          onClick={() => {
+            haptic("tap");
+            setOpenOn(open ? null : pathname);
+          }}
+          aria-expanded={open}
+          aria-haspopup="dialog"
+          className={cn(tab, "cursor-pointer", moreActive || open ? "text-[var(--primary)]" : "text-[var(--muted)]")}
+        >
+          <MoreHorizontal size={20} />
+          More
+        </button>
+      </nav>
+
+      {open && (
+        <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true" aria-label="More pages">
+          <button aria-label="Close" className="absolute inset-0 cursor-default bg-black/50" onClick={() => setOpenOn(null)} />
+          <div className="sheet-up absolute bottom-0 left-0 right-0 rounded-t-2xl border-t border-[var(--border)] bg-[var(--surface)] px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2">
+            <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-[var(--border)]" />
+            <div className="flex items-center justify-between px-2 pb-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">More</span>
+              <button aria-label="Close" onClick={() => setOpenOn(null)} className="press grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-[var(--muted)] hover:bg-[var(--surface-2)]">
+                <X size={18} />
+              </button>
+            </div>
+            {secondaryNav.map((n) => {
+              const Icon = n.icon;
+              const active = isActive(n.href);
+              return (
+                <Link
+                  key={n.href}
+                  href={n.href}
+                  aria-current={active ? "page" : undefined}
+                  onClick={() => haptic("tap")}
+                  className={cn("flex h-12 items-center gap-3 rounded-xl px-3 text-[15px] font-semibold", active ? "bg-[var(--primary)]/10 text-[var(--primary)]" : "text-[var(--foreground)] active:bg-[var(--surface-2)]")}
+                >
+                  <Icon size={18} className={active ? "" : "text-[var(--muted)]"} />
+                  <span className="flex-1">{n.label}</span>
+                  <ChevronRight size={16} className="text-[var(--muted)]" />
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function NavLink({ href, label, icon: Icon, active, small }: { href: string; label: string; icon: typeof BookOpen; active: boolean; small?: boolean }) {
   return (
-    <Link href={href} className={cn("flex items-center gap-3 rounded-lg px-3 font-medium transition-colors", small ? "py-1.5 text-[13px]" : "py-2 text-sm", active ? "bg-[var(--primary)]/10 font-semibold text-[var(--primary)]" : "text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]")}>
+    <Link href={href} aria-current={active ? "page" : undefined} className={cn("flex items-center gap-3 rounded-lg px-3 font-medium transition-colors", small ? "py-1.5 text-[13px]" : "py-2 text-sm", active ? "bg-[var(--primary)]/10 font-semibold text-[var(--primary)]" : "text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]")}>
       <Icon size={small ? 15 : 18} /> {label}
     </Link>
   );
