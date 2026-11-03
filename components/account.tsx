@@ -50,31 +50,75 @@ export function useSession() {
 const inputCls =
   "w-full rounded-xl border-2 border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm";
 
-// Email + password form used both in Settings and on the full-screen gate.
-export function AccountForm() {
+// Friendly wording for the auth errors people actually hit.
+function friendlyAuthError(raw: string, mode: "in" | "up"): string {
+  const m = raw.toLowerCase();
+  if (m.includes("invalid login credentials"))
+    return mode === "in"
+      ? "Wrong email or password. New here? Switch to Create account above."
+      : "Wrong email or password.";
+  if (m.includes("already registered")) return "That email already has an account — log in instead.";
+  if (m.includes("rate limit") || m.includes("too many")) return "Too many attempts — wait a minute and try again.";
+  if (m.includes("valid email")) return "That doesn't look like a valid email address.";
+  return raw;
+}
+
+// Email + password form used both in Settings and on the welcome screen.
+// One mode at a time (tabs), a single primary action, and Enter submits the
+// ACTIVE mode — so registering never silently turns into a failed login.
+export function AccountForm({ defaultMode = "in" }: { defaultMode?: "in" | "up" }) {
+  const [mode, setMode] = useState<"in" | "up">(defaultMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ text: string; tone: "error" | "info" } | null>(null);
 
-  async function submit(mode: "in" | "up") {
-    if (!email.trim() || !password) return;
+  const shortPw = password.length > 0 && password.length < 6;
+
+  async function submit() {
+    if (busy || !email.trim() || password.length < 6) return;
     setBusy(true);
     setMsg(null);
     const res = mode === "in" ? await signIn(email.trim(), password) : await signUp(email.trim(), password);
     setBusy(false);
     if (!res.ok) {
-      setMsg(res.error ?? "Something went wrong.");
+      const text = friendlyAuthError(res.error ?? "Something went wrong — try again.", mode);
+      if ((res.error ?? "").toLowerCase().includes("already registered")) setMode("in");
+      setMsg({ text, tone: "error" });
       return;
     }
     if (mode === "up" && "needsConfirm" in res && res.needsConfirm) {
-      setMsg("Account created — check your email for the confirmation link, then log in here.");
+      setMsg({ text: "Account created — check your email for the confirmation link, then log in here.", tone: "info" });
     }
     // On success the session change propagates via onAuthChange; no local state needed.
   }
 
   return (
-    <div className="space-y-2">
+    <form
+      className="space-y-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+    >
+      <div className="flex gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-1">
+        {(["up", "in"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => {
+              setMode(m);
+              setMsg(null);
+            }}
+            className={
+              "flex-1 cursor-pointer rounded-lg px-3 py-1.5 text-sm font-semibold " +
+              (mode === m ? "bg-[var(--surface)] text-[var(--foreground)] shadow-sm" : "text-[var(--muted)]")
+            }
+          >
+            {m === "up" ? "Create account" : "Log in"}
+          </button>
+        ))}
+      </div>
       <input
         type="email"
         autoComplete="email"
@@ -85,24 +129,23 @@ export function AccountForm() {
       />
       <input
         type="password"
-        autoComplete="current-password"
+        autoComplete={mode === "up" ? "new-password" : "current-password"}
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && submit("in")}
-        placeholder="Password (at least 6 characters)"
+        placeholder={mode === "up" ? "Choose a password (6+ characters)" : "Password"}
         className={inputCls}
       />
-      <div className="flex flex-wrap gap-2">
-        <Button variant="accent" disabled={busy || !email.trim() || password.length < 6} onClick={() => submit("in")}>
-          <LogIn size={16} /> Log in
-        </Button>
-        <Button variant="outline" disabled={busy || !email.trim() || password.length < 6} onClick={() => submit("up")}>
-          Create account
-        </Button>
-      </div>
-      {msg && <p className="text-xs text-[var(--muted)]">{msg}</p>}
+      {shortPw && <p className="text-xs font-semibold text-[var(--warning)]">Password needs at least 6 characters.</p>}
+      <Button type="submit" variant="accent" className="w-full" disabled={busy || !email.trim() || password.length < 6}>
+        <LogIn size={16} /> {busy ? "One moment…" : mode === "up" ? "Create account" : "Log in"}
+      </Button>
+      {msg && (
+        <p className={"text-xs font-semibold " + (msg.tone === "error" ? "text-[var(--danger)]" : "text-[var(--muted)]")}>
+          {msg.text}
+        </p>
+      )}
       <p className="text-xs text-[var(--muted)]">You stay signed in on this device until you log out — no session expiry.</p>
-    </div>
+    </form>
   );
 }
 

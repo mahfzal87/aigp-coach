@@ -91,9 +91,9 @@ function Welcome() {
         </div>
         <Card>
           <CardBody className="space-y-3">
-            <div className="font-display text-lg font-extrabold">Create your account</div>
-            <p className="text-xs text-[var(--muted)]">Your progress backs up to your account automatically and follows you across devices. Already have one? Log in below.</p>
-            <AccountForm />
+            <div className="font-display text-lg font-extrabold">Get started</div>
+            <p className="text-xs text-[var(--muted)]">Your progress backs up to your account automatically and follows you across devices.</p>
+            <AccountForm defaultMode="up" />
           </CardBody>
         </Card>
       </div>
