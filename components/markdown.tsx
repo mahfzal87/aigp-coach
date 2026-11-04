@@ -20,14 +20,14 @@ const components: Components = {
     </ol>
   ),
   table: ({ children }) => (
-    <div className="my-3 max-w-full overflow-x-auto rounded-lg border border-[var(--border)]">
+    <div className="my-3 max-w-full overflow-x-auto rounded-[14px] border border-[var(--border)]">
       <table className="w-full border-collapse text-left text-[13px]">{children}</table>
     </div>
   ),
   th: ({ children }) => <th className="border-b border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 font-semibold">{children}</th>,
   td: ({ children }) => <td className="border-b border-[var(--border)] px-3 py-2 align-top">{children}</td>,
   blockquote: ({ children }) => <blockquote className="my-3 border-l-2 border-[var(--border)] pl-3 text-[var(--muted)]">{children}</blockquote>,
-  pre: ({ children }) => <pre className="my-3 max-w-full overflow-x-auto rounded-lg bg-[var(--surface-2)] p-3 text-[12.5px]">{children}</pre>,
+  pre: ({ children }) => <pre className="my-3 max-w-full overflow-x-auto rounded-[14px] bg-[var(--surface-2)] p-3 text-[12.5px]">{children}</pre>,
   hr: () => <hr className="my-4 border-[var(--border)]" />,
 };
 

@@ -54,13 +54,15 @@ export function __setActiveExamUnsafe(slug: ExamSlug) {
   active = slug;
 }
 
-export function switchExam(slug: ExamSlug) {
+// `to` lets the picker return someone to the deep link they arrived on.
+export function switchExam(slug: ExamSlug, to = "/") {
   try {
     localStorage.setItem(KEY, slug);
   } catch {
     /* storage unavailable — switch still applies for this load via reload default */
   }
-  window.location.assign("/");
+  // Same-origin paths only ("//host" is protocol-relative — an open redirect).
+  window.location.assign(to.startsWith("/") && !to.startsWith("//") && !to.startsWith("/\\") ? to : "/");
 }
 
 // Physical localStorage keys are per exam. The AIGP keys keep their legacy names

@@ -1,11 +1,13 @@
-import { competencyToDomainCode, getCompetency, getDomains, getQuestions } from "@/lib/content";
+import { competencyToDomainCode, getActiveMeta, getCompetency, getDomains, getQuestions } from "@/lib/content";
 import { isAnswerCorrect } from "@/lib/scoring";
-import type { DomainCode, MockSession, Question } from "@/lib/types";
+import type { Attempt, DomainCode, MockSession, Question } from "@/lib/types";
 
 // ─── Mock-exam analytics ───
 // Everything here is derived purely from finished MockSessions (which keep every
 // paper's questionIds + answers forever), so insights survive reloads, sync and
 // content updates — a retired question simply drops out of the aggregates.
+// Optional attempts (any mode) only decide whether an old miss has since been
+// cleared; they never change a score or an aggregate.
 
 export const TRAP_LABEL: Record<string, string> = {
   "too-narrow": "Too narrow",
@@ -58,6 +60,24 @@ export interface MissRecord {
   lastChosen: string[];
   lastAt: number;
   lastSkipped: boolean;
+  // The newest evidence on this question — a later mock sighting or any later
+  // attempt (miss drill, practice) — was correct, so the miss is no longer open.
+  cleared: boolean;
+}
+
+// One finished paper, as the score track and the verdict read it.
+export interface PaperPoint {
+  id: string;
+  idx: number; // 1-based, ascending by finish time
+  score: number;
+  name: string;
+  at: number;
+  examId?: string;
+  total: number; // questions on the paper
+  answered: number;
+  correct: number;
+  full: boolean; // full-length: at least 90% of the real exam's question count
+  partial: boolean; // fewer than half the questions answered (abandoned early)
 }
 
 export interface MockInsights {
@@ -73,14 +93,29 @@ export interface MockInsights {
   trapStats: TechniqueStat[];
   typeStats: TechniqueStat[];
   misses: MissRecord[]; // every question ever missed in a mock, latest first
+  // ── verdict-first additions ──
+  papers: PaperPoint[]; // every finished paper, ascending
+  latestFull: PaperPoint | null; // the most recent full-length paper
+  prevFull: PaperPoint | null; // the full-length paper before it
+  bestFull: number | null;
+  fullCount: number;
+  fullPassCount: number;
+  openMisses: MissRecord[]; // misses not yet cleared, latest first
 }
 
-export function computeMockInsights(mocks: MockSession[]): MockInsights {
+// Full-length = a paper at (nearly) real-exam length. The readiness verdict uses
+// the same bar, so "your latest full paper" means the same thing everywhere.
+export function isFullLength(m: Pick<MockSession, "questionIds">): boolean {
+  return m.questionIds.length >= Math.round(getActiveMeta().questionsTotal * 0.9);
+}
+
+export function computeMockInsights(mocks: MockSession[], attempts: Attempt[] = []): MockInsights {
   const sessions = mocks
     .filter((m) => m.finishedAt && typeof m.scaledScore === "number")
     .sort((a, b) => (a.finishedAt ?? 0) - (b.finishedAt ?? 0));
 
   const byId = new Map(getQuestions().map((q) => [q.id, q]));
+  const pass = getActiveMeta().passScaled;
 
   const domAll: Record<DomainCode, { c: number; t: number }> = { I: { c: 0, t: 0 }, II: { c: 0, t: 0 }, III: { c: 0, t: 0 }, IV: { c: 0, t: 0 }, V: { c: 0, t: 0 } };
   const domPrior: Record<DomainCode, { c: number; t: number }> = { I: { c: 0, t: 0 }, II: { c: 0, t: 0 }, III: { c: 0, t: 0 }, IV: { c: 0, t: 0 }, V: { c: 0, t: 0 } };
@@ -88,17 +123,21 @@ export function computeMockInsights(mocks: MockSession[]): MockInsights {
   const comp = new Map<string, { c: number; t: number }>();
   const trap = new Map<string, { m: number; s: number }>();
   const typ = new Map<string, { m: number; s: number }>();
-  const missMap = new Map<string, MissRecord>();
+  const missMap = new Map<string, Omit<MissRecord, "cleared">>();
+  // newest evidence per question (mock sightings, then any later attempt)
+  const latest = new Map<string, { ts: number; ok: boolean }>();
   let questionsFaced = 0;
 
   sessions.forEach((m, si) => {
     const isLatest = si === sessions.length - 1;
+    const at = m.finishedAt ?? m.startedAt;
     for (const qid of m.questionIds) {
       const q = byId.get(qid);
       if (!q) continue; // retired from the bank
       questionsFaced++;
       const chosen = m.answers[qid] ?? [];
       const ok = chosen.length > 0 && isAnswerCorrect(q, chosen);
+      latest.set(qid, { ts: at, ok });
 
       const dc = competencyToDomainCode(q.competencyId);
       if (dc) {
@@ -132,12 +171,18 @@ export function computeMockInsights(mocks: MockSession[]): MockInsights {
           q,
           times: (prev?.times ?? 0) + 1,
           lastChosen: chosen,
-          lastAt: m.finishedAt ?? m.startedAt,
+          lastAt: at,
           lastSkipped: chosen.length === 0,
         });
       }
     }
   });
+
+  // A later attempt in any mode (drill, practice) is newer evidence than the mock.
+  for (const a of attempts) {
+    const cur = latest.get(a.questionId);
+    if (cur && a.ts > cur.ts) latest.set(a.questionId, { ts: a.ts, ok: a.correct });
+  }
 
   const domains: DomainStat[] = getDomains().map((d) => {
     const a = domAll[d.code];
@@ -180,6 +225,28 @@ export function computeMockInsights(mocks: MockSession[]): MockInsights {
     at: m.finishedAt ?? m.startedAt,
   }));
 
+  const papers: PaperPoint[] = sessions.map((m, i) => {
+    const answered = m.questionIds.filter((id) => (m.answers[id]?.length ?? 0) > 0).length;
+    return {
+      id: m.id,
+      idx: i + 1,
+      score: m.scaledScore as number,
+      name: m.examName ?? "Mock exam",
+      at: m.finishedAt ?? m.startedAt,
+      examId: m.examId,
+      total: m.questionIds.length,
+      answered,
+      correct: m.correctCount ?? 0,
+      full: isFullLength(m),
+      partial: m.questionIds.length > 0 && answered / m.questionIds.length < 0.5,
+    };
+  });
+  const fullPapers = papers.filter((p) => p.full);
+
+  const misses: MissRecord[] = [...missMap.entries()]
+    .map(([qid, r]) => ({ ...r, cleared: latest.get(qid)?.ok === true }))
+    .sort((a, b) => b.lastAt - a.lastAt);
+
   return {
     sessions,
     questionsFaced,
@@ -192,6 +259,13 @@ export function computeMockInsights(mocks: MockSession[]): MockInsights {
     weakSpots,
     trapStats: toTech(trap, TRAP_LABEL),
     typeStats: toTech(typ, TYPE_LABEL),
-    misses: [...missMap.values()].sort((a, b) => b.lastAt - a.lastAt),
+    misses,
+    papers,
+    latestFull: fullPapers[fullPapers.length - 1] ?? null,
+    prevFull: fullPapers[fullPapers.length - 2] ?? null,
+    bestFull: fullPapers.length ? Math.max(...fullPapers.map((p) => p.score)) : null,
+    fullCount: fullPapers.length,
+    fullPassCount: fullPapers.filter((p) => p.score >= pass).length,
+    openMisses: misses.filter((m) => !m.cleared),
   };
 }

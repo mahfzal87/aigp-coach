@@ -1,14 +1,13 @@
 "use client";
 
-import { useId, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useId, useMemo, useState, type ReactNode } from "react";
 import { CalendarClock, ChevronDown, CornerDownRight, Scale, Search, X } from "lucide-react";
 import { getCompetency, getNotes, getPackExtras } from "@/lib/content";
 import type { ExamPack } from "@/lib/exam-pack";
 import type { StudyNote } from "@/lib/types";
-import { Badge, Bar, Button, Card, PageHeader } from "@/components/ui";
+import { Badge, Bar, Button, Card, Input, PageHeader } from "@/components/ui";
 import { Markdown } from "@/components/markdown";
-import { Reveal } from "@/components/motion";
-import { FilterChip, GroupLabel, Hl, ScrollRow, matches, setUrlParam, tokenize, useUrlParams } from "@/components/library-ui";
+import { FilterChip, GroupLabel, Hl, LensTabs, ScrollRow, Tick, matches, setUrlParam, tokenize, useUrlParams } from "@/components/library-ui";
 import { haptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
@@ -187,84 +186,61 @@ export default function ReferencePage() {
     setTabState(k);
     setUrlParam("tab", k === "facts" ? null : k);
   }
-  function onTabKey(e: KeyboardEvent<HTMLDivElement>) {
-    const enabled = tabs.filter((t) => !searching || hits[t.key] > 0);
-    const i = enabled.findIndex((t) => t.key === tab);
-    const next =
-      e.key === "ArrowRight" ? enabled[(i + 1) % enabled.length] :
-      e.key === "ArrowLeft" ? enabled[(i - 1 + enabled.length) % enabled.length] :
-      e.key === "Home" ? enabled[0] :
-      e.key === "End" ? enabled[enabled.length - 1] : undefined;
-    if (!next) return;
-    e.preventDefault();
-    pickTab(next.key);
-    document.getElementById(`ref-tab-${next.key}`)?.focus();
-  }
+  const found = tabs.reduce((s, t) => s + hits[t.key], 0);
 
   return (
     <div className="space-y-4">
       <PageHeader title="Reference library" subtitle="Built to scan — facts, contrasts, laws, terms." />
 
-      {/* Search */}
-      <Card className="flex items-center gap-1 pl-3.5 pr-1 focus-within:ring-2 focus-within:ring-[var(--ring)]">
-        <Search size={16} aria-hidden className="shrink-0 text-[var(--muted)]" />
-        <input
-          value={q}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape" && q) {
-              e.preventDefault();
-              setQuery("");
-            }
-          }}
-          placeholder="Search facts, laws and terms…"
-          aria-label="Search the reference library"
-          enterKeyHint="search"
-          autoComplete="off"
-          spellCheck={false}
-          className="h-11 min-w-0 flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-[var(--muted)]"
-        />
-        {q && (
-          <Button variant="ghost" size="sm" aria-label="Clear search" onClick={() => setQuery("")} className="h-11 w-11 shrink-0 px-0 sm:h-9 sm:w-9">
-            <X size={16} />
-          </Button>
+      {/* The search instrument: one glass panel — the field, then sections with live counts */}
+      <Card className="space-y-1.5 p-1.5">
+        <div className="relative">
+          <Search size={16} aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
+          <Input
+            value={q}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && q) {
+                e.preventDefault();
+                setQuery("");
+              }
+            }}
+            placeholder="Search facts, laws and terms…"
+            aria-label="Search the reference library"
+            aria-describedby={searching ? "ref-found" : undefined}
+            enterKeyHint="search"
+            autoComplete="off"
+            spellCheck={false}
+            className={cn("pl-10", q ? "pr-28" : "pr-4")}
+          />
+          {q && (
+            <div className="absolute inset-y-0 right-0 flex items-center">
+              {searching && (
+                <span id="ref-found" aria-live="polite" className={cn("whitespace-nowrap pr-1 text-xs font-semibold", found ? "text-[var(--muted)]" : "text-[var(--danger)]")}>
+                  <Tick value={found} /> found
+                </span>
+              )}
+              <Button variant="ghost" size="sm" aria-label="Clear search" onClick={() => setQuery("")} className="h-11 w-11 shrink-0 px-0">
+                <X size={16} />
+              </Button>
+            </div>
+          )}
+        </div>
+        {tabs.length > 1 && (
+          <LensTabs
+            lensId="reference-tabs-lens"
+            label="Library sections"
+            idPrefix="ref-tab"
+            panelId="ref-panel"
+            active={tab}
+            onPick={pickTab}
+            items={tabs.map((t) => {
+              const n = searching ? hits[t.key] : total[t.key];
+              return { key: t.key, label: t.label, count: n, disabled: searching && n === 0, title: searching && n === 0 ? "No matches here" : undefined };
+            })}
+          />
         )}
       </Card>
-
-      {/* Tabs — count per tab; while searching, the count of matches (zero = disabled) */}
-      {tabs.length > 1 && (
-        <Card className="p-1">
-          <ScrollRow activeKey={tab}>
-            <div role="tablist" aria-label="Library sections" onKeyDown={onTabKey} className="flex w-max min-w-full gap-1">
-              {tabs.map((t) => {
-                const active = t.key === tab;
-                const n = searching ? hits[t.key] : total[t.key];
-                const off = searching && n === 0;
-                return (
-                  <Button
-                    key={t.key}
-                    id={`ref-tab-${t.key}`}
-                    role="tab"
-                    aria-selected={active}
-                    aria-controls="ref-panel"
-                    tabIndex={active ? 0 : -1}
-                    data-active={active ? "true" : undefined}
-                    variant={active ? "primary" : "ghost"}
-                    size="sm"
-                    disabled={off}
-                    title={off ? "No matches here" : undefined}
-                    onClick={() => pickTab(t.key)}
-                    className="h-11 flex-none whitespace-nowrap px-3.5 text-sm sm:h-9 sm:flex-1"
-                  >
-                    {t.label}
-                    <span className="text-xs tabular-nums opacity-70">{n}</span>
-                  </Button>
-                );
-              })}
-            </div>
-          </ScrollRow>
-        </Card>
-      )}
 
       <div role="tabpanel" id="ref-panel" aria-labelledby={`ref-tab-${tab}`}>
         {nothing ? (
@@ -276,7 +252,7 @@ export default function ReferencePage() {
             <Button size="sm" variant="outline" onClick={() => setQuery("")}>Clear search</Button>
           </Card>
         ) : (
-          <Reveal key={tab} y={6} className="space-y-3">
+          <div className="space-y-3">
             {tab === "facts" && (
               <>
                 <TagChips label="Filter facts by topic" tags={LIB.factTags} counts={factCounts} total={res.facts.length} active={factTag} onPick={setFactTag} />
@@ -292,7 +268,7 @@ export default function ReferencePage() {
               </>
             )}
             {tab === "deep-dives" && <DeepDiveList notes={res.notes} tokens={tokens} />}
-          </Reveal>
+          </div>
         )}
       </div>
     </div>
@@ -357,13 +333,13 @@ function DistinctionsList({ items, tokens }: { items: Distinction[]; tokens: str
               {s ? (
                 <div className="grid gap-y-1.5 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-x-4">
                   <Side name={d.a} text={s.left} tokens={tokens} />
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)] sm:pt-1">vs</span>
+                  <span className="text-xs font-medium italic text-[var(--muted)] sm:pt-0.5">vs</span>
                   <Side name={d.b} text={s.right} tokens={tokens} />
                 </div>
               ) : (
                 <>
                   <div className="text-sm font-bold">
-                    <Hl text={d.a} tokens={tokens} /> <span className="px-1 text-[10px] font-semibold uppercase text-[var(--muted)]">vs</span> <Hl text={d.b} tokens={tokens} />
+                    <Hl text={d.a} tokens={tokens} /> <span className="px-1 text-xs font-medium italic text-[var(--muted)]">vs</span> <Hl text={d.b} tokens={tokens} />
                   </div>
                   <p className="mt-0.5 text-sm leading-relaxed text-[var(--muted)]">
                     <Hl text={d.diff} tokens={tokens} />
@@ -446,7 +422,7 @@ function FrameworksList({ LIB, rows, tokens }: { LIB: Library; rows: FwRow[]; to
               <div className="grid gap-x-8 gap-y-5 md:grid-cols-2">
                 {ins.sections.map((sec) => (
                   <div key={sec.heading} className="min-w-0">
-                    <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--primary)]">
+                    <div className="mb-1.5 text-[13px] font-semibold text-[color-mix(in_srgb,var(--primary)_82%,var(--foreground))]">
                       <Hl text={sec.heading} tokens={tokens} />
                     </div>
                     <ul className="space-y-1.5">

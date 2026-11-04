@@ -1,6 +1,17 @@
 import confetti from "canvas-confetti";
 
-const DUO = ["#58cc02", "#1cb0f6", "#ffc800", "#ff9600", "#a560e8"];
+const FALLBACK = ["#34d3c0", "#0a8a5e", "#c6f432", "#c98a04"];
+
+// Confetti takes the active exam's light (glow, primary, spark) plus points gold.
+function examColors(): string[] {
+  try {
+    const cs = getComputedStyle(document.documentElement);
+    const colors = ["--glow", "--primary", "--spark", "--gold"].map((v) => cs.getPropertyValue(v).trim()).filter((c) => c.startsWith("#"));
+    return colors.length >= 2 ? colors : FALLBACK;
+  } catch {
+    return FALLBACK;
+  }
+}
 
 function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -55,12 +66,13 @@ export function celebrate({ sound = true, big = false }: { sound?: boolean; big?
   if (sound) playSuccessChime();
   if (prefersReducedMotion()) return;
 
-  const burst = (x: number) => confetti({ particleCount: big ? 70 : 45, spread: 70, origin: { x, y: 0.7 }, colors: DUO, scalar: 1.1, zIndex: 9999 });
+  const colors = examColors();
+  const burst = (x: number) => confetti({ particleCount: big ? 60 : 32, spread: 70, origin: { x, y: 0.7 }, colors, scalar: 1.1, zIndex: 9999 });
   burst(0.25);
   burst(0.75);
   if (big) {
     // a little cannon finale for unit tests / perfect runs
-    setTimeout(() => confetti({ particleCount: 120, spread: 110, startVelocity: 45, origin: { y: 0.6 }, colors: DUO, zIndex: 9999 }), 250);
+    setTimeout(() => confetti({ particleCount: 120, spread: 110, startVelocity: 45, origin: { y: 0.6 }, colors, zIndex: 9999 }), 250);
   }
 }
 

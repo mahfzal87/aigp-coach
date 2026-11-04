@@ -1,10 +1,12 @@
 "use client";
 
 import { useId, useLayoutEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Check, ChevronDown, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { haptic } from "@/lib/haptics";
 import { mapLeafKey, type LawMapDef } from "@/lib/lawlab-types";
+import { Badge, Button } from "@/components/ui";
 
 // Mindmap for one law: root → branches → lockable fact leaves.
 //
@@ -16,10 +18,24 @@ import { mapLeafKey, type LawMapDef } from "@/lib/lawlab-types";
 // Connectors are measured after layout and written straight into an SVG
 // underlay (no React state, so measuring never re-renders the map).
 
-const PALETTE = ["#10b981", "#0ea5e9", "#f59e0b", "#8b5cf6", "#f43f5e", "#14b8a6", "#f97316", "#6366f1"];
-const TRUNK = "#94a3b8";
+// Branch colours come from the active exam's light (tokens), so each exam's map
+// harmonises with its own field in both themes — AIGP lagoon/aqua/blue, CIPP/E
+// union blue/periwinkle/cyan. CSS expressions, used in inline styles only.
+const BRANCH = [
+  "var(--primary)",
+  "var(--accent)",
+  "color-mix(in oklab, var(--glow) 78%, var(--foreground))",
+  "color-mix(in oklab, var(--primary) 50%, var(--accent))",
+  "color-mix(in oklab, var(--glow) 55%, var(--accent))",
+  "color-mix(in oklab, var(--primary) 62%, var(--foreground))",
+  "color-mix(in oklab, var(--accent) 55%, var(--glow))",
+  "color-mix(in oklab, var(--primary) 55%, var(--glow))",
+];
+const TRUNK = "var(--muted)";
 const R = 8; // elbow radius, px
 const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50";
+const EDGE_HOVER = "hover:border-[color-mix(in_srgb,var(--primary)_40%,var(--border))]";
+const CHECK_SPRING = { type: "spring", stiffness: 560, damping: 14, mass: 0.6 } as const;
 
 export function MindMap({
   def,
@@ -31,10 +47,11 @@ export function MindMap({
   onToggle: (key: string) => void;
 }) {
   const uid = useId();
+  const reduce = useReducedMotion();
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
-  const [popKey, setPopKey] = useState<string | null>(null); // the leaf just locked (plays the pop once)
+  const [popKey, setPopKey] = useState<string | null>(null); // the leaf just locked: it alone pours + springs
 
   useLayoutEffect(() => {
     const wrap = wrapRef.current;
@@ -89,38 +106,26 @@ export function MindMap({
         <div className="relative flex items-center justify-between gap-3">
           <div
             data-mm="root"
-            className="flex min-w-0 items-center gap-2 rounded-xl border-2 border-[var(--foreground)]/70 bg-[var(--surface)] py-1.5 pl-3 pr-2"
+            className="flex min-w-0 items-center gap-2 rounded-full bg-[var(--primary)]/12 py-1.5 pl-3.5 pr-1.5 text-[color-mix(in_srgb,var(--primary)_80%,var(--foreground))]"
           >
-            <span className="truncate text-[13px] font-bold leading-tight">{def.short}</span>
-            <span
-              className={cn(
-                "flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-bold tabular-nums",
-                complete ? "bg-[var(--success)]/15 text-[var(--success)]" : "bg-[var(--surface-2)] text-[var(--muted)]"
-              )}
-            >
-              {complete && <Check size={11} strokeWidth={3} />}
+            <span className="truncate font-display text-[14px] font-bold leading-tight">{def.short}</span>
+            <Badge tone={complete ? "success" : "default"} className="shrink-0 tabular-nums">
+              {complete && <Check size={11} strokeWidth={3} aria-hidden="true" />}
               {lockedIn}/{total}
-            </span>
+            </Badge>
           </div>
           {def.branches.length > 1 && (
-            <button
-              type="button"
-              onClick={toggleAll}
-              className={cn(
-                "press flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]",
-                FOCUS
-              )}
-            >
-              {allCollapsed ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />}
+            <Button variant="ghost" size="sm" onClick={toggleAll} className="shrink-0">
+              {allCollapsed ? <ChevronsUpDown size={14} aria-hidden="true" /> : <ChevronsDownUp size={14} aria-hidden="true" />}
               {allCollapsed ? "Expand all" : "Collapse all"}
-            </button>
+            </Button>
           )}
         </div>
 
         {/* branches → facts */}
         <div className="relative mt-4 flex flex-col gap-3 pl-7 @xl:gap-4 @xl:pl-9">
           {def.branches.map((b, bi) => {
-            const color = PALETTE[bi % PALETTE.length];
+            const color = BRANCH[bi % BRANCH.length];
             const isCollapsed = collapsed.has(b.id);
             const branchLocked = b.leaves.reduce((m, _, i) => m + (locked[mapLeafKey(def.id, b.id, i)] ? 1 : 0), 0);
             const branchDone = b.leaves.length > 0 && branchLocked >= b.leaves.length;
@@ -134,25 +139,26 @@ export function MindMap({
                   aria-expanded={!isCollapsed}
                   aria-controls={panelId}
                   className={cn(
-                    "press flex min-h-11 w-full shrink-0 cursor-pointer items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] py-2 pl-3 pr-2 text-left @xl:min-h-10 @xl:w-[184px]",
+                    "press flex min-h-11 w-full shrink-0 cursor-pointer items-center gap-2.5 rounded-[14px] border border-[var(--border)] bg-[var(--surface-2)] py-2 pl-3 pr-2 text-left @xl:min-h-10 @xl:w-[184px]",
+                    EDGE_HOVER,
                     FOCUS
                   )}
-                  style={{ borderLeftColor: color, borderLeftWidth: 3 }}
                 >
-                  <span className="min-w-0 flex-1 text-[13px] font-bold leading-tight @xl:text-xs">{b.t}</span>
+                  <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
+                  <span className="min-w-0 flex-1 text-[13px] font-semibold leading-tight @xl:text-xs">{b.t}</span>
                   <span
                     className={cn(
                       "flex shrink-0 items-center gap-0.5 text-[11px] font-semibold tabular-nums",
                       branchDone ? "text-[var(--success)]" : "text-[var(--muted)]"
                     )}
                   >
-                    {branchDone && <Check size={11} strokeWidth={3} />}
+                    {branchDone && <Check size={11} strokeWidth={3} aria-hidden="true" />}
                     {branchLocked}/{b.leaves.length}
                   </span>
                   <ChevronDown
                     size={14}
                     aria-hidden="true"
-                    className={cn("shrink-0 text-[var(--muted)] transition-transform", isCollapsed && "-rotate-90")}
+                    className={cn("shrink-0 text-[var(--muted)] motion-safe:transition-transform", isCollapsed && "-rotate-90")}
                   />
                 </button>
 
@@ -161,6 +167,7 @@ export function MindMap({
                     {b.leaves.map((leaf, li) => {
                       const key = mapLeafKey(def.id, b.id, li);
                       const isLocked = !!locked[key];
+                      const justLocked = isLocked && popKey === key;
                       return (
                         <li key={li}>
                           <button
@@ -168,25 +175,33 @@ export function MindMap({
                             data-mm={`l:${bi}:${li}`}
                             aria-pressed={isLocked}
                             onClick={() => toggleLeaf(key, isLocked)}
-                            title={isLocked ? "Locked in · tap to unlock" : "Tap when you know it cold"}
+                            title={isLocked ? "Locked in. Tap to unlock." : "Tap when you know it cold"}
                             className={cn(
-                              "press group flex min-h-11 w-full cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2.5 text-left text-[13px] leading-snug text-[var(--foreground)] transition-colors @xl:min-h-0 @xl:py-2",
+                              "press flex min-h-11 w-full cursor-pointer items-start gap-2.5 rounded-[14px] border px-3 py-2.5 text-left text-[13px] leading-snug text-[var(--foreground)] @xl:min-h-0 @xl:py-2",
                               FOCUS,
                               isLocked
-                                ? "border-[var(--primary)]/50 bg-[var(--primary)]/10"
-                                : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--primary)]/40"
+                                ? // the exam's liquid: pours in once for the fact just locked, then simply stays
+                                  cn("liquid-fill border-[color-mix(in_srgb,var(--primary)_45%,var(--border))]", !justLocked && "before:animate-none!")
+                                : cn("border-[var(--border)] bg-[var(--surface-2)]", EDGE_HOVER)
                             )}
                           >
                             <span
                               aria-hidden="true"
                               className={cn(
-                                "mt-px grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full border-[1.5px] transition-colors",
-                                isLocked
-                                  ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-fg)]"
-                                  : "border-[var(--muted)]/70 text-transparent group-hover:border-[var(--primary)]/70 group-hover:text-[var(--primary)]/60"
+                                "mt-px grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full border-[1.5px]",
+                                isLocked ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-fg)]" : "border-[var(--muted)]/60"
                               )}
                             >
-                              <Check size={11} strokeWidth={3.5} className={cn(isLocked && popKey === key && "anim-pop")} />
+                              {isLocked && (
+                                <motion.span
+                                  className="grid place-items-center"
+                                  initial={justLocked && !reduce ? { scale: 0.2, rotate: -30 } : false}
+                                  animate={{ scale: 1, rotate: 0 }}
+                                  transition={CHECK_SPRING}
+                                >
+                                  <Check size={11} strokeWidth={3.5} />
+                                </motion.span>
+                              )}
                             </span>
                             <span className="min-w-0">{leaf}</span>
                           </button>
@@ -215,8 +230,9 @@ interface Box {
 
 const f = (n: number) => Math.round(n * 10) / 10;
 
+// Colours are CSS (token expressions), so they go in the style attribute where var() resolves.
 function seg(d: string, color: string, width: number, opacity: number) {
-  return `<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}" stroke-opacity="${opacity}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  return `<path d="${d}" fill="none" style="stroke:${color};stroke-opacity:${opacity}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"/>`;
 }
 
 function curve(x1: number, y1: number, x2: number, y2: number) {
@@ -250,11 +266,11 @@ function connectorMarkup(wrap: HTMLElement): string {
 
   const out: string[] = [];
   const trunkX = root.l + 14;
-  out.push(seg(`M${f(trunkX)} ${f(root.b)} V${f(ordered[ordered.length - 1][1].cy - R)}`, TRUNK, 1.5, 0.6));
+  out.push(seg(`M${f(trunkX)} ${f(root.b)} V${f(ordered[ordered.length - 1][1].cy - R)}`, TRUNK, 1.5, 0.4));
 
   for (const [bi, bx] of ordered) {
-    const color = PALETTE[bi % PALETTE.length];
-    out.push(seg(elbow(trunkX, bx.cy, bx.l), color, 2, 0.9));
+    const color = BRANCH[bi % BRANCH.length];
+    out.push(seg(elbow(trunkX, bx.cy, bx.l), color, 2, 0.85));
 
     const ls = leaves.get(bi);
     if (!ls?.length) continue;

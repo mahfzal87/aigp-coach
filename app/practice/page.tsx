@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 import type { Question, QuestionType } from "@/lib/types";
 import { useHydrated, useProgress } from "@/store/progress";
 import { Button, Card, CardBody, PageHeader } from "@/components/ui";
-import { ActionTray, ToggleChip } from "@/components/practice-kit";
+import { AnimatedNumber } from "@/components/motion";
+import { ActionTray, Segmented } from "@/components/practice-kit";
 import { Drill } from "@/components/quiz/drill";
 import { TYPE_LABEL } from "@/components/quiz/question-view";
 
@@ -178,16 +179,16 @@ export default function PracticePage() {
     const qs = shuffle(matching)
       .sort((a, b) => (counts.get(a.id) ?? 0) - (counts.get(b.id) ?? 0))
       .slice(0, effSize);
+    // context line for the drill, as a plain phrase: "II.C, missed before, hard"
     const parts = [
-      "Practice",
       comp?.code,
-      f.pool !== "all" ? POOLS.find((p) => p.v === f.pool)?.l : undefined,
+      f.pool !== "all" ? POOLS.find((p) => p.v === f.pool)?.l.toLowerCase() : undefined,
       f.type !== "all" ? TYPE_LABEL[f.type] : undefined,
-      f.difficulty !== "all" ? DIFFS.find((d) => d.v === f.difficulty)?.l : undefined,
+      f.difficulty !== "all" ? DIFFS.find((d) => d.v === f.difficulty)?.l.toLowerCase() : undefined,
     ].filter(Boolean);
     haptic("tap");
     sessionCount.current += 1;
-    setSession({ key: sessionCount.current, questions: qs, label: parts.join(" · ") });
+    setSession({ key: sessionCount.current, questions: qs, label: parts.length ? parts.join(", ") : "All questions, least-seen first" });
     window.scrollTo({ top: 0 });
   }
 
@@ -229,34 +230,38 @@ export default function PracticePage() {
     <div>
       <PageHeader title="Practice" subtitle={SUBTITLE} />
       <Card>
-        {/* hero: what is left in this slice of the bank */}
-        <CardBody>
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <span className="min-w-0 truncate text-sm font-semibold">
-              {comp ? `${comp.code} · ${comp.name}` : "Your question bank"}
-            </span>
-            <span className="text-xs tabular-nums text-[var(--muted)]">
-              {p.scope} questions · {p.right + p.missed === 0 ? "none answered yet" : `${answeredPct}% answered`}
-            </span>
+        {/* hero instrument: how much of this slice of the bank is done, and what is left */}
+        <CardBody className="flex items-center gap-5">
+          <div className="w-[4.5rem] shrink-0 text-center">
+            <AnimatedNumber value={answeredPct} format={(v) => `${v}%`} className="font-display text-[31px] font-bold leading-none tracking-tight sm:text-[39px]" />
+            <div className="mt-1.5 text-xs text-[var(--muted)]">answered</div>
           </div>
-          <BankBar right={p.right} missed={p.missed} unseen={p.unseen} focus={f.pool} />
-          <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
-            <Legend tone="success" n={p.right} label="answered right" />
-            <Legend tone="danger" n={p.missed} label="missed before" />
-            <Legend tone="muted" n={p.unseen} label="unseen" />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+              <span className="min-w-0 truncate text-sm font-semibold">{comp ? `${comp.code} ${comp.name}` : "Your question bank"}</span>
+              <span className="text-xs tabular-nums text-[var(--muted)]">{p.scope} questions</span>
+            </div>
+            <BankBar right={p.right} missed={p.missed} unseen={p.unseen} focus={f.pool} />
+            <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
+              <Legend tone="liquid" n={p.right} label="right" />
+              <Legend tone="danger" n={p.missed} label="missed before" />
+              <Legend tone="empty" n={p.unseen} label="unseen" />
+            </div>
           </div>
         </CardBody>
 
         <div className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
           <Row label="Focus">
-            {POOLS.map((o) => {
-              const count = o.v === "all" ? p.scope : o.v === "unseen" ? p.unseen : p.missed;
-              return (
-                <ToggleChip key={o.v} active={f.pool === o.v} count={count} disabled={count === 0 && f.pool !== o.v} title={o.title} onClick={() => set({ pool: o.v })}>
-                  {o.l}
-                </ToggleChip>
-              );
-            })}
+            <Segmented
+              id="practice-focus"
+              ariaLabel="Focus"
+              value={f.pool}
+              onChange={(v) => v && set({ pool: v })}
+              options={POOLS.map((o) => {
+                const count = o.v === "all" ? p.scope : o.v === "unseen" ? p.unseen : p.missed;
+                return { value: o.v, label: o.l, count, disabled: count === 0, title: o.title };
+              })}
+            />
           </Row>
 
           <Row label="Competency">
@@ -265,18 +270,18 @@ export default function PracticePage() {
                 aria-label="Competency"
                 value={f.competency}
                 onChange={(e) => set({ competency: e.target.value })}
-                className="h-10 w-full cursor-pointer appearance-none truncate rounded-xl border border-[var(--border)] bg-[var(--surface)] pl-3 pr-9 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50"
+                className="h-11 w-full cursor-pointer appearance-none truncate rounded-2xl border border-[var(--border)] bg-[var(--surface)] pl-3.5 pr-10 text-sm font-medium text-[var(--foreground)] focus-visible:border-[var(--primary)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--primary)]/15"
               >
                 <option value="all">All competencies ({facets.competency.total})</option>
                 {domains.map((d) => (
-                  <optgroup key={d.id} label={`Domain ${d.code} · ${d.name}`}>
+                  <optgroup key={d.id} label={`Domain ${d.code}: ${d.name}`}>
                     {comps
                       .filter((c) => c.domainId === d.id)
                       .map((c) => {
                         const count = facets.competency.m.get(c.id) ?? 0;
                         return (
                           <option key={c.id} value={c.id} disabled={count === 0 && c.id !== f.competency}>
-                            {c.code} · {c.name} ({count})
+                            {c.code} {c.name} ({count})
                           </option>
                         );
                       })}
@@ -288,43 +293,50 @@ export default function PracticePage() {
           </Row>
 
           <Row label="Type">
-            <ToggleChip active={f.type === "all"} count={facets.type.total} onClick={() => set({ type: "all" })}>
-              All
-            </ToggleChip>
-            {TYPES.map((t) => {
-              const count = facets.type.m.get(t) ?? 0;
-              return (
-                <ToggleChip key={t} active={f.type === t} count={count} disabled={count === 0 && f.type !== t} title={count === 0 ? "None with the other filters" : undefined} onClick={() => set({ type: t })}>
-                  {TYPE_LABEL[t]}
-                </ToggleChip>
-              );
-            })}
+            <Segmented
+              id="practice-type"
+              ariaLabel="Question type"
+              value={f.type}
+              onChange={(v) => v && set({ type: v })}
+              options={[
+                { value: "all", label: "All", count: facets.type.total },
+                ...TYPES.map((t) => {
+                  const count = facets.type.m.get(t) ?? 0;
+                  return { value: t as string, label: TYPE_LABEL[t], count, disabled: count === 0, title: count === 0 ? "None with the other filters" : undefined };
+                }),
+              ]}
+            />
           </Row>
 
           <Row label="Difficulty">
-            <ToggleChip active={f.difficulty === "all"} count={facets.difficulty.total} onClick={() => set({ difficulty: "all" })}>
-              Any
-            </ToggleChip>
-            {DIFFS.map((d) => {
-              const count = facets.difficulty.m.get(d.v) ?? 0;
-              return (
-                <ToggleChip key={d.v} active={f.difficulty === d.v} count={count} disabled={count === 0 && f.difficulty !== d.v} title={count === 0 ? "None with the other filters" : undefined} onClick={() => set({ difficulty: d.v })}>
-                  {d.l}
-                </ToggleChip>
-              );
-            })}
+            <Segmented
+              id="practice-difficulty"
+              ariaLabel="Difficulty"
+              value={f.difficulty}
+              onChange={(v) => v && set({ difficulty: v })}
+              options={[
+                { value: "all", label: "Any", count: facets.difficulty.total },
+                ...DIFFS.map((d) => {
+                  const count = facets.difficulty.m.get(d.v) ?? 0;
+                  return { value: d.v, label: d.l, count, disabled: count === 0, title: count === 0 ? "None with the other filters" : undefined };
+                }),
+              ]}
+            />
           </Row>
 
           {n > 0 && (
             <Row label="Session">
-              {sizes.map((s) => (
-                <ToggleChip key={s} active={effSize === s && s < n} onClick={() => { haptic("tap"); setSize(s); }}>
-                  {s} questions
-                </ToggleChip>
-              ))}
-              <ToggleChip active={effSize === n} onClick={() => { haptic("tap"); setSize("all"); }}>
-                All {n}
-              </ToggleChip>
+              <Segmented
+                id="practice-size"
+                ariaLabel="Session length"
+                value={effSize === n ? "all" : String(effSize)}
+                onChange={(v) => {
+                  if (!v) return;
+                  haptic("tap");
+                  setSize(v === "all" ? "all" : (Number(v) as 10 | 20));
+                }}
+                options={[...sizes.map((s) => ({ value: String(s), label: `${s} questions` })), { value: "all", label: `All ${n}` }]}
+              />
             </Row>
           )}
         </div>
@@ -338,7 +350,7 @@ export default function PracticePage() {
                   <span className="font-bold tabular-nums">{n}</span> <span className="sm:hidden">match</span>
                   <span className="hidden sm:inline">{n === 1 ? "question matches" : "questions match"}</span>
                 </div>
-                <div className="hidden text-xs text-[var(--muted)] sm:block">{effSize} this session · least-seen first</div>
+                <div className="hidden text-xs text-[var(--muted)] sm:block">{effSize} this session, least-seen first</div>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
                 {dirty && (
@@ -370,7 +382,7 @@ export default function PracticePage() {
                   )}
                   {relax ? (
                     <Button onClick={() => set({ ...f, [relax.key]: DEFAULTS[relax.key] })} className="md:h-10">
-                      Drop {nameOf(relax.key)} · {relax.count}
+                      Drop {nameOf(relax.key)} ({relax.count})
                     </Button>
                   ) : (
                     <Button onClick={() => set(DEFAULTS)} className="md:h-10">
@@ -389,34 +401,43 @@ export default function PracticePage() {
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid gap-2.5 px-5 py-3.5 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:items-center sm:gap-4">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">{label}</div>
+    <div className="grid gap-2 px-5 py-3.5 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:items-center sm:gap-4">
+      <div className="text-[13px] font-medium text-[var(--muted)]">{label}</div>
       <div className="flex min-w-0 flex-wrap gap-2">{children}</div>
     </div>
   );
 }
 
-const SEG = { success: "bg-[var(--success)]", danger: "bg-[var(--danger)]", muted: "bg-[var(--muted)]/25" } as const;
+// "Right" pours the exam's liquid (like the shared Bar); missed keeps the danger status;
+// unseen is the empty glass of the track.
+const SEG = {
+  liquid: "bg-[linear-gradient(90deg,var(--glow),var(--primary))]",
+  danger: "bg-[var(--danger)]",
+  empty: "bg-transparent ring-1 ring-inset ring-[var(--muted)]/45",
+} as const;
 
-// The bank as one stacked bar: right / missed / unseen. The chosen pool stays lit.
+// The bank as one capsule: right / missed / unseen. The chosen focus stays lit.
 function BankBar({ right, missed, unseen, focus }: { right: number; missed: number; unseen: number; focus: Pool }) {
   const total = right + missed + unseen;
   const seg = (v: number) => (total ? `${(v / total) * 100}%` : "0%");
-  const lit = (k: "right" | "missed" | "unseen") => focus === "all" || (focus === "unseen" ? k === "unseen" : k === "missed");
+  const lit = (k: "right" | "missed") => focus === "all" || (focus === "missed" && k === "missed");
   return (
     <div
       role="img"
       aria-label={`${right} answered right, ${missed} missed before, ${unseen} unseen`}
-      className="mt-3 flex h-2.5 w-full gap-0.5 overflow-hidden rounded-full bg-[var(--surface-2)]"
+      className="mt-2.5 flex h-3 w-full gap-[3px] overflow-hidden rounded-full bg-[var(--surface-2)] p-[2px] ring-1 ring-inset ring-[var(--border)]"
     >
       {[
-        { k: "right" as const, v: right, c: SEG.success },
+        { k: "right" as const, v: right, c: SEG.liquid },
         { k: "missed" as const, v: missed, c: SEG.danger },
-        { k: "unseen" as const, v: unseen, c: SEG.muted },
       ]
         .filter((s) => s.v > 0)
         .map((s) => (
-          <span key={s.k} style={{ width: seg(s.v) }} className={cn("h-full transition-[width,opacity] duration-500", s.c, !lit(s.k) && "opacity-25")} />
+          <span
+            key={s.k}
+            style={{ width: seg(s.v) }}
+            className={cn("h-full rounded-full motion-safe:transition-[width,opacity] motion-safe:duration-500", s.c, !lit(s.k) && "opacity-25")}
+          />
         ))}
     </div>
   );

@@ -1,14 +1,16 @@
 "use client";
 
 // Small building blocks shared by the entry flow (components/entry-flow.tsx),
-// the account UI (components/account.tsx) and Settings (app/settings/page.tsx).
-// Surfaces come from components/ui.tsx; what lives here is behaviour plus the
-// few controls ui.tsx doesn't have yet (a labelled text field).
+// the account UI (components/account.tsx, components/profile.tsx) and Settings.
+// Surfaces and controls come from components/ui.tsx; what lives here is
+// behaviour plus a couple of compositions (a labelled field, a settings row).
 
-import { useCallback, useEffect, useId, useRef, useState, type ComponentPropsWithRef, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type ComponentPropsWithRef, type ReactNode } from "react";
+import { useReducedMotion } from "framer-motion";
 import { AlertCircle, AlertTriangle, CheckCircle2, GraduationCap, Info, Loader2 } from "lucide-react";
 import { haptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui";
 
 // ── Brand ──
 export function LogoTile({ size = 40, className }: { size?: number; className?: string }) {
@@ -28,8 +30,8 @@ export function BrandMark({ tagline = "IAPP exam simulator" }: { tagline?: strin
     <div className="flex items-center gap-2.5">
       <LogoTile />
       <div className="min-w-0">
-        <div className="text-[17px] font-bold leading-none tracking-tight">AIGP Coach</div>
-        {tagline && <div className="mt-1 text-[11px] font-medium leading-none text-[var(--muted)]">{tagline}</div>}
+        <div className="font-display text-[18px] font-bold leading-none">AIGP Coach</div>
+        {tagline && <div className="mt-1 text-xs leading-none text-[var(--muted)]">{tagline}</div>}
       </div>
     </div>
   );
@@ -44,7 +46,7 @@ export function Splash() {
       <style>{SPLASH_KEYFRAMES}</style>
       <div className="flex items-center gap-2.5" style={{ animation: "entry-splash-in 320ms ease-out 260ms both" }}>
         <LogoTile size={36} className="motion-safe:animate-pulse" />
-        <span className="text-[15px] font-bold">AIGP Coach</span>
+        <span className="font-display text-[16px] font-bold">AIGP Coach</span>
       </div>
     </div>
   );
@@ -54,14 +56,25 @@ export function Spinner({ size = 16 }: { size?: number }) {
   return <Loader2 size={size} aria-hidden className="shrink-0 motion-safe:animate-spin" />;
 }
 
-// ── Text input ──
-// 16px text on phones so iOS doesn't zoom on focus; 44px tall for touch.
-export const inputCls =
-  "h-11 w-full min-w-0 rounded-xl border bg-[var(--surface)] px-3.5 text-base text-[var(--foreground)] outline-none transition-[border-color,box-shadow] placeholder:text-[var(--muted)]/60 focus-visible:ring-4 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm";
-export const inputIdleCls =
-  "border-[var(--border)] hover:border-[var(--muted)]/50 focus-visible:border-[var(--primary)] focus-visible:ring-[var(--ring)]/15";
-export const inputErrorCls = "border-[var(--danger)] focus-visible:border-[var(--danger)] focus-visible:ring-[var(--danger)]/15";
+// ── Exam light on one element ──
+// globals.css resolves --primary from --exam-primary on :root only, so an
+// element carrying its own data-exam must re-resolve the exam-driven tokens to
+// glow in that exam's light (its --glow/--spark already follow data-exam).
+export const EXAM_SCOPE = {
+  "--primary": "var(--exam-primary)",
+  "--primary-shade": "var(--exam-primary-shade)",
+  "--accent": "var(--exam-accent)",
+  "--accent-shade": "var(--exam-accent-shade)",
+  "--ring": "var(--exam-primary)",
+} as CSSProperties;
 
+// The liquid lens (a framer-motion layoutId pill) — same spring as the shell's.
+export function useLensTransition() {
+  const reduce = useReducedMotion();
+  return reduce ? { duration: 0 } : ({ type: "spring", stiffness: 380, damping: 30, mass: 0.9 } as const);
+}
+
+// ── Labelled text field on the shared Input ──
 type TextFieldProps = ComponentPropsWithRef<"input"> & {
   label: ReactNode;
   hint?: ReactNode;
@@ -72,7 +85,7 @@ type TextFieldProps = ComponentPropsWithRef<"input"> & {
 
 // Visible label above, one note below (error > warning > hint), wired to the
 // input with aria-invalid / aria-describedby.
-export function TextField({ label, hint, error, warning, trailing, id, className, style, ...input }: TextFieldProps) {
+export function TextField({ label, hint, error, warning, trailing, id, className, ...input }: TextFieldProps) {
   const autoId = useId();
   const fieldId = id ?? autoId;
   const noteId = `${fieldId}-note`;
@@ -83,15 +96,16 @@ export function TextField({ label, hint, error, warning, trailing, id, className
         {label}
       </label>
       <div className="relative">
-        <input
+        <Input
           id={fieldId}
           aria-invalid={error ? true : undefined}
           aria-describedby={note ? noteId : undefined}
           {...input}
-          className={cn(inputCls, error ? inputErrorCls : inputIdleCls, trailing ? "pr-12" : "", className)}
-          // Inline so the error border always shows: globals.css's unlayered
-          // `* { border-color }` currently outranks Tailwind's border-color utilities.
-          style={error ? { ...style, borderColor: "var(--danger)" } : style}
+          className={cn(
+            trailing && "pr-12",
+            error && "border-[var(--danger)] focus-visible:border-[var(--danger)] focus-visible:ring-[var(--danger)]/15",
+            className
+          )}
         />
         {trailing && <div className="absolute inset-y-0 right-0 flex items-center">{trailing}</div>}
       </div>
@@ -112,6 +126,66 @@ export function TextField({ label, hint, error, warning, trailing, id, className
     </div>
   );
 }
+
+// ── A labelled group of settings rows (Settings, Profile) ──
+// Sentence-case label, no tracked capitals; an id makes it a deep-link target.
+export function SettingsSection({ id, title, danger, children }: { id: string; title: string; danger?: boolean; children: ReactNode }) {
+  return (
+    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-24">
+      <h2 id={`${id}-title`} className={cn("mb-2 px-1 font-sans text-[13px] font-semibold", danger ? "text-[var(--danger)]" : "text-[var(--muted)]")}>
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+// ── A settings row: title + hint on the left, controls on the right (stacked
+// under on phones), an optional status line underneath. ──
+export function SettingRow({
+  title,
+  hint,
+  badge,
+  htmlFor,
+  children,
+  footer,
+  className,
+}: {
+  title: ReactNode;
+  hint?: ReactNode;
+  badge?: ReactNode;
+  htmlFor?: string;
+  children?: ReactNode;
+  footer?: ReactNode;
+  className?: string;
+}) {
+  const titleCls = "flex flex-wrap items-center gap-2 text-[15px] font-semibold";
+  return (
+    <div className={cn("px-5 py-4", className)}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+        <div className="min-w-0">
+          {htmlFor ? (
+            <label htmlFor={htmlFor} className={titleCls}>
+              {title}
+              {badge}
+            </label>
+          ) : (
+            <div className={titleCls}>
+              {title}
+              {badge}
+            </div>
+          )}
+          {hint && <div className="mt-0.5 text-[13px] text-[var(--muted)]">{hint}</div>}
+        </div>
+        {children && <div className="flex min-w-0 flex-wrap items-center gap-2 sm:shrink-0 sm:flex-nowrap sm:justify-end">{children}</div>}
+      </div>
+      {footer}
+    </div>
+  );
+}
+
+// Row controls: 44px tall on phones (touch), 36px from sm up — one height per row.
+export const rowCtl = "h-11 sm:h-9";
 
 // ── Two-step confirm ("arm") ──
 // First tap arms for ~6s (optionally holding what the second tap will apply),
@@ -169,7 +243,7 @@ export function Flash({ msg, className }: { msg: FlashMsg | null; className?: st
       {msg && (
         <p
           className={cn(
-            "flex items-start gap-1.5 text-xs font-medium leading-snug",
+            "flex items-start gap-1.5 text-[13px] font-medium leading-snug",
             msg.tone === "error" ? "text-[var(--danger)]" : "text-[var(--foreground)]",
             className
           )}
@@ -177,7 +251,7 @@ export function Flash({ msg, className }: { msg: FlashMsg | null; className?: st
           <Icon
             size={14}
             aria-hidden
-            className={cn("mt-px shrink-0", msg.tone === "ok" ? "text-[var(--success)]" : msg.tone === "info" ? "text-[var(--muted)]" : "")}
+            className={cn("mt-0.5 shrink-0", msg.tone === "ok" ? "text-[var(--success)]" : msg.tone === "info" ? "text-[var(--muted)]" : "")}
           />
           <span className="min-w-0">{msg.text}</span>
         </p>

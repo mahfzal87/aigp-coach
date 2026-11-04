@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { Button } from "@/components/ui";
+import { motion, useReducedMotion, useSpring, useTransform } from "framer-motion";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode } from "react";
+import { Chip } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
 // Small helpers shared by the library pages — Reference, Strategy and Law
@@ -49,7 +50,7 @@ export function matches(hay: string, tokens: string[]): boolean {
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** Text with every search-word hit marked. */
+/** Text with every search-word hit lit in the exam's glow. */
 export function Hl({ text, tokens }: { text: string; tokens: string[] }) {
   if (!tokens.length) return <>{text}</>;
   const re = new RegExp(`(${[...tokens].sort((a, b) => b.length - a.length).map(escapeRe).join("|")})`, "gi");
@@ -57,7 +58,7 @@ export function Hl({ text, tokens }: { text: string; tokens: string[] }) {
     <>
       {text.split(re).map((part, i) =>
         i % 2 === 1 ? (
-          <mark key={i} className="rounded-sm bg-[var(--primary)]/20 text-inherit">
+          <mark key={i} className="rounded-[4px] bg-[var(--glow)]/35 px-px text-inherit">
             {part}
           </mark>
         ) : (
@@ -68,14 +69,30 @@ export function Hl({ text, tokens }: { text: string; tokens: string[] }) {
   );
 }
 
+// ── Motion ──
+
+const lensSpring = { type: "spring", stiffness: 380, damping: 30, mass: 0.9 } as const;
+
+/** A count that springs to its new value when it changes (and starts where it is). */
+export function Tick({ value, className }: { value: number; className?: string }) {
+  const reduce = useReducedMotion();
+  const sv = useSpring(value, { stiffness: 220, damping: 26 });
+  const text = useTransform(sv, (v) => String(Math.round(v)));
+  useEffect(() => {
+    sv.set(value);
+  }, [value, sv]);
+  if (reduce) return <span className={cn("tabular-nums", className)}>{value}</span>;
+  return <motion.span className={cn("tabular-nums", className)}>{text}</motion.span>;
+}
+
 // ── Layout bits ──
 
-/** Small uppercase label that opens a group of rows inside a card. */
+/** Sentence-case label that opens a group of rows inside a panel. */
 export function GroupLabel({ children, count, className }: { children: ReactNode; count?: number; className?: string }) {
   return (
-    <div className={cn("flex items-baseline justify-between gap-3 px-4 pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--muted)] sm:px-5", className)}>
+    <div className={cn("flex items-baseline justify-between gap-3 px-4 pb-1 pt-4 text-[13px] font-semibold text-[var(--muted)] sm:px-5", className)}>
       <span className="min-w-0">{children}</span>
-      {count !== undefined && <span className="tabular-nums tracking-normal">{count}</span>}
+      {count !== undefined && <span className="tabular-nums">{count}</span>}
     </div>
   );
 }
@@ -83,7 +100,8 @@ export function GroupLabel({ children, count, className }: { children: ReactNode
 /**
  * One-row horizontal scroller. Wide content scrolls inside itself (never the
  * page); an edge fades only while there is more to scroll that way, and the
- * child marked data-active="true" is kept in view.
+ * child marked data-active="true" is kept in view. `layoutScroll` lets a lens
+ * inside measure correctly while the row is scrolled.
  */
 export function ScrollRow({ children, className, activeKey }: { children: ReactNode; className?: string; activeKey?: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -130,17 +148,99 @@ export function ScrollRow({ children, className, activeKey }: { children: ReactN
           : undefined;
 
   return (
-    <div
+    <motion.div
       ref={ref}
+      layoutScroll
       className={cn("relative overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", className)}
       style={mask ? { maskImage: mask, WebkitMaskImage: mask } : undefined}
     >
       {children}
-    </div>
+    </motion.div>
   );
 }
 
-/** Filter chip built on the shared Button: label + live count, zero = disabled. */
+export interface LensTab<K extends string> {
+  key: K;
+  label: ReactNode;
+  count?: number;
+  disabled?: boolean;
+  title?: string;
+}
+
+/**
+ * Tabs marked by the liquid lens: one spring pill (framer-motion layoutId)
+ * glides to the active tab. Roving focus with ←/→/Home/End; on phones the row
+ * scrolls inside itself. `lensId` must be unique per control on the screen.
+ */
+export function LensTabs<K extends string>({
+  lensId,
+  label,
+  items,
+  active,
+  onPick,
+  idPrefix,
+  panelId,
+}: {
+  lensId: string;
+  label: string;
+  items: LensTab<K>[];
+  active: K;
+  onPick: (k: K) => void;
+  idPrefix: string;
+  panelId: string;
+}) {
+  const reduce = useReducedMotion();
+  const transition = reduce ? { duration: 0 } : lensSpring;
+
+  function onKey(e: KeyboardEvent<HTMLDivElement>) {
+    const enabled = items.filter((t) => !t.disabled);
+    const i = enabled.findIndex((t) => t.key === active);
+    const next =
+      e.key === "ArrowRight" ? enabled[(i + 1) % enabled.length] :
+      e.key === "ArrowLeft" ? enabled[(i - 1 + enabled.length) % enabled.length] :
+      e.key === "Home" ? enabled[0] :
+      e.key === "End" ? enabled[enabled.length - 1] : undefined;
+    if (!next) return;
+    e.preventDefault();
+    onPick(next.key);
+    document.getElementById(`${idPrefix}-${next.key}`)?.focus();
+  }
+
+  return (
+    <ScrollRow activeKey={active}>
+      <div role="tablist" aria-label={label} onKeyDown={onKey} className="flex w-max min-w-full gap-1">
+        {items.map((t) => {
+          const on = t.key === active;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              id={`${idPrefix}-${t.key}`}
+              role="tab"
+              aria-selected={on}
+              aria-controls={panelId}
+              tabIndex={on ? 0 : -1}
+              data-active={on ? "true" : undefined}
+              disabled={t.disabled}
+              title={t.title}
+              onClick={() => onPick(t.key)}
+              className={cn(
+                "press relative flex h-11 flex-none cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50 disabled:cursor-not-allowed disabled:opacity-40 sm:h-9 sm:flex-1",
+                on ? "text-[color-mix(in_srgb,var(--primary)_82%,var(--foreground))]" : "text-[var(--muted)] hover:text-[var(--foreground)]"
+              )}
+            >
+              {on && <motion.span layoutId={lensId} transition={transition} aria-hidden className="absolute inset-0 rounded-full bg-[var(--primary)]/12 ring-1 ring-[var(--primary)]/25" />}
+              <span className="relative">{t.label}</span>
+              {t.count !== undefined && <Tick value={t.count} className="relative text-xs opacity-70" />}
+            </button>
+          );
+        })}
+      </div>
+    </ScrollRow>
+  );
+}
+
+/** Filter chip on the shared Chip: label + live count; zero = disabled. */
 export function FilterChip({
   label,
   count,
@@ -155,25 +255,22 @@ export function FilterChip({
   active: boolean;
   disabled?: boolean;
   onClick: () => void;
-  dot?: string; // a token color, e.g. "var(--danger)"
+  dot?: string; // a status token, e.g. "var(--danger)"
   title?: string;
 }) {
   return (
-    <Button
-      type="button"
-      size="sm"
-      variant={active ? "primary" : "outline"}
-      aria-pressed={active}
+    <Chip
+      selected={active}
       data-active={active ? "true" : undefined}
       disabled={disabled}
       title={title}
       onClick={onClick}
-      className="h-11 shrink-0 gap-1.5 whitespace-nowrap rounded-full px-3.5 sm:h-9"
+      className="h-11 shrink-0 gap-1.5 whitespace-nowrap sm:h-8"
     >
       {dot && <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ background: dot }} />}
       {label}
-      {count !== undefined && <span className="tabular-nums opacity-70">{count}</span>}
-    </Button>
+      {count !== undefined && <Tick value={count} className="opacity-70" />}
+    </Chip>
   );
 }
 

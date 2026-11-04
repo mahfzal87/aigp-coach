@@ -4,12 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Check, ChevronDown, CornerDownLeft, Flag, RotateCcw, Scale, TriangleAlert, X } from "lucide-react";
 import type { Confidence, Question, RootCause } from "@/lib/types";
 import { correctLabels, isAnswerCorrect, shuffle } from "@/lib/scoring";
+import { celebrate } from "@/lib/celebrate";
 import { haptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import { useProgress } from "@/store/progress";
 import { Badge, Button, Card, CardBody } from "@/components/ui";
-import { AnimatedNumber, MotionBar, Reveal } from "@/components/motion";
-import { ActionTray, Kbd, LetterChip, SegmentTrack, ToggleChip } from "@/components/practice-kit";
+import { AnimatedNumber, MotionBar } from "@/components/motion";
+import { ActionTray, Kbd, LetterChip, SegmentTrack, Segmented } from "@/components/practice-kit";
 import { QuestionView, orderedOptions, requiredPicks } from "@/components/quiz/question-view";
 
 export const CONFIDENCE_LEVELS: { v: Confidence; label: string; key: string }[] = [
@@ -26,6 +27,14 @@ export const ROOT_CAUSES: { v: RootCause; label: string; hint: string; key: stri
 ];
 
 const PASS_LINE = 62; // raw-percent equivalent of the 300 scaled pass mark (lib/scoring.ts)
+const STRONG = 90; // a session at or above this (5+ answers) earns the small celebration
+
+// Status text tones darkened toward the ink so they hold contrast on glass.
+const INK = {
+  success: "text-[color-mix(in_srgb,var(--success)_80%,var(--foreground))]",
+  danger: "text-[color-mix(in_srgb,var(--danger)_82%,var(--foreground))]",
+  warning: "text-[color-mix(in_srgb,var(--warning)_70%,var(--foreground))]",
+} as const;
 
 interface Entry {
   q: Question;
@@ -42,7 +51,7 @@ export interface DrillProps {
   onExit?: () => void;
   /** Keep the given order (Practice pre-sorts least-seen first). Default: shuffle. */
   ordered?: boolean;
-  /** Context line above the progress track, e.g. "Practice · II.C · Hard". */
+  /** Context line above the progress track, e.g. "II.C, missed before, hard". */
   label?: string;
   /** Summary action that leaves the drill (default "Back"). */
   exitLabel?: string;
@@ -123,7 +132,7 @@ function DrillRun({
   const blocker = q ? submitBlocker(selected.length, requiredPicks(q)) : null;
   const entry = revealed ? log[log.length - 1] : undefined;
   const isLast = idx + 1 >= queue.length;
-  const contextLine = retry ? [label, "Retry misses"].filter(Boolean).join(" · ") : label;
+  const contextLine = retry ? "Retrying your misses" : label;
 
   // The answer clock starts when a question appears.
   useEffect(() => {
@@ -194,13 +203,13 @@ function DrillRun({
     scrollToTop(rootRef.current);
   }
 
-  function tag(i: number, rc: RootCause) {
+  /** Set (or clear) the miss cause on a logged answer. */
+  function setCause(i: number, rc: RootCause | undefined) {
     const e = log[i];
-    if (!e) return;
-    const nextRc = e.rootCause === rc ? undefined : rc; // tap the active tag again to clear it
-    if (e.attemptId) setRootCause(e.attemptId, nextRc);
+    if (!e || e.rootCause === rc) return;
+    if (e.attemptId) setRootCause(e.attemptId, rc);
     haptic("tap");
-    setLog(log.map((x, j) => (j === i ? { ...x, rootCause: nextRc } : x)));
+    setLog(log.map((x, j) => (j === i ? { ...x, rootCause: rc } : x)));
   }
 
   // Desktop shortcuts: 1–n / letters pick · S U G confidence · Enter submit & next · K T R tag.
@@ -249,7 +258,7 @@ function DrillRun({
         const rc = ROOT_CAUSES.find((x) => x.key === up);
         if (rc) {
           e.preventDefault();
-          tag(log.length - 1, rc.v);
+          setCause(log.length - 1, entry.rootCause === rc.v ? undefined : rc.v); // same key again clears it
         }
       }
     }
@@ -278,8 +287,7 @@ function DrillRun({
         <Summary
           log={log}
           total={queue.length}
-          label={contextLine}
-          onTag={tag}
+          onCause={setCause}
           onRetry={() => onRetryMisses(log.filter((e) => !e.correct).map((e) => e.q))}
           onAgain={onAgain}
           againLabel={onNewSession ? newSessionLabel ?? "New drill" : "Run again"}
@@ -297,14 +305,14 @@ function DrillRun({
 
   return (
     <div ref={rootRef}>
-      {/* session header: context · progress · end */}
+      {/* session header: context, progress, end */}
       <div className="mb-4">
-        {contextLine && <div className="mb-2 truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">{contextLine}</div>}
+        {contextLine && <div className="mb-2 truncate text-[13px] font-medium text-[var(--muted)]">{contextLine}</div>}
         <div className="flex items-center gap-3">
           <SegmentTrack results={log.map((e) => e.correct)} total={queue.length} current={idx} className="min-w-0 flex-1" />
           <span className="shrink-0 text-xs font-semibold tabular-nums text-[var(--muted)]">
             {idx + 1} / {queue.length}
-            {queue.length > 40 && log.length > 0 && <span className="font-medium"> · {right} right</span>}
+            {queue.length > 40 && log.length > 0 && <span className="font-medium">, {right} right</span>}
           </span>
           {(log.length > 0 || onExit) && (
             <Button variant="ghost" size="sm" onClick={end} className="-mr-2 h-11 shrink-0 md:h-9" aria-label={log.length > 0 ? "End session and see the summary" : "Leave this drill"}>
@@ -321,34 +329,30 @@ function DrillRun({
           {entry && !entry.correct && (
             <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
               <span className="text-sm font-semibold">Why did you miss it?</span>
-              <CauseChips value={entry.rootCause} onPick={(rc) => tag(log.length - 1, rc)} showKeys />
+              <CauseTags id="live" value={entry.rootCause} onChange={(rc) => setCause(log.length - 1, rc)} showKeys />
             </div>
           )}
 
           <ActionTray>
             {!revealed ? (
               <div className="flex items-center justify-between gap-2">
-                <div role="group" aria-label="Confidence" className="flex min-w-0 items-center gap-1.5">
-                  <span className="mr-1 hidden text-xs font-medium text-[var(--muted)] md:inline">Confidence</span>
-                  {CONFIDENCE_LEVELS.map((c) => (
-                    <ToggleChip
-                      key={c.v}
-                      active={confidence === c.v}
-                      data-kbd-toggle=""
-                      title={`${c.label} · key ${c.key}`}
-                      onClick={() => {
-                        haptic("tap");
-                        setConfidence(c.v);
-                      }}
-                      className="h-11 px-3 text-[13px] md:h-10"
-                    >
-                      {c.label}
-                    </ToggleChip>
-                  ))}
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="hidden text-xs font-medium text-[var(--muted)] md:inline">Confidence</span>
+                  <Segmented
+                    id="drill-confidence"
+                    ariaLabel="Confidence"
+                    value={confidence}
+                    onChange={(v) => {
+                      if (v === undefined) return;
+                      haptic("tap");
+                      setConfidence(v);
+                    }}
+                    options={CONFIDENCE_LEVELS.map((c) => ({ value: c.v, label: c.label, title: `${c.label} (key ${c.key})` }))}
+                  />
                 </div>
                 <div className="relative flex shrink-0 items-center gap-3">
                   {blocker && (
-                    <span aria-hidden className={cn("hidden text-xs md:inline", nudge ? "font-semibold text-[var(--danger)]" : "text-[var(--muted)]")}>
+                    <span aria-hidden className={cn("hidden text-xs md:inline", nudge ? cn("font-semibold", INK.danger) : "text-[var(--muted)]")}>
                       {blocker}
                     </span>
                   )}
@@ -364,7 +368,7 @@ function DrillRun({
                     </Kbd>
                   </Button>
                   {nudge && blocker && (
-                    <span className="absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-lg bg-[var(--foreground)] px-2.5 py-1.5 text-xs font-semibold text-[var(--background)] shadow-[var(--e2)] md:hidden">
+                    <span className="anim-pop absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-xl bg-[var(--foreground)] px-2.5 py-1.5 text-xs font-semibold text-[var(--background)] shadow-[var(--e2)] md:hidden">
                       {blocker}
                     </span>
                   )}
@@ -440,26 +444,26 @@ function Verdict({ entry }: { entry: Entry }) {
   const tookNear = !entry.correct && !!entry.q.nearMiss && entry.chosen.includes(entry.q.nearMiss);
   const sub = entry.correct
     ? entry.confidence === 3
-      ? "Guessed right — read the why"
+      ? "Guessed right, so read the why"
       : null
     : tookNear
       ? "You took the near-miss"
       : entry.confidence === 1
-        ? "Confident miss"
+        ? "A confident miss"
         : null;
   return (
     <div className="flex min-w-0 items-center gap-2.5">
       <span
         className={cn(
-          "anim-pop grid h-8 w-8 shrink-0 place-items-center rounded-full",
-          entry.correct ? "bg-[var(--success)] text-[var(--primary-fg)]" : "bg-[var(--danger)] text-white"
+          "anim-pop grid h-8 w-8 shrink-0 place-items-center rounded-full text-[var(--primary-fg)]",
+          entry.correct ? "bg-[var(--success)]" : "bg-[var(--danger)]"
         )}
       >
         {entry.correct ? <Check size={16} strokeWidth={3} /> : <X size={16} strokeWidth={3} />}
       </span>
       <div className="min-w-0 leading-tight">
-        <div className={cn("text-sm font-bold", entry.correct ? "text-[var(--success)]" : "text-[var(--danger)]")}>
-          {entry.correct ? "Correct" : `Incorrect · answer ${correct.join(", ")}`}
+        <div className={cn("text-sm font-bold", entry.correct ? INK.success : INK.danger)}>
+          {entry.correct ? "Correct" : `Incorrect, the answer is ${correct.join(", ")}`}
         </div>
         {sub && <div className="mt-0.5 truncate text-xs text-[var(--muted)]">{sub}</div>}
       </div>
@@ -467,36 +471,34 @@ function Verdict({ entry }: { entry: Entry }) {
   );
 }
 
-function CauseChips({ value, onPick, showKeys, small }: { value?: RootCause; onPick: (rc: RootCause) => void; showKeys?: boolean; small?: boolean }) {
+function CauseTags({ id, value, onChange, showKeys }: { id: string; value?: RootCause; onChange: (rc: RootCause | undefined) => void; showKeys?: boolean }) {
   return (
-    <div role="group" aria-label="Why did you miss it?" className="flex flex-wrap gap-1.5">
-      {ROOT_CAUSES.map((c) => {
-        const on = value === c.v;
-        return (
-          <ToggleChip
-            key={c.v}
-            active={on}
-            data-kbd-toggle=""
-            title={on ? `${c.hint} — tap again to clear` : c.hint}
-            onClick={() => onPick(c.v)}
-            className={small ? "px-2.5" : undefined}
-          >
+    <Segmented
+      id={`cause-${id}`}
+      ariaLabel="Why did you miss it?"
+      allowDeselect
+      value={value}
+      onChange={onChange}
+      options={ROOT_CAUSES.map((c) => ({
+        value: c.v,
+        title: value === c.v ? `${c.hint}. Tap again to clear` : c.hint,
+        label: (
+          <>
             {c.label}
-            {on ? <X size={12} aria-hidden /> : showKeys ? <Kbd>{c.key}</Kbd> : null}
-          </ToggleChip>
-        );
-      })}
-    </div>
+            {value === c.v ? <X size={12} aria-hidden /> : showKeys ? <Kbd>{c.key}</Kbd> : null}
+          </>
+        ),
+      }))}
+    />
   );
 }
 
-// ─── End-of-session summary ───
+// ─── End-of-session summary: verdict first, the detail after ───
 
 function Summary({
   log,
   total,
-  label,
-  onTag,
+  onCause,
   onRetry,
   onAgain,
   againLabel,
@@ -505,17 +507,19 @@ function Summary({
 }: {
   log: Entry[];
   total: number;
-  label?: string;
-  onTag: (i: number, rc: RootCause) => void;
+  onCause: (i: number, rc: RootCause | undefined) => void;
   onRetry: () => void;
   onAgain: () => void;
   againLabel: string;
   onExit?: () => void;
   exitLabel: string;
 }) {
+  const sound = useProgress((s) => s.settings.sound ?? false);
   const n = log.length;
   const right = log.filter((e) => e.correct).length;
   const acc = n ? Math.round((right / n) * 100) : 0;
+  const strong = n >= 5 && acc >= STRONG;
+  const perfect = n >= 5 && right === n;
   // confident misses first — they are the costly ones
   const misses = log
     .map((e, i) => ({ e, i }))
@@ -523,24 +527,29 @@ function Summary({
     .sort((a, b) => Number(b.e.confidence === 1) - Number(a.e.confidence === 1));
   const untagged = misses.filter(({ e }) => !e.rootCause).length;
 
+  // A small milestone moment for a strong session — once, and motion-safe (celebrate checks).
+  const celebrated = useRef(false);
+  useEffect(() => {
+    if (!strong || celebrated.current) return;
+    celebrated.current = true;
+    haptic("milestone");
+    celebrate({ sound, big: false });
+  }, [strong, sound]);
+
+  const verdict = perfect ? "Perfect run" : strong ? "Strong session" : n < 5 ? "Session done" : acc >= PASS_LINE ? "Above the pass line" : "Below the pass line";
+  const verdictTone = n < 5 ? "" : strong || acc >= PASS_LINE ? INK.success : INK.danger;
+  const sub = n < total ? `${right} of ${n} right, ended after ${n} of ${total}` : `${right} of ${n} right`;
+
   return (
-    <Reveal className="space-y-4">
+    <div className="space-y-4">
       <Card>
         <CardBody className="space-y-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-end justify-between gap-4">
             <div className="min-w-0">
-              <div className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
-                {n < total ? `Ended early · ${n} of ${total}` : "Session complete"}
-                {label ? ` · ${label}` : ""}
-              </div>
-              <div className="mt-1 flex items-baseline gap-2.5">
-                <AnimatedNumber value={acc} format={(v) => `${v}%`} className="text-4xl font-bold tracking-tight" />
-                <span className="text-sm text-[var(--muted)]">
-                  {right} of {n} right
-                </span>
-              </div>
+              <h2 className={cn("text-[25px] font-bold leading-tight sm:text-[31px]", verdictTone)}>{verdict}</h2>
+              <p className="mt-1 text-sm text-[var(--muted)]">{sub}</p>
             </div>
-            {n >= 5 && <Badge tone={acc >= PASS_LINE ? "success" : "danger"}>{acc >= PASS_LINE ? "Above the pass line" : "Below the pass line"}</Badge>}
+            <AnimatedNumber value={acc} format={(v) => `${v}%`} className="shrink-0 font-display text-[39px] font-bold leading-none tracking-tight sm:text-[49px]" />
           </div>
           <SegmentTrack results={log.map((e) => e.correct)} total={n} />
           <ConfidenceCheck log={log} />
@@ -567,17 +576,25 @@ function Summary({
       {misses.length > 0 && (
         <Card>
           <div className="flex items-center justify-between gap-3 px-5 pb-1 pt-4">
-            <span className="text-sm font-semibold">Misses · {misses.length}</span>
-            <span className="text-xs text-[var(--muted)]">{untagged > 0 ? `${untagged} untagged — tag why` : "All tagged"}</span>
+            <h3 className="text-[15px]">
+              {misses.length} {misses.length === 1 ? "miss" : "misses"} to review
+            </h3>
+            {untagged > 0 ? (
+              <span className="text-xs text-[var(--muted)]">{untagged} untagged</span>
+            ) : (
+              <Badge tone="success">
+                <Check size={12} strokeWidth={3} /> All tagged
+              </Badge>
+            )}
           </div>
           <ul className="divide-y divide-[var(--border)]">
             {misses.map(({ e, i }) => (
-              <MissRow key={`${e.q.id}-${i}`} entry={e} onTag={(rc) => onTag(i, rc)} />
+              <MissRow key={`${e.q.id}-${i}`} id={String(i)} entry={e} onCause={(rc) => onCause(i, rc)} />
             ))}
           </ul>
         </Card>
       )}
-    </Reveal>
+    </div>
   );
 }
 
@@ -592,34 +609,35 @@ function ConfidenceCheck({ log }: { log: Entry[] }) {
   const sure = rows.find((r) => r.v === 1);
   return (
     <div>
-      <div className="mb-2.5 text-sm font-semibold">Confidence check</div>
+      <h3 className="mb-2.5 text-[15px]">Confidence check</h3>
       <div className="space-y-2.5">
         {rows.map((r) => {
           const p = Math.round((r.right / r.n) * 100);
           return (
-            <div key={r.v} className="grid grid-cols-[4.25rem_minmax(0,1fr)_5.5rem] items-center gap-3 text-sm">
+            <div key={r.v} className="grid grid-cols-[4.25rem_minmax(0,1fr)_3.25rem_2.75rem] items-center gap-3 text-sm">
               <span className="font-medium">{r.label}</span>
               <MotionBar value={p} tone={p >= 80 ? "success" : p >= 60 ? "warning" : "danger"} />
               <span className="text-right text-xs tabular-nums text-[var(--muted)]">
-                {r.right}/{r.n} · {p}%
+                {r.right} of {r.n}
               </span>
+              <span className="text-right text-sm font-semibold tabular-nums">{p}%</span>
             </div>
           );
         })}
       </div>
       <div className="mt-3 space-y-1.5 text-xs">
         {sureMiss > 0 && (
-          <p className="flex items-center gap-1.5 font-semibold text-[var(--danger)]">
-            <TriangleAlert size={14} className="shrink-0" /> {sureMiss} confident {sureMiss === 1 ? "miss" : "misses"} — review {sureMiss === 1 ? "it" : "them"} first.
+          <p className={cn("flex items-center gap-1.5 font-semibold", INK.danger)}>
+            <TriangleAlert size={14} className="shrink-0" /> {sureMiss} confident {sureMiss === 1 ? "miss" : "misses"}. Review {sureMiss === 1 ? "it" : "them"} first.
           </p>
         )}
         {nearTaken > 0 && (
-          <p className="flex items-center gap-1.5 font-semibold text-[var(--warning)]">
+          <p className={cn("flex items-center gap-1.5 font-semibold", INK.warning)}>
             <Scale size={14} className="shrink-0" /> {nearTaken} of {misses} {misses === 1 ? "miss" : "misses"} took the near-miss.
           </p>
         )}
         {sureMiss === 0 && sure && sure.n >= 3 && (
-          <p className="flex items-center gap-1.5 font-semibold text-[var(--success)]">
+          <p className={cn("flex items-center gap-1.5 font-semibold", INK.success)}>
             <Check size={14} className="shrink-0" /> Every &ldquo;Sure&rdquo; was right.
           </p>
         )}
@@ -628,7 +646,7 @@ function ConfidenceCheck({ log }: { log: Entry[] }) {
   );
 }
 
-function MissRow({ entry, onTag }: { entry: Entry; onTag: (rc: RootCause) => void }) {
+function MissRow({ id, entry, onCause }: { id: string; entry: Entry; onCause: (rc: RootCause | undefined) => void }) {
   const [open, setOpen] = useState(false);
   const correct = correctLabels(entry.q);
   const tookNear = !!entry.q.nearMiss && entry.chosen.includes(entry.q.nearMiss);
@@ -638,6 +656,7 @@ function MissRow({ entry, onTag }: { entry: Entry; onTag: (rc: RootCause) => voi
       <button
         type="button"
         aria-expanded={open}
+        title={open ? "Hide the question" : "Review the question"}
         onClick={() => {
           haptic("tap");
           setOpen((o) => !o);
@@ -648,23 +667,23 @@ function MissRow({ entry, onTag }: { entry: Entry; onTag: (rc: RootCause) => voi
           {!open && <div className="line-clamp-2 text-sm font-medium">{entry.q.stem}</div>}
           <div className={cn("flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-[var(--muted)]", !open && "mt-1.5")}>
             <span className="inline-flex items-center gap-1">
-              You
-              {entry.chosen.length === 0 ? " —" : [...entry.chosen].sort().map((l) => <LetterChip key={l} label={l} tone="danger" square={square} className="h-5 w-5 text-[10px]" />)}
-              <ArrowRight size={12} className="mx-0.5" /> answer
+              Your pick
+              {entry.chosen.length === 0 ? <span className="font-medium">none</span> : [...entry.chosen].sort().map((l) => <LetterChip key={l} label={l} tone="danger" square={square} className="h-5 w-5 text-[10px]" />)}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              Answer
               {correct.map((l) => (
                 <LetterChip key={l} label={l} tone="success" square={square} className="h-5 w-5 text-[10px]" />
               ))}
             </span>
-            {entry.confidence === 1 && <span className="font-semibold text-[var(--danger)]">Confident miss</span>}
-            {tookNear && <span className="font-semibold text-[var(--warning)]">Took the near-miss</span>}
-            <span className="font-medium text-[var(--accent)]">{open ? "Hide" : "Review"}</span>
+            {entry.confidence === 1 && <Badge tone="danger">Confident miss</Badge>}
+            {tookNear && <Badge tone="warning">Took the near-miss</Badge>}
           </div>
         </div>
-        <ChevronDown size={16} className={cn("mt-0.5 shrink-0 text-[var(--muted)] transition-transform", open && "rotate-180")} />
+        <ChevronDown size={18} aria-hidden className={cn("mt-0.5 shrink-0 text-[var(--muted)] transition-transform", open && "rotate-180")} />
       </button>
-      <div className="mt-2.5 flex flex-wrap items-center gap-2">
-        <span className="hidden text-xs text-[var(--muted)] sm:inline">Why?</span>
-        <CauseChips value={entry.rootCause} onPick={onTag} small />
+      <div className="mt-2.5">
+        <CauseTags id={id} value={entry.rootCause} onChange={onCause} />
       </div>
       {open && (
         <div className="mt-3">

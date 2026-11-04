@@ -59,7 +59,7 @@ export function useSignOut() {
 }
 
 const itemCls =
-  "flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-[var(--foreground)] hover:bg-[var(--surface-2)] focus-visible:bg-[var(--surface-2)] focus-visible:outline-none";
+  "flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm font-medium text-[var(--foreground)] hover:bg-[var(--surface-2)] focus-visible:bg-[var(--surface-2)] focus-visible:outline-none";
 
 const MODES = [
   { id: "light", label: "Light", icon: Sun },
@@ -126,7 +126,7 @@ export function UserMenuView({ session, ready }: { session: SessionLike; ready: 
       </button>
 
       {open && (
-        <div role="menu" className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl">
+        <div role="menu" className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--e3)]">
           <div className="flex items-center gap-2.5 px-2.5 pb-2.5 pt-2">
             {session ? (
               <Avatar name={name} size={36} />

@@ -20,19 +20,21 @@ export function LiquidOrb({
   label,
   sub,
 }: {
-  value: number;
+  /** 0–100, or null for "no reading yet" (an empty sphere showing "—"). */
+  value: number | null;
   size?: number;
   label?: string;
   sub?: string;
 }) {
   const id = useId().replace(/[:]/g, "");
   const reduce = useReducedMotion();
-  const v = Math.max(0, Math.min(100, Math.round(value)));
+  const empty = value === null;
+  const v = empty ? 0 : Math.max(0, Math.min(100, Math.round(value)));
   // surface height inside the sphere: 0 → bottom of the circle, 100 → top
   const surfaceY = C + R - (2 * R * v) / 100 - 10;
 
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size }} role="img" aria-label={`${label ?? "Readiness"} ${v} out of 100`}>
+    <div className="relative shrink-0" style={{ width: size, height: size }} role="img" aria-label={empty ? `${label ?? "Readiness"}: no reading yet` : `${label ?? "Readiness"} ${v} out of 100`}>
       <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full overflow-visible">
         <defs>
           <clipPath id={`orb-${id}`}>
@@ -54,7 +56,7 @@ export function LiquidOrb({
         <circle cx={C} cy={C} r={R} fill={`url(#body-${id})`} />
 
         {/* liquid: back wave (slower, fainter) then front wave */}
-        <g clipPath={`url(#orb-${id})`}>
+        {!empty && <g clipPath={`url(#orb-${id})`}>
           <motion.g initial={reduce ? false : { y: 200 }} animate={{ y: surfaceY }} transition={{ ...springSoft, delay: 0.15 }}>
             <g className={reduce ? undefined : "orb-wave-slow"} style={{ opacity: 0.45 }}>
               <path d={WAVE} fill={`url(#liq-${id})`} transform="translate(-30 -4)" />
@@ -63,7 +65,7 @@ export function LiquidOrb({
               <path d={WAVE} fill={`url(#liq-${id})`} />
             </g>
           </motion.g>
-        </g>
+        </g>}
 
         {/* specular highlight + 1px rim — minimal glass */}
         <ellipse cx={72} cy={52} rx={34} ry={16} transform="rotate(-24 72 52)" style={{ fill: "var(--orb-spec)" }} />
@@ -74,7 +76,7 @@ export function LiquidOrb({
       <div className="absolute inset-0 grid place-items-center text-center">
         <div className={v >= 56 ? "text-white [text-shadow:0_1px_12px_rgba(0,0,0,0.18)]" : "text-[var(--foreground)]"}>
           <div className="font-display font-extrabold leading-none tabular-nums" style={{ fontSize: size * 0.3 }}>
-            {v}
+            {empty ? "—" : v}
           </div>
           {sub && <div className="mt-1 text-[11px] font-semibold opacity-85">{sub}</div>}
         </div>

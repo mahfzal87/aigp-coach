@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useSyncExternalStore, type ComponentType } from "react";
 import { useTheme } from "next-themes";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
-import { ArrowLeft, ArrowRight, BarChart3, ChevronRight, Crosshair, Tags } from "lucide-react";
+import { ArrowLeft, ArrowRight, BarChart3, Crosshair, Tags } from "lucide-react";
 import { getActiveMeta, getCompetenciesByDomain, getDomains, getQuestionsByCompetency } from "@/lib/content";
 import { allCompetencyMastery } from "@/lib/readiness";
 import { haptic } from "@/lib/haptics";
@@ -12,14 +13,35 @@ import { cn } from "@/lib/utils";
 import type { Attempt } from "@/lib/types";
 import { useHydrated, useProgress } from "@/store/progress";
 import { Bar as ProgressBar, Card, CardBody, PageHeader } from "@/components/ui";
-import { Stagger, StaggerItem } from "@/components/motion";
-import { DragRow, Eyebrow, GoButton, MIN_SEEN, MasteryBar, SectionHead, StatStrip, TARGET, TargetLegend, rankDrag, toneVar, type Tone } from "@/components/progress-kit";
+import { ButtonLink, DragRow, Label, MIN_SEEN, MasteryBar, SectionHead, StatStrip, TARGET, TargetLegend, rankDrag, toneVar, type Tone } from "@/components/progress-kit";
 
 // Recharts paints SVG attributes, where var() does not resolve — so the chart
-// carries literal hex that mirrors the tokens in app/globals.css.
+// carries literals that mirror the Glass Box tokens in app/globals.css. The
+// halo and hover band are translucent so they sit on glass panels over the
+// exam light instead of printing solid blocks.
 const CHART = {
-  light: { success: "#16a34a", warning: "#d97706", danger: "#dc2626", muted: "#6f6f78", fg: "#17171a", surface: "#ffffff", grid: "#ececef", target: "#94a3b8", cursor: "#f1f1f2" },
-  dark: { success: "#22c55e", warning: "#f59e0b", danger: "#ef4444", muted: "#9a9aa4", fg: "#ededf0", surface: "#161619", grid: "#26262b", target: "#94a3b8", cursor: "#1f1f23" },
+  light: {
+    success: "#15803d",
+    warning: "#b45309",
+    danger: "#dc2626",
+    muted: "#5a6078",
+    fg: "#14172b",
+    halo: "rgba(246, 248, 251, 0.85)",
+    grid: "rgba(20, 23, 43, 0.08)",
+    target: "#7d8499",
+    cursor: "rgba(20, 23, 43, 0.05)",
+  },
+  dark: {
+    success: "#22c55e",
+    warning: "#fbbf24",
+    danger: "#f87171",
+    muted: "#9aa0b8",
+    fg: "#eceef8",
+    halo: "rgba(16, 19, 31, 0.9)",
+    grid: "rgba(255, 255, 255, 0.07)",
+    target: "#7a819a",
+    cursor: "rgba(255, 255, 255, 0.06)",
+  },
 };
 type Palette = (typeof CHART)["light"];
 
@@ -108,71 +130,61 @@ export default function AnalyticsPage() {
       {back}
       <PageHeader title="Analytics" subtitle="Where you stand and why you miss." />
 
-      <Stagger className="space-y-6">
-        <StaggerItem>
-          <StatStrip
-            items={[
-              { label: "Answered", value: n.toLocaleString(), hint: `${unique.toLocaleString()} unique questions` },
-              { label: "Accuracy", value: accuracy == null ? "—" : `${accuracy}%`, hint: last50 ? `${pctOf(last50)}% in your last 50` : `${n - misses.length} of ${n} right` },
-              {
-                label: "Pace",
-                value: paceS != null ? `${paceS} s` : "—",
-                hint: paceS != null ? `median · ${budgetS} s allowed` : "timed in Practice drills",
-                tone: paceS != null && paceS > budgetS ? "warning" : undefined,
-              },
-              { label: "Misses", value: misses.length.toLocaleString(), hint: `${tagged.toLocaleString()} tagged with a cause` },
-            ]}
-          />
-        </StaggerItem>
+      <div className="space-y-6">
+        <StatStrip
+          items={[
+            { label: "Answered", value: n.toLocaleString(), hint: `${unique.toLocaleString()} unique questions` },
+            { label: "Accuracy", value: accuracy == null ? "—" : `${accuracy}%`, hint: last50 ? `${pctOf(last50)}% in your last 50` : `${n - misses.length} of ${n} right` },
+            {
+              label: "Pace",
+              value: paceS != null ? `${paceS} s` : "—",
+              hint: paceS != null ? `median, ${budgetS} s allowed` : "timed in Practice drills",
+              tone: paceS != null && paceS > budgetS ? "warning" : undefined,
+            },
+            { label: "Misses", value: misses.length.toLocaleString(), hint: `${tagged.toLocaleString()} tagged with a cause` },
+          ]}
+        />
 
-        <StaggerItem>
-          <Card>
-            <CardBody className="pb-2">
-              <SectionHead
-                title="Mastery by competency"
-                meta={
-                  sufficient > 0 ? (
-                    <span className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-                      <Legend color="var(--success)" label={`${TARGET}+`} />
-                      <Legend color="var(--warning)" label="60–79" />
-                      <Legend color="var(--danger)" label="<60" />
-                      <TargetLegend />
-                    </span>
-                  ) : undefined
-                }
-                className="mb-2 flex-wrap"
-              />
-              {sufficient === 0 ? (
-                // No blank grid: until one competency has enough answers, say what unlocks the chart.
-                <p className="pb-3 pt-1 text-sm text-[var(--muted)]">
-                  Bars appear at {MIN_SEEN} answers per competency — start with the list below.
-                </p>
-              ) : (
-                <MasteryChart rows={rows} />
-              )}
-            </CardBody>
-            <div className="border-t border-[var(--border)]">
-              <Eyebrow className="px-5 pb-1 pt-4">Drill these first</Eyebrow>
-              {drag.length ? (
-                <ul className="divide-y divide-[var(--border)] pb-1">
-                  {drag.map((d) => (
-                    <DragRow key={d.comp.id} item={d} />
-                  ))}
-                </ul>
-              ) : (
-                <p className="px-5 pb-4 pt-1 text-sm text-[var(--muted)]">Every competency is at {TARGET}+ — keep mocks sharp.</p>
-              )}
-            </div>
-          </Card>
-        </StaggerItem>
+        <Card>
+          <CardBody className="pb-2">
+            <SectionHead
+              title="Mastery by competency"
+              meta={
+                sufficient > 0 ? (
+                  <span className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+                    <Legend color="var(--success)" label={`${TARGET}+`} />
+                    <Legend color="var(--warning)" label="60–79" />
+                    <Legend color="var(--danger)" label="<60" />
+                    <TargetLegend />
+                  </span>
+                ) : undefined
+              }
+              className="mb-2 flex-wrap"
+            />
+            {sufficient === 0 ? (
+              // No blank grid: until one competency has enough answers, say what unlocks the chart.
+              <p className="pb-3 pt-1 text-sm text-[var(--muted)]">Bars appear at {MIN_SEEN} answers per competency. Start with the list below.</p>
+            ) : (
+              <MasteryChart rows={rows} />
+            )}
+          </CardBody>
+          <div className="border-t border-[var(--border)]">
+            <Label className="px-5 pb-1 pt-4">Drill these first</Label>
+            {drag.length ? (
+              <ul className="divide-y divide-[var(--border)] pb-1">
+                {drag.map((d) => (
+                  <DragRow key={d.comp.id} item={d} />
+                ))}
+              </ul>
+            ) : (
+              <p className="px-5 pb-4 pt-1 text-sm text-[var(--muted)]">Every competency is at {TARGET}+. Keep mocks sharp.</p>
+            )}
+          </div>
+        </Card>
 
-        <StaggerItem>
-          <MissCauses attempts={attempts} />
-        </StaggerItem>
-        <StaggerItem>
-          <Calibration attempts={attempts} />
-        </StaggerItem>
-      </Stagger>
+        <MissCauses attempts={attempts} />
+        <Calibration attempts={attempts} />
+      </div>
     </div>
   );
 }
@@ -215,6 +227,7 @@ function useElementWidth<T extends HTMLElement>() {
 const ROW_H = 30;
 
 function MasteryChart({ rows }: { rows: CompRow[] }) {
+  const router = useRouter();
   const { resolvedTheme } = useTheme();
   const C = resolvedTheme === "dark" ? CHART.dark : CHART.light;
   const canHover = useCanHover();
@@ -230,15 +243,7 @@ function MasteryChart({ rows }: { rows: CompRow[] }) {
   return (
     <div ref={ref} className="w-full select-none" style={{ height }}>
       {width > 0 && (
-        <BarChart
-          width={width}
-          height={height}
-          data={rows}
-          layout="vertical"
-          margin={{ top: 22, right: 30, bottom: 0, left: 0 }}
-          barCategoryGap={8}
-          accessibilityLayer
-        >
+        <BarChart width={width} height={height} data={rows} layout="vertical" margin={{ top: 22, right: 30, bottom: 0, left: 0 }} barCategoryGap={8} accessibilityLayer>
           <CartesianGrid horizontal={false} stroke={C.grid} />
           <XAxis type="number" domain={[0, 100]} ticks={[0, 20, 40, 60, 80, 100]} tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} height={24} />
           <YAxis
@@ -254,11 +259,11 @@ function MasteryChart({ rows }: { rows: CompRow[] }) {
           />
           <Tooltip cursor={{ fill: C.cursor }} isAnimationActive={false} content={(p) => <CompTip active={p.active} payload={p.payload} canHover={canHover} />} />
           <ReferenceLine x={TARGET} stroke={C.target} strokeDasharray="4 4" label={{ value: `Target ${TARGET}`, position: "top", fontSize: 10, fill: C.muted }} />
-          {/* No grow animation: the card's entrance carries the motion, and a static chart never screenshots half-drawn. */}
+          {/* No grow animation: a static chart never screenshots half-drawn. */}
           <Bar
             dataKey="value"
             barSize={14}
-            radius={[0, 4, 4, 0]}
+            radius={[0, 7, 7, 0]}
             isAnimationActive={false}
             style={{ cursor: canHover ? "pointer" : "default" }}
             onClick={(d) => {
@@ -267,32 +272,34 @@ function MasteryChart({ rows }: { rows: CompRow[] }) {
               const id = (d.payload as CompRow | undefined)?.id;
               if (!id) return;
               haptic("tap");
-              // Document load, not router.push: Practice reads the filter from window.location (see isDeepLink).
-              window.location.assign(`/practice?competency=${id}`);
+              router.push(`/practice?competency=${id}`);
             }}
           >
             {rows.map((r) => (
               <Cell key={r.id} fill={fill(r)} />
             ))}
             <LabelList
-              dataKey="value"
+              // Carry the row id, not the value: label indexes count rendered bars only, so they
+              // drift from the data rows as soon as some rows have no bar.
+              valueAccessor={(entry) => String((entry.payload as CompRow | undefined)?.id ?? "")}
               content={(p) => {
                 // Rows without enough data are annotated by CompTick (zero-length bars get no label).
-                const r = typeof p.index === "number" ? rows[p.index] : undefined;
+                const r = rows.find((row) => row.id === p.value);
                 if (!r || r.insufficient) return null;
                 const x = Number(p.x ?? 0);
                 const y = Number(p.y ?? 0);
                 const w = Number(p.width ?? 0);
                 const h = Number(p.height ?? 0);
-                // Surface-coloured halo keeps the number legible where the dashed target line crosses it.
+                // Translucent halo keeps the number legible where the dashed target line crosses it.
                 return (
                   <text
                     x={x + w + 6}
                     y={y + h / 2}
                     dy="0.35em"
                     fill={C.fg}
-                    stroke={C.surface}
-                    strokeWidth={4}
+                    stroke={C.halo}
+                    strokeWidth={3}
+                    strokeLinejoin="round"
                     paintOrder="stroke"
                     fontSize={11}
                     fontWeight={700}
@@ -332,19 +339,33 @@ function CompTick({ y, code, rows, wide, nameChars, plotX, C }: { y: number; cod
   );
 }
 
+// Floating chrome, so it uses the strong glass (a Card here would flatten inside the chart's Card).
 function CompTip({ active, payload, canHover }: { active?: boolean; payload?: ReadonlyArray<{ payload?: unknown }>; canHover: boolean }) {
   const r = active ? (payload?.[0]?.payload as CompRow | undefined) : undefined;
   if (!r) return null;
   return (
-    <Card className="max-w-[260px] px-3 py-2 text-xs">
+    <div className="glass-float max-w-[260px] rounded-[14px] px-3 py-2.5 text-xs">
       <div className="font-semibold">
-        {r.code} · {r.name}
+        <span className="tabular-nums">{r.code}</span> {r.name}
       </div>
-      <div className="mt-1 tabular-nums text-[var(--muted)]">
-        {r.insufficient ? `${r.attempts} of ${MIN_SEEN} answers so far` : `Mastery ${r.mastery} · ${r.acc}% recent accuracy · ${r.seen}/${r.bank} seen`}
-      </div>
-      {canHover && <div className="mt-1 font-semibold text-[var(--accent)]">Click to drill</div>}
-    </Card>
+      {r.insufficient ? (
+        <div className="mt-1 tabular-nums text-[var(--muted)]">
+          {r.attempts} of {MIN_SEEN} answers so far
+        </div>
+      ) : (
+        <dl className="mt-1.5 grid grid-cols-[1fr_auto] gap-x-4 gap-y-0.5 tabular-nums">
+          <dt className="text-[var(--muted)]">Mastery</dt>
+          <dd className="text-right font-semibold">{r.mastery}</dd>
+          <dt className="text-[var(--muted)]">Recent accuracy</dt>
+          <dd className="text-right font-semibold">{r.acc}%</dd>
+          <dt className="text-[var(--muted)]">Questions seen</dt>
+          <dd className="text-right font-semibold">
+            {r.seen} of {r.bank}
+          </dd>
+        </dl>
+      )}
+      {canHover && <div className="mt-1.5 font-semibold text-[var(--accent)]">Click to drill</div>}
+    </div>
   );
 }
 
@@ -370,8 +391,7 @@ function MissCauses({ attempts }: { attempts: Attempt[] }) {
   ];
   const total = tagged.length;
   const top = [...causes].sort((a, b) => b.n - a.n)[0];
-
-  const share = (n: number) => Math.round((n / Math.max(1, total)) * 100);
+  const share = (k: number) => Math.round((k / Math.max(1, total)) * 100);
 
   return (
     <Card>
@@ -387,15 +407,11 @@ function MissCauses({ attempts }: { attempts: Attempt[] }) {
           />
         ) : (
           <>
-            <div className="flex items-baseline gap-2 text-sm">
+            <div className="flex flex-wrap items-baseline gap-x-2 text-sm">
               <span className="font-semibold">Mostly {top.label.toLowerCase()}</span>
-              <span className="tabular-nums text-[var(--muted)]">· {share(top.n)}% of tagged misses</span>
+              <span className="tabular-nums text-[var(--muted)]">{share(top.n)}% of tagged misses</span>
             </div>
-            <div
-              className="mt-3 flex h-2.5 w-full gap-px overflow-hidden rounded-full bg-[var(--surface-2)]"
-              role="img"
-              aria-label={causes.map((c) => `${c.label} ${c.n}`).join(", ")}
-            >
+            <div className="mt-3 flex h-2.5 w-full gap-px overflow-hidden rounded-full bg-[var(--surface-2)]" role="img" aria-label={causes.map((c) => `${c.label} ${c.n}`).join(", ")}>
               {causes.map((c) => (c.n > 0 ? <div key={c.key} className="h-full" style={{ width: `${share(c.n)}%`, background: c.color }} /> : null))}
             </div>
             <ul className="mt-3 grid gap-x-4 gap-y-1 sm:grid-cols-3">
@@ -409,13 +425,10 @@ function MissCauses({ attempts }: { attempts: Attempt[] }) {
                       </span>
                       <span className="shrink-0 tabular-nums">
                         <span className="font-semibold">{c.n}</span>
-                        <span className="text-xs text-[var(--muted)]"> · {share(c.n)}%</span>
+                        <span className="ml-1 text-xs text-[var(--muted)]">{share(c.n)}%</span>
                       </span>
                     </div>
-                    <div className={cn("mt-0.5 flex items-center text-xs", c.href ? "font-semibold text-[var(--accent)]" : "text-[var(--muted)]")}>
-                      {c.action}
-                      {c.href && <ChevronRight size={13} className="transition-transform duration-200 group-hover:translate-x-0.5" />}
-                    </div>
+                    <div className={cn("mt-0.5 text-xs", c.href ? "font-semibold text-[var(--accent)]" : "text-[var(--muted)]")}>{c.action}</div>
                   </>
                 );
                 // The whole cause is the tap target (≥ 44px) when there is somewhere to go.
@@ -425,7 +438,7 @@ function MissCauses({ attempts }: { attempts: Attempt[] }) {
                       <Link
                         href={c.href}
                         onClick={() => haptic("tap")}
-                        className="group -mx-2 block min-h-[44px] rounded-lg px-2 py-1.5 transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50"
+                        className="press -mx-2 block min-h-[44px] rounded-xl px-2 py-1.5 transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50"
                       >
                         {body}
                       </Link>
@@ -438,7 +451,7 @@ function MissCauses({ attempts }: { attempts: Attempt[] }) {
             </ul>
           </>
         )}
-        <p className="mt-4 text-xs text-[var(--muted)]">{total > 0 && total < 5 ? "Small sample — keep tagging." : "Tagging is one tap after a miss."}</p>
+        <p className="mt-4 text-xs text-[var(--muted)]">{total > 0 && total < 5 ? "Small sample. Keep tagging." : "Tagging is one tap after a miss."}</p>
       </CardBody>
     </Card>
   );
@@ -464,7 +477,7 @@ function Calibration({ attempts }: { attempts: Attempt[] }) {
       <CardBody>
         <SectionHead title="Confidence calibration" meta={marked ? `${marked} marked` : undefined} />
         {marked === 0 ? (
-          <EmptyRow icon={Crosshair} title="No Sure or Guess marks yet" hint="Mark confidence before you submit" href="/practice" cta="Start a drill" />
+          <EmptyRow icon={Crosshair} title="No confidence marks yet" hint="Mark Sure or Guess as you answer" href="/practice" cta="Start a drill" />
         ) : (
           <>
             <div className="text-sm font-semibold" style={{ color: toneVar(verdict.tone) }}>
@@ -476,7 +489,7 @@ function Calibration({ attempts }: { attempts: Attempt[] }) {
                   <span>When sure</span>
                   <span className="tabular-nums">
                     <span className="font-semibold">{sureAcc == null ? "—" : `${sureAcc}% right`}</span>
-                    <span className="text-xs text-[var(--muted)]"> · {sure.length}</span>
+                    <span className="ml-1.5 text-xs text-[var(--muted)]">of {sure.length}</span>
                   </span>
                 </div>
                 <MasteryBar value={sureAcc ?? 0} tone={sureAcc == null ? "muted" : sureAcc >= TARGET ? "success" : sureAcc >= 60 ? "warning" : "danger"} />
@@ -487,7 +500,7 @@ function Calibration({ attempts }: { attempts: Attempt[] }) {
                   <span>When guessing</span>
                   <span className="tabular-nums">
                     <span className="font-semibold">{guessAcc == null ? "—" : `${guessAcc}% right`}</span>
-                    <span className="text-xs text-[var(--muted)]"> · {guess.length}</span>
+                    <span className="ml-1.5 text-xs text-[var(--muted)]">of {guess.length}</span>
                   </span>
                 </div>
                 <ProgressBar value={guessAcc ?? 0} tone={guessAcc != null && guessAcc >= 60 ? "warning" : "accent"} className="h-2" />
@@ -510,9 +523,9 @@ function EmptyRow({ icon: Icon, title, hint, href, cta }: { icon: ComponentType<
         <div className="text-sm font-semibold">{title}</div>
         <div className="mt-0.5 text-xs text-[var(--muted)]">{hint}</div>
       </div>
-      <GoButton href={href} size="sm" variant="outline" className="group">
-        {cta} <ArrowRight size={13} className="transition-transform duration-200 group-hover:translate-x-0.5" />
-      </GoButton>
+      <ButtonLink href={href} size="sm" variant="outline">
+        {cta}
+      </ButtonLink>
     </div>
   );
 }
@@ -530,7 +543,7 @@ function FirstRun() {
       <CardBody className="py-8 sm:py-10">
         <div className="mx-auto max-w-sm text-center">
           <BarChart3 size={22} className="mx-auto text-[var(--muted)]" />
-          <div className="mt-3 text-[15px] font-semibold">No answers yet</div>
+          <h2 className="mt-3 text-[19px]">No answers yet</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">Your first drill fills this page.</p>
         </div>
         <ul className="mx-auto mt-5 max-w-sm divide-y divide-[var(--border)] border-y border-[var(--border)]">
@@ -542,12 +555,12 @@ function FirstRun() {
           ))}
         </ul>
         <div className="mt-5 flex flex-wrap justify-center gap-2">
-          <GoButton href="/practice" className="group">
+          <ButtonLink href="/practice" className="group">
             Start a drill <ArrowRight size={15} className="transition-transform duration-200 group-hover:translate-x-0.5" />
-          </GoButton>
-          <GoButton href="/mock" variant="ghost">
+          </ButtonLink>
+          <ButtonLink href="/mock" variant="ghost">
             Take a mock
-          </GoButton>
+          </ButtonLink>
         </div>
       </CardBody>
     </Card>

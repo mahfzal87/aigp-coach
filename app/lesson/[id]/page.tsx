@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useReducedMotion } from "framer-motion";
-import { ArrowRight, BookOpen, Check, CheckCircle2, ChevronDown, History, Lightbulb, RotateCcw, SearchX, Target, X } from "lucide-react";
+import { BookOpen, Check, CheckCircle2, ChevronDown, History, Lightbulb, RotateCcw, SearchX, Target, X } from "lucide-react";
 import {
   getActiveMeta,
   getCompetenciesByDomain,
@@ -24,9 +24,9 @@ import { haptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import type { Question, Topic } from "@/lib/types";
 import { useHydrated, useProgress } from "@/store/progress";
-import { Badge, Button, Card, CardBody } from "@/components/ui";
+import { Badge, Bar, Button, Card, CardBody } from "@/components/ui";
 import { QuestionView } from "@/components/quiz/question-view";
-import { m, MotionBar, Reveal, springSoft } from "@/components/motion";
+import { m, Reveal, springSoft } from "@/components/motion";
 import { Markdown } from "@/components/markdown";
 import { NavButton, NextStep, nextAfter, TEST_LENGTH, useCurriculum } from "@/components/curriculum";
 
@@ -131,6 +131,16 @@ function LessonFlow({ id, meta, onRestart }: { id: string; meta: LessonMeta; onR
   const [step, setStep] = useState(saved?.step ?? 0);
   const [correctCount, setCorrectCount] = useState(saved?.correctCount ?? 0);
   const [missed, setMissed] = useState<Miss[]>(saved?.missed ?? []);
+  // Right/wrong per question step, for the step track (rebuilt from the saved misses on resume).
+  const [results, setResults] = useState<Record<number, boolean>>(() => {
+    const r: Record<number, boolean> = {};
+    if (!saved) return r;
+    const missedIds = new Set(saved.missed.map((mm) => mm.q.id));
+    steps.forEach((s, i) => {
+      if (i < saved.step && s.kind === "q") r[i] = !missedIds.has(s.q.id);
+    });
+    return r;
+  });
   const [selected, setSelected] = useState<string[]>([]);
   const [revealed, setRevealed] = useState(false);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
@@ -185,6 +195,7 @@ function LessonFlow({ id, meta, onRestart }: { id: string; meta: LessonMeta; onR
     haptic(correct ? "success" : "error");
     if (correct) setCorrectCount((c) => c + 1);
     else setMissed((prev) => [...prev, { q, topicTitle, topicId }]);
+    setResults((r) => ({ ...r, [step]: correct }));
     setRevealed(true);
   }
 
@@ -195,70 +206,84 @@ function LessonFlow({ id, meta, onRestart }: { id: string; meta: LessonMeta; onR
 
   // Leaving a test mid-way loses the run, so it asks twice; a lesson keeps its place.
   const exitNeedsConfirm = isTest && (step > 0 || revealed);
-  const exitCls = "press flex h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2 text-[var(--muted)] hover:bg-[var(--surface-2)] md:h-9 md:min-w-9";
+  const exitCls = "press flex h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full px-2 text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] md:h-9 md:min-w-9";
+  const answered = Object.values(results);
+
+  let action: ReactNode;
+  if (cur.kind !== "q") {
+    action = <Button className="w-full" onClick={next}>{last ? "See results" : cur.kind === "topic" && cur.questions > 0 ? "Got it, test me" : "Continue"}</Button>;
+  } else if (!revealed) {
+    action = (
+      <Button className="w-full" onClick={() => check(cur.q, cur.topicTitle, cur.topicId)} disabled={selected.length === 0}>
+        Check answer
+      </Button>
+    );
+  } else {
+    action = <Button className="w-full" onClick={next}>{last ? "See results" : "Continue"}</Button>;
+  }
 
   return (
     <div className="mx-auto max-w-xl">
-      <div className="mb-5 flex items-center gap-3">
+      <div className="mb-4 flex items-center gap-3">
         {exitNeedsConfirm ? (
           <button
             type="button"
             onClick={() => (armed === "exit" ? router.push("/") : arm("exit"))}
             aria-label={armed === "exit" ? "Leave the test — tap again to confirm" : "Exit test"}
-            className={cn(exitCls, armed === "exit" && "text-[var(--danger)]")}
+            className={cn(exitCls, armed === "exit" && "text-[var(--danger)] hover:text-[var(--danger)]")}
           >
             <X size={20} aria-hidden />
-            {armed === "exit" && <span className="text-xs font-semibold">Leave? Tap again</span>}
+            {armed === "exit" && <span className="text-[13px] font-semibold">Leave? Tap again</span>}
           </button>
         ) : (
           <Link href="/" aria-label={isTest ? "Exit test" : "Exit lesson — your place is saved"} title={isTest ? undefined : "Your place is saved"} className={exitCls}>
             <X size={20} aria-hidden />
           </Link>
         )}
-        <div className="flex-1" role="progressbar" aria-label={isTest ? "Test progress" : "Lesson progress"} aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={step}>
-          <MotionBar value={(step / steps.length) * 100} className="h-2" />
+        <div
+          className="min-w-0 flex-1"
+          role="progressbar"
+          aria-label={isTest ? "Test progress" : "Lesson progress"}
+          aria-valuemin={0}
+          aria-valuemax={steps.length}
+          aria-valuenow={step}
+          aria-valuetext={`Step ${step + 1} of ${steps.length}. ${answered.filter(Boolean).length} right, ${answered.filter((x) => !x).length} missed.`}
+        >
+          <StepTrack steps={steps} step={step} results={results} />
         </div>
-        <span className="text-xs font-semibold tabular-nums text-[var(--muted)]">
+        <span className="shrink-0 text-[13px] font-semibold tabular-nums text-[var(--muted)]">
           {step + 1}/{steps.length}
         </span>
       </div>
 
-      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">{meta.title}</div>
-
+      <div className="mb-2 truncate px-1 text-[13px] font-medium text-[var(--muted)]">{meta.title}</div>
       {saved && step === saved.step && !revealed && (
-        <div role="status" className="mb-3 flex items-center justify-between gap-3">
+        <div role="status" className="mb-2 flex items-center justify-between gap-3">
           <Badge tone="accent">
             <History size={12} aria-hidden /> Resumed at step {saved.step + 1} of {steps.length}
           </Badge>
-          <Button size="sm" variant="ghost" className={cn("h-11 sm:h-9", armed === "restart" && "text-[var(--danger)] hover:text-[var(--danger)]")} onClick={() => (armed === "restart" ? startOver() : arm("restart"))}>
+          <Button size="sm" variant="ghost" className={cn("h-11 shrink-0 sm:h-9", armed === "restart" && "text-[var(--danger)] hover:text-[var(--danger)]")} onClick={() => (armed === "restart" ? startOver() : arm("restart"))}>
             {armed === "restart" ? "Sure? Tap again" : "Start over"}
           </Button>
         </div>
       )}
 
-      <m.div key={step} initial={reduceMotion ? false : { opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={springSoft}>
+      <m.div key={step} initial={reduceMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={springSoft}>
         {cur.kind === "topic" ? (
           <Card>
-            <CardBody className="space-y-4">
+            <CardBody className="space-y-4 sm:p-6">
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--primary)]">
-                  Learn · topic {cur.index + 1} of {cur.count}
+                <div className="text-[13px] font-semibold text-[color-mix(in_srgb,var(--primary)_85%,var(--foreground))]">
+                  Topic {cur.index + 1} of {cur.count}
                 </div>
-                <h2 className="mt-1 text-lg font-bold leading-snug">{cur.topic.title}</h2>
+                <h2 className="mt-1 text-xl font-bold leading-snug">{cur.topic.title}</h2>
               </div>
               <div className="prose-note text-[15px] leading-relaxed">
                 <Markdown>{cur.topic.conceptMd}</Markdown>
               </div>
-              <div className="rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/6 p-4">
-                <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent)]">
-                  <Lightbulb size={13} aria-hidden /> Example
-                </div>
-                <div className="prose-note text-sm leading-relaxed">
-                  <Markdown>{cur.topic.exampleMd}</Markdown>
-                </div>
-              </div>
+              <ExampleBox md={cur.topic.exampleMd} />
               {cur.questions > 0 && (
-                <p className="text-xs text-[var(--muted)]">
+                <p className="text-[13px] text-[var(--muted)]">
                   Next: {cur.questions === 1 ? "a question" : `${cur.questions} questions`} on this topic
                 </p>
               )}
@@ -266,8 +291,8 @@ function LessonFlow({ id, meta, onRestart }: { id: string; meta: LessonMeta; onR
           </Card>
         ) : cur.kind === "card" ? (
           <Card>
-            <CardBody className="min-h-40 space-y-2">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">Key concept</div>
+            <CardBody className="min-h-40 space-y-2 sm:p-6">
+              <div className="text-[13px] font-semibold text-[var(--muted)]">Key concept</div>
               <div className="text-[15px] font-semibold leading-relaxed">{cur.card.front}</div>
               <div className="prose-note text-sm text-[var(--muted)]">
                 <Markdown>{cur.card.back}</Markdown>
@@ -276,7 +301,7 @@ function LessonFlow({ id, meta, onRestart }: { id: string; meta: LessonMeta; onR
           </Card>
         ) : (
           <Card>
-            <CardBody>
+            <CardBody className="sm:p-6">
               {cur.topicTitle && (
                 <div className="mb-2">
                   <Badge tone="accent">{cur.topicTitle}</Badge>
@@ -288,20 +313,47 @@ function LessonFlow({ id, meta, onRestart }: { id: string; meta: LessonMeta; onR
         )}
       </m.div>
 
-      <div className="mt-5">
-        {cur.kind !== "q" ? (
-          <Button className="w-full" onClick={next}>
-            {last ? "See results" : cur.kind === "topic" && cur.questions > 0 ? "Got it — test me" : "Continue"}
-          </Button>
-        ) : !revealed ? (
-          <Button className="w-full" onClick={() => check(cur.q, cur.topicTitle, cur.topicId)} disabled={selected.length === 0}>
-            Check answer
-          </Button>
-        ) : (
-          <Button className="w-full" onClick={next}>
-            {last ? "See results" : "Continue"}
-          </Button>
-        )}
+      {/* Phone: a glass tray floating just above the dock, inside thumb reach. Desktop: inline. */}
+      <div className="sticky bottom-[calc(var(--bottom-nav-h)_+_max(0px,_env(safe-area-inset-bottom)_-_10px)_+_6px)] z-10 mt-4 p-2 md:static md:mt-5 md:p-0">
+        <span aria-hidden className="glass-float pointer-events-none absolute inset-0 -z-10 rounded-[24px] md:hidden" />
+        {action}
+      </div>
+    </div>
+  );
+}
+
+// One segment per step: read cards glow, answers show right or wrong, the current
+// step is a neutral marker. Long lessons fall back to the liquid bar.
+function StepTrack({ steps, step, results }: { steps: Step[]; step: number; results: Record<number, boolean> }) {
+  if (steps.length > 40) return <Bar value={(step / steps.length) * 100} className="h-2" />;
+  return (
+    <div className="flex h-2 gap-[3px]" aria-hidden>
+      {steps.map((s, i) => {
+        const r = results[i];
+        const cls =
+          r === true
+            ? "bg-[var(--success)]"
+            : r === false
+              ? "bg-[var(--danger)]"
+              : i === step
+                ? "bg-[var(--foreground)]/35"
+                : i < step
+                  ? "bg-[var(--glow)]/70"
+                  : "bg-[var(--surface-2)]";
+        return <span key={i} className={cn("h-full min-w-0 flex-1 rounded-full motion-safe:transition-colors motion-safe:duration-300", cls)} />;
+      })}
+    </div>
+  );
+}
+
+function ExampleBox({ md }: { md: string }) {
+  return (
+    <div className="rounded-[14px] bg-[var(--accent)]/7 p-4">
+      <div className="mb-1.5 flex items-center gap-1.5 text-[13px] font-semibold text-[color-mix(in_srgb,var(--accent)_85%,var(--foreground))]">
+        <Lightbulb size={14} aria-hidden /> Example
+      </div>
+      <div className="prose-note text-sm leading-relaxed">
+        <Markdown>{md}</Markdown>
       </div>
     </div>
   );
@@ -325,7 +377,7 @@ function groupMisses(missed: Miss[], isTest: boolean): MissGroup[] {
     if (isTest) {
       // Domain tests: group by competency, so the drill target is obvious.
       const c = getCompetency(mm.q.competencyId);
-      g = groups.get(mm.q.competencyId) ?? { key: mm.q.competencyId, title: c ? `${c.code} · ${c.name}` : mm.q.bokRef, href: `/practice?competency=${mm.q.competencyId}`, cta: `Drill ${c?.code ?? "these"} questions`, short: `Drill ${c?.code ?? "weakest"}`, items: [] };
+      g = groups.get(mm.q.competencyId) ?? { key: mm.q.competencyId, title: c ? `${c.code} ${c.name}` : mm.q.bokRef, href: `/practice?competency=${mm.q.competencyId}`, cta: `Drill ${c?.code ?? "these"} questions`, short: `Drill ${c?.code ?? "weakest"}`, items: [] };
     } else {
       const key = mm.topicId ?? mm.topicTitle ?? "general";
       g = groups.get(key) ?? { key, title: mm.topicTitle ?? "General", href: `/learn/${mm.q.competencyId}${mm.topicId ? `#${mm.topicId}` : ""}`, cta: "Study this topic", short: "Study topic", items: [] };
@@ -347,40 +399,33 @@ function LessonResults({ id, meta, outcome, missed, onRetake }: { id: string; me
   const groups = groupMisses(missed, isTest);
   const title = passed ? (isTest ? `Domain ${meta.domainCode} test passed` : "Module passed") : isTest ? "Test not passed yet" : "Not passed yet";
   const weakest = isTest ? groups[0] : undefined;
+  const ghost = "h-11 sm:h-9";
 
   return (
     <Reveal className="mx-auto max-w-xl space-y-4" data-lesson-results="">
-      <div className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">{meta.title}</div>
+      <div className="truncate px-1 text-[13px] font-medium text-[var(--muted)]">{meta.title}</div>
 
-      <Card className="overflow-hidden">
+      <Card className="mesh overflow-hidden">
         <CardBody className="p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-                {passed ? <CheckCircle2 size={24} className="anim-pop shrink-0 text-[var(--success)]" aria-hidden /> : <RotateCcw size={22} className="shrink-0 text-[var(--warning)]" aria-hidden />}
-                {title}
-              </h1>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                {outcome.correct} of {outcome.total} correct
-                {outcome.firstPass && (
-                  <>
-                    {" "}· <span className="font-semibold text-[var(--gold)]">+{outcome.bonus} pts</span>
-                  </>
-                )}
-                {improved && !outcome.firstPass && (
-                  <>
-                    {" "}· <span className="font-semibold text-[var(--success)]">new best</span>
-                  </>
-                )}
-                {!passed && outcome.prevBest !== null && <> · best {Math.round(outcome.prevBest * 100)}%</>}
-              </p>
-            </div>
-            <div className="shrink-0 text-right">
-              <div className="text-3xl font-bold leading-none tabular-nums">{pct}%</div>
-              <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">score</div>
-            </div>
-          </div>
-          <ScoreMeter score={outcome.score} className="mt-5" />
+          <h1 className="flex items-center gap-2.5 text-[26px] font-extrabold leading-[1.1] sm:text-[30px]">
+            {passed ? <CheckCircle2 size={26} className="anim-pop shrink-0 text-[var(--success)]" aria-hidden /> : <RotateCcw size={24} className="shrink-0 text-[var(--warning)]" aria-hidden />}
+            {title}
+          </h1>
+          <p className="mt-1.5 text-[15px] text-[var(--muted)]">
+            {outcome.correct} of {outcome.total} correct
+            {outcome.firstPass ? (
+              <>
+                {" "}· <span className="font-semibold text-[color-mix(in_srgb,var(--gold)_70%,var(--foreground))]">+{outcome.bonus} pts</span>
+              </>
+            ) : improved ? (
+              <>
+                {" "}· <span className="font-semibold text-[var(--success)]">new best</span>
+              </>
+            ) : !passed && outcome.prevBest !== null ? (
+              <> · best {Math.round(outcome.prevBest * 100)}%</>
+            ) : null}
+          </p>
+          <ScoreMeter pct={pct} passed={passed} className="mt-4" />
         </CardBody>
 
         <div className="border-t border-[var(--border)] px-5 py-4 sm:px-6">
@@ -389,15 +434,15 @@ function LessonResults({ id, meta, outcome, missed, onRetake }: { id: string; me
           ) : (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--warning)]">
-                  <RotateCcw size={13} aria-hidden /> Next step
+                <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[color-mix(in_srgb,var(--warning)_80%,var(--foreground))]">
+                  <RotateCcw size={14} aria-hidden /> Retake to pass
                 </div>
-                <div className="mt-1 text-[15px] font-bold leading-snug">{isTest ? "Retake with new questions" : "Retake to pass"}</div>
-                <div className="mt-0.5 text-xs text-[var(--muted)]">
-                  {isTest ? `A fresh ${TEST_LENGTH} from Domain ${meta.domainCode} · ${PASS_PCT}% passes` : `${groups.length ? `${groups.length} topic${groups.length === 1 ? "" : "s"} to revisit below · ` : ""}${PASS_PCT}% passes`}
+                <div className="mt-1 font-display text-[17px] font-bold leading-snug">{isTest ? `A fresh ${TEST_LENGTH} from Domain ${meta.domainCode}` : "Run the lesson again"}</div>
+                <div className="mt-0.5 text-[13px] text-[var(--muted)]">
+                  {groups.length ? `${groups.length} ${isTest ? (groups.length === 1 ? "competency" : "competencies") : groups.length === 1 ? "topic" : "topics"} to revisit` : `${PASS_PCT}% passes`}
                 </div>
               </div>
-              <Button className="group w-full shrink-0 sm:w-auto" onClick={() => { haptic("tap"); onRetake(); }}>
+              <Button className="w-full shrink-0 sm:w-auto" onClick={() => { haptic("tap"); onRetake(); }}>
                 {isTest ? "Retake test" : "Retake lesson"} <RotateCcw size={15} aria-hidden />
               </Button>
             </div>
@@ -407,11 +452,9 @@ function LessonResults({ id, meta, outcome, missed, onRetake }: { id: string; me
 
       {groups.length > 0 && (
         <Card className="overflow-hidden">
-          <div className="flex items-center justify-between gap-3 px-5 pb-3 pt-4">
-            <h2 className="text-sm font-bold">To revisit</h2>
-            <span className="text-xs text-[var(--muted)]">
-              {missed.length} missed · {groups.length} {isTest ? (groups.length === 1 ? "competency" : "competencies") : groups.length === 1 ? "topic" : "topics"}
-            </span>
+          <div className="flex items-baseline justify-between gap-3 px-5 pb-3 pt-4">
+            <h2 className="text-[17px] font-bold">To revisit</h2>
+            <span className="text-[13px] text-[var(--muted)]">{missed.length} missed</span>
           </div>
           <ul className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
             {groups.map((g) => (
@@ -422,21 +465,21 @@ function LessonResults({ id, meta, outcome, missed, onRetake }: { id: string; me
       )}
 
       <div className="flex flex-wrap items-center justify-center gap-1">
-        <NavButton href="/" variant="ghost" size="sm" className="h-11 sm:h-9">
+        <NavButton href="/" variant="ghost" size="sm" className={ghost}>
           Study plan
         </NavButton>
         {passed && (
-          <Button variant="ghost" size="sm" className="h-11 sm:h-9" onClick={() => { haptic("tap"); onRetake(); }}>
+          <Button variant="ghost" size="sm" className={ghost} onClick={() => { haptic("tap"); onRetake(); }}>
             <RotateCcw size={14} aria-hidden /> {isTest ? "New test" : "Run again"}
           </Button>
         )}
         {!isTest && meta.competencyId && (
-          <NavButton href={`/learn/${meta.competencyId}`} variant="ghost" size="sm" className="h-11 sm:h-9">
+          <NavButton href={`/learn/${meta.competencyId}`} variant="ghost" size="sm" className={ghost}>
             <BookOpen size={14} aria-hidden /> Study sheet
           </NavButton>
         )}
         {weakest && !passed && (
-          <NavButton href={weakest.href} variant="ghost" size="sm" className="h-11 sm:h-9">
+          <NavButton href={weakest.href} variant="ghost" size="sm" className={ghost}>
             <Target size={14} aria-hidden /> {weakest.short}
           </NavButton>
         )}
@@ -445,15 +488,22 @@ function LessonResults({ id, meta, outcome, missed, onRetake }: { id: string; me
   );
 }
 
-// Score against the pass line — the result's one instrument.
-function ScoreMeter({ score, className }: { score: number; className?: string }) {
-  const pct = Math.round(score * 100);
-  const tone = score >= LESSON_PASS ? "success" : score >= 0.6 ? "warning" : "danger";
+// The score pours in against the pass line — the result's one instrument. A pass
+// fills with the exam's liquid; a miss keeps its status colour.
+function ScoreMeter({ pct, passed, className }: { pct: number; passed: boolean; className?: string }) {
+  const reduce = useReducedMotion();
+  const fill = passed ? "linear-gradient(90deg, var(--glow), var(--primary))" : pct >= 60 ? "var(--warning)" : "var(--danger)";
+  const labelShift = pct < 10 ? "0%" : pct > 90 ? "-100%" : "-50%";
   return (
-    <div className={cn("relative pb-5", className)} role="img" aria-label={`Score ${pct}%. ${PASS_PCT}% passes.`}>
-      <MotionBar value={pct} tone={tone} className="h-2.5" />
-      <span className="absolute top-0 h-2.5 w-0.5 -translate-x-1/2 rounded-full bg-[var(--foreground)]/50" style={{ left: `${PASS_PCT}%` }} aria-hidden />
-      <span className="absolute bottom-0 -translate-x-1/2 whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]" style={{ left: `${PASS_PCT}%` }}>
+    <div className={cn("relative pb-5 pt-6", className)} role="img" aria-label={`Score ${pct}%. ${PASS_PCT}% passes.`}>
+      <span className="absolute top-0 whitespace-nowrap font-display text-[15px] font-extrabold tabular-nums" style={{ left: `${pct}%`, transform: `translateX(${labelShift})` }}>
+        {pct}%
+      </span>
+      <div className="relative h-2.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
+        <m.div className="h-full origin-left rounded-full" style={{ background: fill }} initial={reduce ? false : { scaleX: 0 }} animate={{ scaleX: pct / 100 }} transition={{ ...springSoft, delay: 0.1 }} />
+      </div>
+      <span aria-hidden className="absolute top-6 h-2.5 w-0.5 -translate-x-1/2 rounded-full bg-[var(--foreground)]/45" style={{ left: `${PASS_PCT}%` }} />
+      <span className="absolute bottom-0 -translate-x-1/2 whitespace-nowrap text-xs text-[var(--muted)]" style={{ left: `${PASS_PCT}%` }}>
         Pass {PASS_PCT}%
       </span>
     </div>
@@ -472,25 +522,25 @@ function MissRow({ group }: { group: MissGroup }) {
         onClick={() => setOpen(!open)}
         className="flex min-h-12 w-full cursor-pointer items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]/50"
       >
-        <span className="min-w-0 flex-1 text-sm font-semibold leading-snug">{group.title}</span>
+        <span className="min-w-0 flex-1 text-[15px] font-semibold leading-snug">{group.title}</span>
         <Badge tone="danger" className="shrink-0 whitespace-nowrap">{group.items.length} missed</Badge>
-        <ChevronDown size={16} className={cn("shrink-0 text-[var(--muted)] transition-transform duration-200", open && "rotate-180")} aria-hidden />
+        <ChevronDown size={16} className={cn("shrink-0 text-[var(--muted)] motion-safe:transition-transform motion-safe:duration-200", open && "rotate-180")} aria-hidden />
       </button>
       {open && (
         <div id={panelId} className="space-y-4 px-5 pb-4">
           {group.items.map((q) => (
-            <div key={q.id} className="text-sm">
+            <div key={q.id} className="rounded-[14px] bg-[var(--surface-2)] p-3.5 text-sm">
               <p className="font-medium leading-relaxed">{q.stem}</p>
               <p className="mt-1.5 flex gap-1.5 text-[var(--success)]">
                 <Check size={14} className="mt-0.5 shrink-0" aria-hidden />
                 <span className="font-semibold">{q.options.filter((o) => o.isCorrect).map((o) => o.text).join("; ")}</span>
               </p>
-              <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">{q.correctExplanation}</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-[var(--muted)]">{q.correctExplanation}</p>
             </div>
           ))}
-          <Link href={group.href} className="inline-flex h-11 items-center gap-1 text-xs sm:h-9 font-semibold text-[var(--accent)] hover:underline">
-            {group.cta} <ArrowRight size={12} aria-hidden />
-          </Link>
+          <NavButton href={group.href} variant="soft" size="sm" className="h-11 sm:h-9">
+            {group.cta}
+          </NavButton>
         </div>
       )}
     </li>
@@ -500,17 +550,19 @@ function MissRow({ group }: { group: MissGroup }) {
 function ModuleNotFound() {
   const meta = getActiveMeta();
   return (
-    <div className="mx-auto max-w-md py-12 text-center">
-      <SearchX size={28} className="mx-auto text-[var(--muted)]" aria-hidden />
-      <h1 className="mt-3 text-xl font-bold">Module not found</h1>
-      <p className="mt-1 text-sm text-[var(--muted)]">This link doesn&apos;t match any {meta.name} module.</p>
-      <div className="mt-5 flex justify-center gap-2">
-        <NavButton href="/">Back to study plan</NavButton>
-        <NavButton href="/learn" variant="outline">
-          Study sheets
-        </NavButton>
-      </div>
-    </div>
+    <Card className="mx-auto max-w-md">
+      <CardBody className="py-10 text-center">
+        <SearchX size={28} className="mx-auto text-[var(--muted)]" aria-hidden />
+        <h1 className="mt-3 text-xl font-bold">Module not found</h1>
+        <p className="mt-1 text-[15px] text-[var(--muted)]">This link doesn&apos;t match any {meta.name} module.</p>
+        <div className="mt-5 flex justify-center gap-2">
+          <NavButton href="/">Back to study plan</NavButton>
+          <NavButton href="/learn" variant="outline">
+            Study sheets
+          </NavButton>
+        </div>
+      </CardBody>
+    </Card>
   );
 }
 
@@ -534,7 +586,7 @@ function buildLesson(id: string): LessonMeta | null {
     const comps = getCompetenciesByDomain(domain.id);
     const qs = shuffle(comps.flatMap((c) => getQuestionsByCompetency(c.id))).slice(0, TEST_LENGTH);
     if (qs.length === 0) return null;
-    return { title: `Domain ${domain.code} test · ${domain.name}`, competencyId: null, domainCode: domain.code, steps: qs.map((q) => ({ kind: "q", q })) };
+    return { title: `Domain ${domain.code} test: ${domain.name}`, competencyId: null, domainCode: domain.code, steps: qs.map((q) => ({ kind: "q", q })) };
   }
   const comp = getCompetency(id);
   if (!comp) return null;
@@ -549,7 +601,7 @@ function buildLesson(id: string): LessonMeta | null {
       steps.push({ kind: "topic", topic: t, index: i, count: topics.length, questions: qs.length });
       for (const q of qs) steps.push({ kind: "q", q, topicTitle: t.title, topicId: t.id });
     });
-    return { title: `${comp.code} · ${comp.name}`, competencyId: id, domainCode, steps };
+    return { title: `${comp.code} ${comp.name}`, competencyId: id, domainCode, steps };
   }
 
   // Fallback (no topics authored yet): legacy flashcards + random questions.
@@ -557,5 +609,5 @@ function buildLesson(id: string): LessonMeta | null {
   const qs = shuffle(getQuestionsByCompetency(id)).slice(0, 6);
   if (qs.length === 0) return null;
   const steps: Step[] = [...cards.map((c) => ({ kind: "card" as const, card: { front: c.front, back: c.back } })), ...qs.map((q) => ({ kind: "q" as const, q }))];
-  return { title: `${comp.code} · ${comp.name}`, competencyId: id, domainCode, steps };
+  return { title: `${comp.code} ${comp.name}`, competencyId: id, domainCode, steps };
 }

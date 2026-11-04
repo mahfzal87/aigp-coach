@@ -2,49 +2,143 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-:root {
-  --background: #fafafa;
-  --surface: #ffffff;
-  --surface-2: #f1f1f2;
-  --foreground: #17171a;
-  --muted: #6f6f78;
-  --border: #e5e5e8;
+/* ══════════════════════════════════════════════════════════════════════════
+   Glass Box — the AIGP Coach visual system.
+   Each exam has its own light (the field behind the glass); chrome and primary
+   panels are minimal liquid glass; status colors keep their meaning.
+   ══════════════════════════════════════════════════════════════════════════ */
 
-  --primary: #16a34a;        /* focused green — single main accent */
-  --primary-shade: #15803d;
+/* ── Per-exam light ── */
+:root,
+[data-exam="aigp"] {
+  --exam-primary: #0a8a5e; /* Lagoon — white text ≥ 4.5:1 */
+  --exam-primary-shade: #086f4c;
+  --exam-accent: #2563eb;
+  --exam-accent-shade: #1d4ed8;
+  --glow: #34d3c0;
+  --spark: #c6f432;
+  --field-a: #5fe3cf;
+  --field-b: #23b98a;
+  --field-c: #d7f76a;
+}
+[data-exam="cippe"] {
+  --exam-primary: #2446d9; /* Union blue */
+  --exam-primary-shade: #1b36ad;
+  --exam-accent: #0e7490;
+  --exam-accent-shade: #155e75;
+  --glow: #6f8cff;
+  --spark: #ffc93c;
+  --field-a: #8aa2ff;
+  --field-b: #3d5ef0;
+  --field-c: #ffd666;
+}
+.dark,
+.dark [data-exam="aigp"],
+.dark[data-exam="aigp"] {
+  --exam-primary: #2fd3a0;
+  --exam-primary-shade: #1fb486;
+  --exam-accent: #60a5fa;
+  --exam-accent-shade: #3b82f6;
+  --glow: #3fe0cc;
+  --field-a: #0f8f7d;
+  --field-b: #0a6b50;
+  --field-c: #0b5f86;
+}
+.dark [data-exam="cippe"],
+.dark[data-exam="cippe"] {
+  --exam-primary: #7d96ff;
+  --exam-primary-shade: #6380ff;
+  --exam-accent: #22d3ee;
+  --exam-accent-shade: #06b6d4;
+  --glow: #8ea4ff;
+  --field-a: #2a3fb8;
+  --field-b: #16247a;
+  --field-c: #5a3fa0;
+}
+
+/* Any element can carry its own exam scope (picker cards, previews): re-derive
+   the semantic tokens there, since :root resolved them for the page's exam. */
+[data-exam] {
+  --primary: var(--exam-primary);
+  --primary-shade: var(--exam-primary-shade);
+  --accent: var(--exam-accent);
+  --accent-shade: var(--exam-accent-shade);
+  --ring: var(--exam-primary);
+}
+
+/* ── Core tokens ── */
+:root {
+  --canvas: #eef1f6;
+  --background: var(--canvas);
+  --surface: #ffffff;                    /* opaque: inputs, menus, sheets */
+  --surface-2: rgba(20, 23, 43, 0.05);   /* quiet fills that sit on glass */
+  --foreground: #14172b;
+  --muted: #5a6078;
+  --border: rgba(20, 23, 43, 0.1);
+
+  --primary: var(--exam-primary);
+  --primary-shade: var(--exam-primary-shade);
   --primary-fg: #ffffff;
-  --accent: #2563eb;         /* blue for secondary actions/links */
-  --accent-shade: #1d4ed8;
-  --gold: #d97706;           /* points/highlights, muted amber */
+  --accent: var(--exam-accent);
+  --accent-shade: var(--exam-accent-shade);
+  --gold: #c98a04;
   --streak: #ea580c;
   --danger: #dc2626;
   --danger-shade: #b91c1c;
-  --success: #16a34a;
-  --warning: #d97706;
-  --ring: #16a34a;
-  --radius: 12px;
+  --success: #15803d;
+  --warning: #b45309;
+  --ring: var(--exam-primary);
+  --radius: 22px;
+
+  --header-h: 64px;
+  --bottom-nav-h: 76px;
+
+  --glass-tint: rgba(255, 255, 255, 0.62);
+  --glass-tint-strong: rgba(255, 255, 255, 0.84);
+  --glass-edge: rgba(255, 255, 255, 0.7);
+  --glass-hairline: rgba(20, 23, 43, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.95);
+  --glass-shadow: rgba(24, 30, 70, 0.14);
+  --field-opacity: 0.5;
+  --orb-body: rgba(255, 255, 255, 0.4);
+  --orb-shine: rgba(255, 255, 255, 0.95);
+  --orb-spec: rgba(255, 255, 255, 0.75);
+
+  --e1: 0 1px 2px rgba(24, 30, 70, 0.06);
+  --e2: 0 4px 14px -4px rgba(24, 30, 70, 0.12);
+  --e3: 0 18px 40px -18px rgba(24, 30, 70, 0.28);
 }
 
 .dark {
-  --background: #0e0e10;
-  --surface: #161619;
-  --surface-2: #1f1f23;
-  --foreground: #ededf0;
-  --muted: #9a9aa4;
-  --border: #2a2a2f;
+  --canvas: #080a12;
+  --surface: #131726;
+  --surface-2: rgba(255, 255, 255, 0.06);
+  --foreground: #eceef8;
+  --muted: #9aa0b8;
+  --border: rgba(255, 255, 255, 0.09);
 
-  --primary: #22c55e;
-  --primary-shade: #16a34a;
-  --primary-fg: #0b0f0c;
-  --accent: #3b82f6;
-  --accent-shade: #2563eb;
-  --gold: #f59e0b;
+  --primary-fg: #061019;
+  --gold: #fbbf24;
   --streak: #fb923c;
-  --danger: #ef4444;
-  --danger-shade: #dc2626;
+  --danger: #f87171;
+  --danger-shade: #ef4444;
   --success: #22c55e;
-  --warning: #f59e0b;
-  --ring: #22c55e;
+  --warning: #fbbf24;
+
+  --glass-tint: rgba(22, 26, 42, 0.55);
+  --glass-tint-strong: rgba(24, 28, 46, 0.86);
+  --glass-edge: rgba(255, 255, 255, 0.1);
+  --glass-hairline: rgba(255, 255, 255, 0.07);
+  --glass-highlight: rgba(255, 255, 255, 0.1);
+  --glass-shadow: rgba(0, 0, 0, 0.5);
+  --field-opacity: 0.62;
+  --orb-body: rgba(255, 255, 255, 0.05);
+  --orb-shine: rgba(255, 255, 255, 0.16);
+  --orb-spec: rgba(255, 255, 255, 0.2);
+
+  --e1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --e2: 0 4px 14px -4px rgba(0, 0, 0, 0.5);
+  --e3: 0 18px 40px -18px rgba(0, 0, 0, 0.6);
 }
 
 @theme inline {
@@ -63,40 +157,106 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-ring: var(--ring);
-  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Layered so Tailwind border-color utilities can override it. */
+/* Layered so Tailwind utilities can override everything below. */
 @layer base {
   * {
     border-color: var(--border);
   }
+
+  body {
+    background: var(--canvas);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 24%, transparent);
+  }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
+@layer components {
+  /* Minimal glass: tint + blur, a 1px edge, a 1px top highlight, one soft float. */
+  .glass-panel {
+    background: var(--glass-tint);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    backdrop-filter: blur(22px) saturate(160%);
+    border: 1px solid var(--glass-edge);
+    box-shadow: inset 0 1px 0 0 var(--glass-highlight), var(--e3);
+  }
+  /* Glass never stacks: a panel inside a panel becomes a quiet outlined section. */
+  .glass-panel .glass-panel {
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-color: var(--border);
+    box-shadow: none;
+  }
+  /* Floating chrome (bars, docks, trays): stronger tint so text stays legible. */
+  .glass,
+  .glass-float {
+    background: var(--glass-tint-strong);
+    -webkit-backdrop-filter: blur(24px) saturate(170%);
+    backdrop-filter: blur(24px) saturate(170%);
+  }
+  .glass-float {
+    border: 1px solid var(--glass-edge);
+    box-shadow: inset 0 1px 0 0 var(--glass-highlight), var(--e3);
+  }
+
+  /* A lit glass panel for heroes: the exam's light pools in the corners. */
+  .mesh {
+    background:
+      radial-gradient(40rem 20rem at 0% -20%, color-mix(in srgb, var(--glow) 22%, transparent), transparent 62%),
+      radial-gradient(30rem 18rem at 100% -10%, color-mix(in srgb, var(--primary) 14%, transparent), transparent 60%),
+      var(--glass-tint);
+  }
+
+  .prose-note h3 { font-weight: 700; margin-top: 1.15em; margin-bottom: 0.35em; font-size: 1rem; }
+  .prose-note p { margin: 0.55em 0; line-height: 1.7; }
+  .prose-note ul { margin: 0.55em 0; padding-left: 1.25em; list-style: disc; }
+  .prose-note li { margin: 0.28em 0; line-height: 1.65; }
+  .prose-note strong { font-weight: 700; }
+  .prose-note code { background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 6px; font-size: 0.88em; font-family: ui-monospace, monospace; }
+  .prose-note a { color: var(--accent); text-decoration: underline; }
 }
 
-h1, h2, h3, h4, .font-display {
-  font-family: var(--font-display);
-  letter-spacing: -0.015em;
-  font-weight: 700;
+@media (prefers-reduced-transparency: reduce) {
+  .glass-panel,
+  .glass,
+  .glass-float,
+  .mesh {
+    background: var(--surface) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
 }
 
+/* ── Motion with meaning ── */
 @media (prefers-reduced-motion: no-preference) {
+  /* Tactile press: quick squeeze, springy release. */
   .press {
-    transition: transform 0.12s cubic-bezier(0.2, 0, 0, 1), background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease, color 0.18s ease;
   }
   .press:active:not(:disabled) {
-    transform: scale(0.975);
+    transform: scale(0.97);
+    transition-duration: 0.08s;
   }
 }
 
-/* Legacy hook kept for compatibility — now a flat, calm button */
+/* Legacy hook kept for compatibility. */
 .btn3d {
   transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
 }
@@ -104,42 +264,14 @@ h1, h2, h3, h4, .font-display {
   transform: scale(0.985);
 }
 
-/* ── Elevation scale ── */
-:root {
-  --e1: 0 1px 2px rgba(16, 24, 16, 0.05);
-  --e2: 0 2px 8px rgba(16, 24, 16, 0.07), 0 1px 2px rgba(16, 24, 16, 0.05);
-  --e3: 0 8px 28px rgba(16, 24, 16, 0.11), 0 2px 8px rgba(16, 24, 16, 0.06);
-}
-.dark {
-  --e1: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --e2: 0 2px 10px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.02);
-  --e3: 0 10px 34px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.03);
-}
-
-/* Card hover lift — transform+shadow only, no layout shift */
+/* Hover answers the pointer with the edge, not by lifting every card. */
 .liftable {
-  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s cubic-bezier(0.2, 0, 0, 1), border-color 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+@media (hover: hover) {
   .liftable:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--e3);
+    border-color: color-mix(in srgb, var(--primary) 35%, var(--glass-edge));
   }
-}
-
-/* Glass chrome for sticky bars */
-.glass {
-  background: color-mix(in srgb, var(--surface) 78%, transparent);
-  backdrop-filter: blur(14px) saturate(1.4);
-  -webkit-backdrop-filter: blur(14px) saturate(1.4);
-}
-
-/* Hero mesh — quiet ambient color, both themes */
-.mesh {
-  background:
-    radial-gradient(46rem 22rem at 8% -30%, color-mix(in srgb, var(--primary) 13%, transparent), transparent 60%),
-    radial-gradient(38rem 20rem at 96% -18%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 62%),
-    var(--surface);
 }
 
 /* Answer feedback */
@@ -160,6 +292,27 @@ h1, h2, h3, h4, .font-display {
   .anim-pop { animation: pop-in 0.28s cubic-bezier(0.2, 0, 0, 1); }
 }
 
+/* A correct answer fills with the exam's liquid. */
+@keyframes liquid-rise {
+  from { clip-path: inset(100% 0 0 0 round 14px); }
+  to { clip-path: inset(0 0 0 0 round 14px); }
+}
+.liquid-fill {
+  position: relative;
+  isolation: isolate;
+}
+.liquid-fill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--glow) 26%, transparent), color-mix(in srgb, var(--success) 18%, transparent));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .liquid-fill::before { animation: liquid-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+}
+
 /* Streak flame idle pulse */
 @keyframes flame-pulse {
   0%, 100% { transform: scale(1); }
@@ -178,97 +331,7 @@ h1, h2, h3, h4, .font-display {
   .sheet-up { animation: sheet-up 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
 }
 
-.prose-note h3 { font-weight: 700; margin-top: 1.15em; margin-bottom: 0.35em; font-size: 1rem; }
-.prose-note p { margin: 0.55em 0; line-height: 1.7; }
-.prose-note ul { margin: 0.55em 0; padding-left: 1.25em; list-style: disc; }
-.prose-note li { margin: 0.28em 0; line-height: 1.65; }
-.prose-note strong { font-weight: 700; }
-.prose-note code { background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 6px; font-size: 0.88em; font-family: ui-monospace, monospace; }
-.prose-note a { color: var(--accent); text-decoration: underline; }
-
-/* ══════════════════════════════════════════════════════════════════════════
-   Glass Box v2 — per-exam light, minimal liquid glass, the readiness orb.
-   (Additive: new tokens/classes; the shell + primitives opt in.)
-   ══════════════════════════════════════════════════════════════════════════ */
-:root,
-[data-exam="aigp"] {
-  --exam-primary: #0e9f6e;
-  --exam-primary-shade: #0b7f58;
-  --glow: #34d3c0;
-  --spark: #c6f432;
-  --field-a: #5fe3cf;
-  --field-b: #23b98a;
-  --field-c: #d7f76a;
-}
-[data-exam="cippe"] {
-  --exam-primary: #2446d9;
-  --exam-primary-shade: #1b36ad;
-  --glow: #6f8cff;
-  --spark: #ffc93c;
-  --field-a: #8aa2ff;
-  --field-b: #3d5ef0;
-  --field-c: #ffd666;
-}
-.dark,
-.dark [data-exam="aigp"],
-.dark[data-exam="aigp"] {
-  --exam-primary: #2fd3a0;
-  --exam-primary-shade: #1fb486;
-  --glow: #3fe0cc;
-  --field-a: #0f8f7d;
-  --field-b: #0a6b50;
-  --field-c: #0b5f86;
-}
-.dark [data-exam="cippe"],
-.dark[data-exam="cippe"] {
-  --exam-primary: #7d96ff;
-  --exam-primary-shade: #6380ff;
-  --glow: #8ea4ff;
-  --field-a: #2a3fb8;
-  --field-b: #16247a;
-  --field-c: #5a3fa0;
-}
-
-:root {
-  --canvas: #eef1f6;
-  --glass-tint: rgba(255, 255, 255, 0.62);
-  --glass-tint-strong: rgba(255, 255, 255, 0.8);
-  --glass-edge: rgba(255, 255, 255, 0.7);
-  --glass-hairline: rgba(20, 23, 43, 0.08);
-  --glass-highlight: rgba(255, 255, 255, 0.95);
-  --glass-shadow: rgba(24, 30, 70, 0.14);
-  --field-opacity: 0.5;
-  --orb-body: rgba(255, 255, 255, 0.4);
-  --orb-shine: rgba(255, 255, 255, 0.95);
-  --orb-spec: rgba(255, 255, 255, 0.75);
-}
-.dark {
-  --canvas: #080a12;
-  --glass-tint: rgba(22, 26, 42, 0.55);
-  --glass-tint-strong: rgba(26, 30, 48, 0.78);
-  --glass-edge: rgba(255, 255, 255, 0.1);
-  --glass-hairline: rgba(255, 255, 255, 0.07);
-  --glass-highlight: rgba(255, 255, 255, 0.1);
-  --glass-shadow: rgba(0, 0, 0, 0.5);
-  --field-opacity: 0.62;
-  --orb-body: rgba(255, 255, 255, 0.05);
-  --orb-shine: rgba(255, 255, 255, 0.16);
-  --orb-spec: rgba(255, 255, 255, 0.2);
-}
-
-/* Minimal glass: tint + blur, a 1px edge, a 1px top highlight, one soft float. */
-.glass-panel {
-  background: var(--glass-tint);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
-  backdrop-filter: blur(22px) saturate(160%);
-  border: 1px solid var(--glass-edge);
-  box-shadow: inset 0 1px 0 0 var(--glass-highlight), 0 18px 40px -20px var(--glass-shadow);
-}
-@media (prefers-reduced-transparency: reduce) {
-  .glass-panel { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
-}
-
-/* The exam's light — a fixed, slowly drifting field behind everything. */
+/* ── The exam's light — a fixed, slowly drifting field behind everything ── */
 .exam-light { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: var(--canvas); }
 .exam-light > span { position: absolute; border-radius: 9999px; filter: blur(80px); opacity: var(--field-opacity); will-change: transform; }
 .exam-light__a { width: 62vmax; height: 62vmax; left: -20vmax; top: -26vmax; background: var(--field-a); }
@@ -292,4 +355,9 @@ h1, h2, h3, h4, .font-display {
 @media (prefers-reduced-motion: no-preference) {
   .orb-wave { animation: orb-wave 7s linear infinite; }
   .orb-wave-slow { animation: orb-wave 12s linear infinite reverse; }
+}
+
+/* Exam focus mode: a timed mock sets body[data-focus="exam"] to hide app navigation. */
+body[data-focus="exam"] .app-dock {
+  display: none;
 }

@@ -10,7 +10,18 @@ import type {
   Verdict,
 } from "@/lib/types";
 
-const MIN_SEEN = 5; // cold-start threshold
+// Every readiness threshold in one place — pages import these instead of
+// mirroring the numbers.
+export const READINESS = {
+  firstRead: 10, // answers before any verdict
+  readyPct: 92, // projected % for "Exam ready"
+  almostPct: 83, // projected % for "Almost there"
+  minSeen: 5, // attempts per competency before mastery stops damping toward 50
+  target: 80, // per-domain mastery floor for "ready"
+  weights: { accuracy: 0.55, coverage: 0.25, calibration: 0.2 },
+} as const;
+
+const MIN_SEEN = READINESS.minSeen; // cold-start threshold
 
 // Exponentially recency-weighted accuracy over a competency's attempts.
 function recencyWeightedAccuracy(attempts: Attempt[]): number {
@@ -49,7 +60,8 @@ export function competencyMastery(competencyId: string, attempts: Attempt[]): Co
   const acc = recencyWeightedAccuracy(compAttempts);
   const cal = calibration(compAttempts);
 
-  let mastery = 100 * (0.55 * acc + 0.25 * coverage + 0.2 * cal);
+  const W = READINESS.weights;
+  let mastery = 100 * (W.accuracy * acc + W.coverage * coverage + W.calibration * cal);
   const insufficient = compAttempts.length < MIN_SEEN;
   if (insufficient) {
     // damp toward 50 when we have little signal
@@ -128,21 +140,21 @@ export function computeReadiness(attempts: Attempt[], mocks: MockSession[]): Rea
   const weakest = ranked.slice(0, 3).map((c) => ({ competencyId: c.competencyId, mastery: c.mastery }));
 
   // verdict
-  const everyDomainOk = domains.every((d) => d.mastery >= 80 && !d.insufficient);
+  const everyDomainOk = domains.every((d) => d.mastery >= READINESS.target && !d.insufficient);
   const totalAttempts = attempts.length;
   let verdict: Verdict;
   const reasons: string[] = [];
 
-  if (totalAttempts < 10) {
+  if (totalAttempts < READINESS.firstRead) {
     verdict = "unknown";
     reasons.push("Not enough practice yet — answer more questions to get a reliable read.");
-  } else if (projectedPercent >= 92 && everyDomainOk && hasMock) {
+  } else if (projectedPercent >= READINESS.readyPct && everyDomainOk && hasMock) {
     verdict = "ready";
     reasons.push(`Projected ~${projectedPercent}% (scaled ${projectedScaled}/500), every domain ≥ 80, and a full mock completed.`);
-  } else if (projectedPercent >= 83) {
+  } else if (projectedPercent >= READINESS.almostPct) {
     verdict = "almost";
     if (!hasMock) reasons.push(`Take at least one full ${getActiveMeta().questionsTotal}-question mock to confirm readiness.`);
-    const weakDomain = domains.find((d) => d.mastery < 80);
+    const weakDomain = domains.find((d) => d.mastery < READINESS.target);
     if (weakDomain) reasons.push(`Domain ${weakDomain.code} is below 80 (${weakDomain.mastery}).`);
     if (projectedPercent < 92) reasons.push(`Projected ~${projectedPercent}% — push toward 92%+ for a safe margin.`);
   } else {

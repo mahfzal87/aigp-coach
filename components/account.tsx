@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { motion } from "framer-motion";
 import type { Session } from "@supabase/supabase-js";
 import { AlertCircle, ArrowRight, Eye, EyeOff, Info, LogOut, MailCheck, RefreshCw, ShieldCheck, User } from "lucide-react";
 import {
@@ -18,7 +19,7 @@ import {
 import type { ProgressExport } from "@/lib/types";
 import { useProgress } from "@/store/progress";
 import { Badge, Button, Card, CardBody } from "@/components/ui";
-import { BrandMark, Flash, Spinner, Splash, TextField, useArm, useFlash } from "@/components/entry-ui";
+import { BrandMark, Flash, Spinner, Splash, TextField, useArm, useFlash, useLensTransition } from "@/components/entry-ui";
 import { cn } from "@/lib/utils";
 
 // Session state shared by the settings card, the auth gate and the account
@@ -152,6 +153,7 @@ export function AccountForm({ defaultMode = "in", autoFocus = false }: { default
   const busyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const uid = useId();
   const pwId = `${uid}-password`;
+  const lens = useLensTransition();
 
   useEffect(() => () => clearTimeout(busyTimer.current), []);
 
@@ -251,7 +253,8 @@ export function AccountForm({ defaultMode = "in", autoFocus = false }: { default
         void submit();
       }}
     >
-      <div role="tablist" aria-label="Account" className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--surface-2)] p-1">
+      {/* Segmented control with the liquid lens gliding to the active mode. */}
+      <div role="tablist" aria-label="Account" className="grid grid-cols-2 gap-1 rounded-full bg-[var(--surface-2)] p-1">
         {TABS.map((t) => {
           const on = mode === t.id;
           return (
@@ -270,11 +273,19 @@ export function AccountForm({ defaultMode = "in", autoFocus = false }: { default
               onClick={() => !on && switchMode(t.id)}
               onKeyDown={onTabKey}
               className={cn(
-                "h-9 cursor-pointer rounded-lg px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50 disabled:cursor-not-allowed",
-                on ? "bg-[var(--surface)] text-[var(--foreground)] shadow-[var(--e1)]" : "text-[var(--muted)] hover:text-[var(--foreground)]"
+                "press relative h-11 cursor-pointer rounded-full px-3 text-sm font-semibold focus-visible:outline-none sm:h-9 focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50 disabled:cursor-not-allowed",
+                on ? "text-[var(--primary)]" : "text-[var(--muted)] hover:text-[var(--foreground)]"
               )}
             >
-              {t.label}
+              {on && (
+                <motion.span
+                  layoutId={`${uid}-lens`}
+                  transition={lens}
+                  aria-hidden
+                  className="absolute inset-0 rounded-full bg-[var(--primary)]/12 ring-1 ring-[var(--primary)]/22"
+                />
+              )}
+              <span className="relative">{t.label}</span>
             </button>
           );
         })}
@@ -340,7 +351,7 @@ export function AccountForm({ defaultMode = "in", autoFocus = false }: { default
                 aria-pressed={showPw}
                 aria-controls={pwId}
                 title={showPw ? "Hide password" : "Show password"}
-                className="grid h-11 w-11 cursor-pointer place-items-center rounded-r-xl text-[var(--muted)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]/50"
+                className="grid h-11 w-11 cursor-pointer place-items-center rounded-r-2xl text-[var(--muted)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]/50"
               >
                 {showPw ? <EyeOff size={17} aria-hidden /> : <Eye size={17} aria-hidden />}
               </button>

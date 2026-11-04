@@ -1,18 +1,18 @@
 "use client";
 
 // Shared building blocks for the Progress (/profile) and Analytics (/analytics)
-// pages only. Surfaces come from the shared primitives (Card, Button, Bar,
-// Badge) so a central reskin carries over; colours are CSS tokens. Recharts
-// colours live in app/analytics/page.tsx because SVG attributes need hex.
+// pages only. Surfaces come from the shared primitives (Card, Bar, Badge,
+// buttonVariants) so the Glass Box system styles them; colours are CSS tokens.
+// Recharts colours live in app/analytics/page.tsx because SVG attributes need literals.
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
-import { ChevronRight } from "lucide-react";
+import type { VariantProps } from "class-variance-authority";
 import { getQuestionsByCompetency } from "@/lib/content";
 import { haptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import type { Competency, CompetencyMastery } from "@/lib/types";
-import { Bar, Button, Card } from "@/components/ui";
+import { Bar, Card, buttonVariants } from "@/components/ui";
 
 /** Mastery every domain must reach for the "Exam ready" verdict (lib/readiness.ts). */
 export const TARGET = 80;
@@ -30,41 +30,38 @@ export function masteryTone(mastery: number, insufficient = false): Tone {
   return mastery >= TARGET ? "success" : mastery >= 60 ? "warning" : "danger";
 }
 
-/**
- * Deep links carry their state in the query string, and target pages read it
- * from window.location on first render (useSearchParams is off-limits). A
- * client-side push renders the target before the URL is committed, so query
- * links load the document instead; plain paths stay client-side.
- */
-export function isDeepLink(href: string): boolean {
-  return href.includes("?");
-}
-
-/** The shared Button, navigating on press (no <button> nested inside <a>). */
-export function GoButton({ href, onClick, ...props }: { href: string } & ComponentProps<typeof Button>) {
-  const router = useRouter();
+/** A real link that looks like the shared Button. */
+export function ButtonLink({
+  href,
+  variant,
+  size,
+  className,
+  onClick,
+  ...rest
+}: { href: string } & Omit<ComponentProps<typeof Link>, "href"> & VariantProps<typeof buttonVariants>) {
   return (
-    <Button
-      {...props}
+    <Link
+      href={href}
       onClick={(e) => {
-        onClick?.(e);
         haptic("tap");
-        if (isDeepLink(href)) window.location.assign(href);
-        else router.push(href);
+        onClick?.(e);
       }}
+      className={cn(buttonVariants({ variant, size }), className)}
+      {...rest}
     />
   );
 }
 
 // ── Typography helpers ──
-export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]", className)}>{children}</div>;
+/** Sentence-case section label (no tracked caps). */
+export function Label({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn("text-[13px] font-medium text-[var(--muted)]", className)}>{children}</div>;
 }
 
 export function SectionHead({ title, meta, className }: { title: ReactNode; meta?: ReactNode; className?: string }) {
   return (
     <div className={cn("mb-4 flex items-baseline justify-between gap-3", className)}>
-      <h2 className="text-[15px] tracking-tight">{title}</h2>
+      <h2 className="text-[17px] tracking-tight">{title}</h2>
       {meta != null && <div className="shrink-0 text-xs tabular-nums text-[var(--muted)]">{meta}</div>}
     </div>
   );
@@ -74,13 +71,13 @@ export function SectionHead({ title, meta, className }: { title: ReactNode; meta
 export function TargetLegend({ value = TARGET }: { value?: number }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span aria-hidden className="h-3 w-0.5 rounded-full bg-[var(--foreground)] opacity-35" />
+      <span aria-hidden className="h-3 w-0.5 rounded-full bg-[var(--foreground)] opacity-40" />
       {value} target
     </span>
   );
 }
 
-// ── Stat strip: one card, hairline-divided cells (no card soup) ──
+// ── Stat strip: one glass panel, hairline-divided cells (no card soup) ──
 export interface StatItem {
   label: string;
   value: ReactNode;
@@ -89,12 +86,7 @@ export interface StatItem {
 }
 
 // 2×2 on phones, 1×4 from sm. Cells stay transparent so the Card is the only surface.
-const CELL_RULES = [
-  "border-r border-b sm:border-b-0",
-  "border-b sm:border-b-0 sm:border-r",
-  "border-r",
-  "",
-];
+const CELL_RULES = ["border-r border-b sm:border-b-0", "border-b sm:border-b-0 sm:border-r", "border-r", ""];
 
 export function StatStrip({ items }: { items: StatItem[] }) {
   return (
@@ -102,8 +94,8 @@ export function StatStrip({ items }: { items: StatItem[] }) {
       <dl className="grid grid-cols-2 sm:grid-cols-4">
         {items.slice(0, 4).map((it, i) => (
           <div key={it.label} className={cn("min-w-0 border-[var(--border)] px-4 py-3.5", CELL_RULES[i])}>
-            <dt className="truncate text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">{it.label}</dt>
-            <dd className="mt-0.5 text-2xl font-bold tabular-nums" style={it.tone ? { color: toneVar(it.tone) } : undefined}>
+            <dt className="truncate text-[13px] font-medium text-[var(--muted)]">{it.label}</dt>
+            <dd className="mt-0.5 font-display text-[26px] font-bold leading-tight tabular-nums" style={it.tone ? { color: toneVar(it.tone) } : undefined}>
               {it.value}
             </dd>
             {it.hint != null && <dd className="mt-0.5 truncate text-xs tabular-nums text-[var(--muted)]">{it.hint}</dd>}
@@ -122,7 +114,7 @@ export function MasteryBar({ value, tone, target = TARGET, className }: { value:
       {target != null && (
         <span
           aria-hidden
-          className="absolute top-1/2 h-3.5 w-0.5 -translate-y-1/2 rounded-full bg-[var(--foreground)] opacity-35"
+          className="absolute top-1/2 h-3.5 w-0.5 -translate-y-1/2 rounded-full bg-[var(--foreground)] opacity-40"
           style={{ left: `calc(${target}% - 1px)` }}
         />
       )}
@@ -166,30 +158,26 @@ export function rankDrag(comps: Competency[], mastery: CompetencyMastery[], limi
   return [...weak, ...thin].slice(0, limit).map((x) => ({ ...x, ...dragTarget(x.comp, x.m, getQuestionsByCompetency(x.comp.id).length) }));
 }
 
-/** Ruled-list row: hover/focus states mirror the curriculum's ModuleRow. */
+/** Ruled-list row inside a glass panel: quiet hover fill, springy press, inset focus ring. */
 export const ROW_LINK =
-  "group flex items-center gap-3 px-5 py-2.5 transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]/50";
+  "press group flex items-center gap-3 px-5 py-2.5 transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]/50";
 
 export function DragRow({ item }: { item: DragItem }) {
   const { comp, m, reason, href } = item;
   const tone = masteryTone(m.mastery, m.insufficient);
-  // Plain <a>: a deep link must load the document (see isDeepLink).
   return (
     <li>
-      <a href={href} onClick={() => haptic("tap")} className={cn(ROW_LINK, "min-h-[56px]")}>
+      <Link href={href} onClick={() => haptic("tap")} className={cn(ROW_LINK, "min-h-[56px]")}>
         <span className="w-10 shrink-0 text-xs font-semibold tabular-nums text-[var(--muted)]">{comp.code}</span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium">{comp.name}</span>
           <span className="block truncate text-xs text-[var(--muted)]">{reason}</span>
         </span>
-        <span className="w-8 shrink-0 text-right text-sm font-bold tabular-nums" style={{ color: toneVar(tone) }}>
+        <span className="w-8 shrink-0 text-right font-display text-base font-bold tabular-nums" style={{ color: toneVar(tone) }}>
           {m.insufficient ? "—" : m.mastery}
         </span>
-        <span className="flex shrink-0 items-center text-xs font-semibold text-[var(--accent)]">
-          Drill
-          <ChevronRight size={14} className="transition-transform duration-200 group-hover:translate-x-0.5" />
-        </span>
-      </a>
+        <span className="shrink-0 text-xs font-semibold text-[var(--accent)]">Drill</span>
+      </Link>
     </li>
   );
 }

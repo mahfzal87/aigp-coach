@@ -1,25 +1,26 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { ArrowRight, Check, RotateCcw } from "lucide-react";
+import { useReducedMotion } from "framer-motion";
+import { Check, RotateCcw } from "lucide-react";
 import type { Flashcard } from "@/lib/types";
 import { getCompetency } from "@/lib/content";
 import { isDue } from "@/lib/sm2";
 import { haptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import { useProgress } from "@/store/progress";
-import { Badge, Button } from "@/components/ui";
+import { Badge, Button, buttonVariants } from "@/components/ui";
 import { Markdown } from "@/components/markdown";
-import { Reveal } from "@/components/motion";
+import { m, springSoft } from "@/components/motion";
 import { Callout, Kbd, SegmentTrack } from "@/components/practice-kit";
 
 // SM-2 grades (lib/sm2.ts): 0 = Again (relearn), 3 Hard, 4 Good, 5 Easy.
 const GRADES = [
-  { g: 0, label: "Again", key: "1", text: "text-[var(--danger)]" },
-  { g: 3, label: "Hard", key: "2", text: "text-[var(--warning)]" },
-  { g: 4, label: "Good", key: "3", text: "text-[var(--primary)]" },
-  { g: 5, label: "Easy", key: "4", text: "text-[var(--success)]" },
+  { g: 0, label: "Again", key: "1", tone: "danger", text: "text-[color-mix(in_srgb,var(--danger)_82%,var(--foreground))]" },
+  { g: 3, label: "Hard", key: "2", tone: "warning", text: "text-[color-mix(in_srgb,var(--warning)_70%,var(--foreground))]" },
+  { g: 4, label: "Good", key: "3", tone: "primary", text: "text-[color-mix(in_srgb,var(--primary)_82%,var(--foreground))]" },
+  { g: 5, label: "Easy", key: "4", tone: "success", text: "text-[color-mix(in_srgb,var(--success)_80%,var(--foreground))]" },
 ] as const;
 
 interface DeckState {
@@ -41,8 +42,13 @@ function dueIn(ms: number): string {
   return d < 30 ? `${d}d` : `${Math.round(d / 30)}mo`;
 }
 
+// A face of the card. Both faces share one grid cell, so the card is as tall as its
+// longer side, and backface-visibility hides whichever side faces away.
+const FACE =
+  "col-start-1 row-start-1 flex min-h-48 flex-col gap-3 rounded-[18px] border border-[var(--border)] p-5 [-webkit-backface-visibility:hidden] [backface-visibility:hidden]";
+
 export function FlashcardDeck({ cards }: { cards: Flashcard[] }) {
-  const router = useRouter();
+  const reduce = useReducedMotion();
   const grade = useProgress((s) => s.gradeFlashcard);
   const states = useProgress((s) => s.flashcards);
   const [now] = useState(() => Date.now());
@@ -108,35 +114,34 @@ export function FlashcardDeck({ cards }: { cards: Flashcard[] }) {
     const reviewed = deck.results.length;
     const knew = deck.results.filter(Boolean).length;
     return (
-      <Reveal>
-        <Callout className="flex flex-col items-center gap-3 px-5 py-6 text-center">
-          <span className="grid h-10 w-10 place-items-center rounded-full bg-[var(--success)]/15 text-[var(--success)]">
-            <Check size={20} strokeWidth={2.75} />
-          </span>
-          <div>
-            <div className="text-base font-semibold">Deck done · {cards.length} {cards.length === 1 ? "card" : "cards"}</div>
-            <div className="mt-1 text-xs text-[var(--muted)]">
-              Knew {knew} of {reviewed} reviews
-              {GRADES.filter((x) => deck.tally[x.g]).map((x) => (
-                <span key={x.g}>
-                  {" · "}
-                  <span className={cn("font-semibold", x.text)}>{deck.tally[x.g]}</span> {x.label.toLowerCase()}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="mt-1 flex w-full flex-col justify-center gap-2 sm:w-auto sm:flex-row">
-            <Button variant="outline" onClick={() => setDeck(fresh(cards, sig))}>
-              <RotateCcw size={15} /> Review again
-            </Button>
-            {comp && (
-              <Button onClick={() => router.push(`/practice?competency=${comp.id}`)}>
-                Practice {comp.code} questions <ArrowRight size={15} />
-              </Button>
-            )}
-          </div>
-        </Callout>
-      </Reveal>
+      <Callout className="flex flex-col items-center gap-3 px-5 py-7 text-center">
+        <span className="anim-pop grid h-11 w-11 place-items-center rounded-full bg-[var(--success)]/15 text-[color-mix(in_srgb,var(--success)_80%,var(--foreground))]">
+          <Check size={22} strokeWidth={2.75} />
+        </span>
+        <div>
+          <h3 className="text-[17px]">Deck done</h3>
+          <p className="mt-0.5 text-sm text-[var(--muted)]">
+            You knew {knew} of {reviewed} {reviewed === 1 ? "card" : "cards"}.
+          </p>
+        </div>
+        <div className="flex flex-wrap justify-center gap-1.5">
+          {GRADES.filter((x) => deck.tally[x.g]).map((x) => (
+            <Badge key={x.g} tone={x.tone}>
+              {deck.tally[x.g]} {x.label.toLowerCase()}
+            </Badge>
+          ))}
+        </div>
+        <div className="mt-1 flex w-full flex-col justify-center gap-2 sm:w-auto sm:flex-row">
+          <Button variant="outline" onClick={() => setDeck(fresh(cards, sig))}>
+            <RotateCcw size={15} /> Review again
+          </Button>
+          {comp && (
+            <Link href={`/practice?competency=${comp.id}`} className={buttonVariants({ variant: "primary" })}>
+              Practice {comp.code} questions
+            </Link>
+          )}
+        </div>
+      </Callout>
     );
   }
 
@@ -159,38 +164,53 @@ export function FlashcardDeck({ cards }: { cards: Flashcard[] }) {
         </span>
       </div>
 
-      {!deck.flipped ? (
-        <button
-          type="button"
-          onClick={flip}
-          className="press flex min-h-44 w-full cursor-pointer flex-col justify-between gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50"
+      {/* each card slides in fresh (keyed), so the next answer never shows mid-turn */}
+      <m.div key={deck.idx} initial={reduce ? false : { opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={springSoft} className="[perspective:1400px]">
+        <m.div
+          className="grid [transform-style:preserve-3d]"
+          initial={false}
+          animate={{ rotateY: deck.flipped ? 180 : 0 }}
+          transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 210, damping: 24, mass: 0.9 }}
         >
-          <span className="flex items-center justify-between gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Prompt</span>
-            <Badge tone={status.tone}>{status.l}</Badge>
-          </span>
-          <span className="block text-lg font-semibold leading-snug">{card.front}</span>
-          <span className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
-            <span className="pointer-fine:hidden">Tap to reveal</span>
-            <span className="hidden items-center gap-1 pointer-fine:inline-flex">
-              Click or press <Kbd>Space</Kbd>
+          {/* front: the prompt, lit faintly by the exam's light */}
+          <button
+            type="button"
+            onClick={flip}
+            aria-hidden={deck.flipped}
+            tabIndex={deck.flipped ? -1 : 0}
+            className={cn(
+              FACE,
+              "cursor-pointer justify-between bg-[var(--primary)]/6 text-left hover:border-[color-mix(in_srgb,var(--primary)_40%,var(--border))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50",
+              deck.flipped && "pointer-events-none"
+            )}
+          >
+            <span className="flex justify-end">
+              <Badge tone={status.tone}>{status.l}</Badge>
             </span>
-          </span>
-        </button>
-      ) : (
-        <Reveal y={6} className="flex min-h-44 flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
-          <span className="flex items-center justify-between gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Answer</span>
-            <button type="button" onClick={flip} className="-m-2 cursor-pointer p-2 text-xs font-semibold text-[var(--accent)] hover:underline">
-              Hide
-            </button>
-          </span>
-          <span className="block text-sm font-medium text-[var(--muted)]">{card.front}</span>
-          <div className="border-t border-[var(--border)] pt-3">
-            <Markdown className="text-[15px] leading-relaxed">{card.back}</Markdown>
+            <span className="block font-display text-[20px] font-bold leading-snug">{card.front}</span>
+            <span className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
+              <span className="pointer-fine:hidden">Tap to flip</span>
+              <span className="hidden items-center gap-1 pointer-fine:inline-flex">
+                Click or press <Kbd>Space</Kbd>
+              </span>
+            </span>
+          </button>
+
+          {/* back: the answer (turned 180° so it reads right once the card flips) */}
+          <div aria-hidden={!deck.flipped} className={cn(FACE, "bg-[var(--surface-2)] [transform:rotateY(180deg)]", !deck.flipped && "pointer-events-none")}>
+            <span className="flex items-center justify-between gap-2">
+              <span className="text-xs font-medium text-[var(--muted)]">Answer</span>
+              <button type="button" tabIndex={deck.flipped ? 0 : -1} onClick={flip} className="-m-2 cursor-pointer p-2 text-xs font-semibold text-[var(--accent)] hover:underline">
+                Flip back
+              </button>
+            </span>
+            <span className="block text-sm font-medium text-[var(--muted)]">{card.front}</span>
+            <div className="border-t border-[var(--border)] pt-3">
+              <Markdown className="text-[15px] leading-relaxed">{card.back}</Markdown>
+            </div>
           </div>
-        </Reveal>
-      )}
+        </m.div>
+      </m.div>
 
       {deck.flipped ? (
         <div className="mt-3">

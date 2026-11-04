@@ -14,7 +14,7 @@ export const TIME_TILES = [
 
 export const ATTACK_STEPS = [
   { title: "Read the stem first", desc: "Name the domain, the stage, and whose duty it is — controller or processor, provider or deployer." },
-  { title: "Classify the type", desc: "BEST · NOT/EXCEPT · ordering · role · distinction. Each has its own winning move." },
+  { title: "Classify the type", desc: "Best, not/except, ordering, role or distinction — each has its own winning move." },
   { title: "Predict, then look", desc: "Decide what a seasoned professional would do before reading A–D. Anchoring resists bait." },
   { title: "Cut the obvious two", desc: "Absolutes, tech-only fixes, outsourced accountability, or the wrong stage." },
   { title: "Pick the proactive option", desc: "Between the final two, the more comprehensive, by-design answer usually wins." },

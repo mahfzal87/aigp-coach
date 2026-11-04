@@ -6,9 +6,8 @@ import { getUpdates } from "@/lib/updates";
 import { getActiveExam, readStoredExam } from "@/lib/exam-state";
 import type { LawUpdate, Severity } from "@/lib/types";
 import { useProgress } from "@/store/progress";
-import { Badge, Card, CardBody, PageHeader } from "@/components/ui";
+import { Badge, Card, CardBody, PageHeader, buttonVariants } from "@/components/ui";
 import { Markdown } from "@/components/markdown";
-import { Reveal } from "@/components/motion";
 import { FilterChip, ScrollRow, ago } from "@/components/library-ui";
 import { haptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
@@ -96,7 +95,14 @@ export default function UpdatesPage() {
   const isNew = (u: LawUpdate) => feed.seenBefore !== null && tsOf(u) > feed.seenBefore;
   const fresh = items.filter(isNew);
   const critical = items.filter((u) => u.severity === "critical").length;
+  const freshCritical = fresh.filter((u) => u.severity === "critical").length;
   const newestDay = items.length ? dayOf(items[0]) : null;
+  const headline =
+    fresh.length > 0
+      ? { icon: <BellDot size={22} aria-hidden className="shrink-0 text-[var(--primary)]" />, text: `${fresh.length} new since your last visit`, crit: freshCritical }
+      : feed.seenBefore !== null
+        ? { icon: <CheckCircle2 size={22} aria-hidden className="shrink-0 text-[var(--success)]" />, text: "You're up to date", crit: 0 }
+        : { icon: <Newspaper size={22} aria-hidden className="shrink-0 text-[var(--muted)]" />, text: `${items.length} update${items.length === 1 ? "" : "s"}`, crit: critical };
 
   return (
     <div className="space-y-4">
@@ -110,48 +116,35 @@ export default function UpdatesPage() {
         </Card>
       ) : (
         <>
-          {/* Verdict + filters */}
-          <Reveal>
-            <Card>
-              <CardBody className="space-y-3">
+          {/* Verdict + filters — the screen's lit hero */}
+          <Card className="mesh">
+              <CardBody className="space-y-4 p-6">
                 <div>
-                  <div className="flex items-center gap-2 text-base font-bold leading-snug">
-                    {fresh.length > 0 ? (
-                      <BellDot size={18} aria-hidden className="shrink-0 text-[var(--primary)]" />
-                    ) : feed.seenBefore !== null ? (
-                      <CheckCircle2 size={18} aria-hidden className="shrink-0 text-[var(--success)]" />
-                    ) : (
-                      <Newspaper size={18} aria-hidden className="shrink-0 text-[var(--muted)]" />
-                    )}
+                  <h2 className="flex items-start gap-2.5 text-[25px] font-extrabold leading-tight">
+                    <span className="mt-[5px] shrink-0">{headline.icon}</span>
                     <span className="min-w-0">
-                      {fresh.length > 0
-                        ? `${fresh.length} new since your last visit`
-                        : feed.seenBefore !== null
-                          ? "You're up to date"
-                          : `${items.length} update${items.length === 1 ? "" : "s"}${critical ? ` · ${critical} critical` : ""}`}
-                    </span>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="mt-1 text-sm text-[var(--muted)]">
-                      {fresh.length > 0 && fresh.some((u) => u.severity === "critical")
-                        ? "Includes a critical one · "
-                        : feed.seenBefore === null && critical
-                          ? "Start with the critical ones · "
-                          : ""}
-                      {newestDay ? (
-                        <>
-                          Newest <span className="font-semibold text-[var(--foreground)] tabular-nums">{longDate(newestDay)}</span> · {ago(newestDay.getTime(), feed.now)}
-                        </>
-                      ) : (
-                        <>Newest {items[0].publishedDate}</>
+                      {headline.text}
+                      {headline.crit > 0 && (
+                        <Badge tone="danger" className="ml-2 align-[0.3em] font-sans">
+                          {headline.crit} critical
+                        </Badge>
                       )}
-                    </p>
-                  </div>
+                    </span>
+                  </h2>
+                  <p className="mt-1.5 text-sm text-[var(--muted)]">
+                    {newestDay ? (
+                      <>
+                        Newest <span className="font-semibold text-[var(--foreground)] tabular-nums">{longDate(newestDay)}</span> ({ago(newestDay.getTime(), feed.now)})
+                      </>
+                    ) : (
+                      <>Newest {items[0].publishedDate}</>
+                    )}
+                  </p>
                 </div>
 
                 {presentSevs.length > 1 && (
-                  <ScrollRow activeKey={sev} className="-mx-5 sm:mx-0">
-                    <div role="group" aria-label="Filter by severity" className="flex w-max gap-1.5 px-5 sm:w-auto sm:flex-wrap sm:px-0">
+                  <ScrollRow activeKey={sev} className="-mx-6 sm:mx-0">
+                    <div role="group" aria-label="Filter by severity" className="flex w-max gap-1.5 px-6 sm:w-auto sm:flex-wrap sm:px-0">
                       <FilterChip label="All" count={inRegion.length} active={sev === "all"} onClick={() => { haptic("tap"); setSev("all"); }} />
                       {presentSevs.map((s) => {
                         const n = sevCounts.get(s) ?? 0;
@@ -172,8 +165,8 @@ export default function UpdatesPage() {
                   </ScrollRow>
                 )}
                 {showRegions && (
-                  <ScrollRow activeKey={region} className="-mx-5 sm:mx-0">
-                    <div role="group" aria-label="Filter by region" className="flex w-max gap-1.5 px-5 sm:w-auto sm:flex-wrap sm:px-0">
+                  <ScrollRow activeKey={region} className="-mx-6 sm:mx-0">
+                    <div role="group" aria-label="Filter by region" className="flex w-max gap-1.5 px-6 sm:w-auto sm:flex-wrap sm:px-0">
                       <FilterChip label="All regions" count={items.filter((u) => sev === "all" || u.severity === sev).length} active={region === "all"} onClick={() => { haptic("tap"); setRegion("all"); }} />
                       {regions.map((r) => {
                         const n = regionCounts.get(r) ?? 0;
@@ -193,19 +186,16 @@ export default function UpdatesPage() {
                   </ScrollRow>
                 )}
               </CardBody>
-            </Card>
-          </Reveal>
+          </Card>
 
           {/* The dated feed — newest first */}
-          <Reveal delay={0.05}>
-            <Card className="overflow-hidden">
-              <ul className="divide-y divide-[var(--border)]">
-                {shown.map((u) => (
-                  <UpdateRow key={u.id} u={u} isNew={isNew(u)} />
-                ))}
-              </ul>
-            </Card>
-          </Reveal>
+          <Card className="overflow-hidden">
+            <ul className="divide-y divide-[var(--border)]">
+              {shown.map((u) => (
+                <UpdateRow key={u.id} u={u} isNew={isNew(u)} />
+              ))}
+            </ul>
+          </Card>
         </>
       )}
     </div>
@@ -220,8 +210,8 @@ function UpdateRow({ u, isNew }: { u: LawUpdate; isNew: boolean }) {
   const d = dayOf(u);
   return (
     <li className="relative">
-      {/* severity rail — the at-a-glance signal; the label beside it is the text one */}
-      <span aria-hidden className="absolute inset-y-0 left-0 w-1" style={{ background: s.color }} />
+      {/* severity rail — a slim pill inset from the glass edge; the label beside it is the text signal */}
+      <span aria-hidden className="absolute bottom-3.5 left-2 top-3.5 w-[3px] rounded-full" style={{ background: s.color }} />
       <button
         type="button"
         aria-expanded={open}
@@ -230,39 +220,49 @@ function UpdateRow({ u, isNew }: { u: LawUpdate; isNew: boolean }) {
           haptic("tap");
           setOpen((o) => !o);
         }}
-        className="flex w-full cursor-pointer items-start gap-3 py-3.5 pl-5 pr-4 text-left transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)] sm:gap-4 sm:pr-5"
+        className="flex w-full cursor-pointer items-start gap-3 py-3.5 pl-5 pr-4 text-left transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)] sm:pr-5"
       >
-        {/* date block */}
-        <div className="w-10 shrink-0 text-center leading-none sm:w-11" aria-hidden={d ? true : undefined}>
+        {/* date tile — a quiet tint on the glass; new items take the exam's light */}
+        <div
+          aria-hidden={d ? true : undefined}
+          className={cn(
+            "w-12 shrink-0 rounded-[14px] py-2 text-center leading-none",
+            isNew ? "bg-[var(--primary)]/12 ring-1 ring-[var(--primary)]/30" : "bg-[var(--surface-2)]"
+          )}
+        >
           {d ? (
             <>
-              <div className="text-lg font-bold tabular-nums">{d.getDate()}</div>
-              <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">{d.toLocaleDateString(undefined, { month: "short" })}</div>
+              <div className={cn("font-display text-xl font-bold tabular-nums", isNew && "text-[color-mix(in_srgb,var(--primary)_82%,var(--foreground))]")}>{d.getDate()}</div>
+              <div className="mt-1 text-[11px] font-semibold text-[var(--muted)]">{d.toLocaleDateString(undefined, { month: "short" })}</div>
               <div className="mt-0.5 text-[10px] tabular-nums text-[var(--muted)]">{d.getFullYear()}</div>
             </>
           ) : (
-            <div className="text-[10px] text-[var(--muted)]">{u.publishedDate}</div>
+            <div className="px-1 text-[10px] text-[var(--muted)]">{u.publishedDate}</div>
           )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs">
-            <span className="inline-flex items-center gap-1 font-semibold" style={{ color: s.color }}>
+            <span className="inline-flex items-center gap-1 font-semibold" style={{ color: `color-mix(in srgb, ${s.color} 82%, var(--foreground))` }}>
               <Icon size={13} aria-hidden /> {s.label}
             </span>
             <span className="min-w-0 text-[var(--muted)]">{u.jurisdiction}</span>
             {d && <span className="sr-only">, {longDate(d)}</span>}
-            {isNew && <Badge tone="primary">New</Badge>}
+            {isNew && (
+              <Badge tone="primary" className="anim-pop">
+                <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" /> New
+              </Badge>
+            )}
             {!u.bokRelevant && <Badge>Background</Badge>}
           </div>
-          <div className="mt-1 text-sm font-bold leading-snug">{u.title}</div>
+          <div className="mt-1 text-[15px] font-semibold leading-snug">{u.title}</div>
         </div>
         <ChevronDown size={16} aria-hidden className={cn("mt-1 shrink-0 text-[var(--muted)] transition-transform duration-200 motion-reduce:transition-none", open && "rotate-180")} />
       </button>
       {open && (
-        <div id={id} className="border-t border-[var(--border)] pb-4 pl-5 pr-4 pt-3 sm:pl-20 sm:pr-5">
+        <div id={id} className="border-t border-[var(--border)] pb-3 pl-5 pr-4 pt-3 sm:pl-20 sm:pr-5">
           <Markdown className="leading-relaxed">{u.bodyMd}</Markdown>
           {u.sourceUrl && (
-            <a href={u.sourceUrl} target="_blank" rel="noreferrer" className="mt-1 inline-flex h-11 items-center gap-1.5 text-xs font-semibold text-[var(--accent)] hover:underline sm:h-8">
+            <a href={u.sourceUrl} target="_blank" rel="noreferrer" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-3 mt-1 h-11 sm:h-9")}>
               Read the source <ExternalLink size={13} aria-hidden />
             </a>
           )}

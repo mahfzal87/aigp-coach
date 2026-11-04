@@ -7,7 +7,6 @@ import { getPackExtras, getQuestions } from "@/lib/content";
 import { ATTACK_STEPS, DECISION_RULES, TRAP_WORDS, TYPE_PLAYBOOK } from "@/content/strategy-structured";
 import type { Question, QuestionType } from "@/lib/types";
 import { Badge, Bar, Button, Card, CardBody, PageHeader } from "@/components/ui";
-import { Reveal } from "@/components/motion";
 import { Drill } from "@/components/quiz/drill";
 import { useIsClient } from "@/components/library-ui";
 import { useProgress } from "@/store/progress";
@@ -107,162 +106,160 @@ export default function StrategyPage() {
   const tiles = getPackExtras().strategyTiles;
   const solid = (weakest?.rate ?? 0) >= 0.85; // even the lowest type is strong
   const showRates = client && rows.some((r) => r.answered > 0); // a brand-new user sees no wall of "not tried"
+  const verdictTone = weakest && weakest.rate !== null ? rateTone(weakest.rate) : null;
 
   return (
     <div className="space-y-5">
       <PageHeader title="Question strategy" subtitle="Technique decides the close calls." />
 
-      {/* Verdict — the one thing to do next */}
+      {/* Verdict — the one thing to do next (the screen's lit hero) */}
       {target && (
-        <Reveal>
-          <Card>
-            <CardBody className={cn("flex flex-col gap-4 sm:flex-row sm:items-center", !client && "invisible")}>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
-                  <Target size={13} aria-hidden /> {weakest ? (solid ? "Your lowest type" : "Weakest question type") : "Start here"}
-                </div>
-                <div className="mt-1 flex flex-wrap items-baseline gap-x-2 text-xl font-bold tracking-tight">
-                  {target.label}
-                  {weakest && weakest.rate !== null && <span className={cn("tabular-nums", TONE_TEXT[rateTone(weakest.rate)])}>{pct(weakest.rate)}</span>}
-                </div>
-                <p className="mt-0.5 text-sm text-[var(--muted)]">
-                  {weakest
-                    ? `${weakest.correct} of ${weakest.answered} right${solid ? " — every type looks solid" : ""}`
-                    : `${target.bank} in the bank — the most common type`}
-                </p>
+        <Card className="mesh">
+          <CardBody className={cn("flex flex-col gap-5 p-6 sm:flex-row sm:items-center", !client && "invisible")}>
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--muted)]">
+                <Target size={14} aria-hidden /> {weakest ? (solid ? "Your lowest question type" : "Your weakest question type") : "Start with the most common type"}
+              </p>
+              <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <h2 className="text-[31px] font-extrabold leading-none">{target.label}</h2>
+                {weakest && weakest.rate !== null && verdictTone && (
+                  <span className={cn("font-display text-[31px] font-extrabold leading-none tabular-nums", TONE_TEXT[verdictTone])}>{pct(weakest.rate)}</span>
+                )}
               </div>
-              <Button className="w-full shrink-0 sm:w-auto" onClick={() => startDrill(target.type)}>
-                Drill {Math.min(DRILL_SIZE, target.bank)} questions <ArrowRight size={16} />
-              </Button>
-            </CardBody>
-          </Card>
-        </Reveal>
+              {weakest && weakest.rate !== null && verdictTone ? (
+                <div className="mt-3 max-w-xs">
+                  <Bar value={weakest.rate * 100} tone={verdictTone} className="h-2" />
+                  <p className="mt-1.5 text-sm text-[var(--muted)]">
+                    {weakest.correct} of {weakest.answered} right{solid ? " — every type looks solid" : ""}
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-[var(--muted)]">{target.bank} in the bank</p>
+              )}
+            </div>
+            <Button size="lg" className="w-full shrink-0 sm:w-auto" onClick={() => startDrill(target.type)}>
+              Drill {Math.min(DRILL_SIZE, target.bank)} questions <ArrowRight size={16} aria-hidden />
+            </Button>
+          </CardBody>
+        </Card>
       )}
 
       {/* The method in one glance */}
-      <Reveal delay={0.04}>
-        <Card className="overflow-hidden">
-          <CardBody>
-            <div className="mb-4 flex items-center gap-2 text-base font-bold">
-              <Crosshair size={17} aria-hidden className="text-[var(--primary)]" /> The method — six moves, every question
-            </div>
-            <ol className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-              {ATTACK_STEPS.map((s, i) => (
-                <li key={s.title} className="flex gap-3">
-                  <Badge tone="primary" className="h-6 min-w-6 shrink-0 justify-center px-1.5 tabular-nums">{i + 1}</Badge>
-                  <div className="min-w-0">
-                    <div className="text-sm font-bold leading-6">{s.title}</div>
-                    <p className="text-xs leading-relaxed text-[var(--muted)]">{s.desc}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </CardBody>
-          {tiles.length > 0 && (
-            <div className="grid grid-cols-2 border-t border-[var(--border)] sm:grid-cols-4">
-              {tiles.map((t, i) => (
-                <div key={t.label} className={cn("min-w-0 px-5 py-3.5", i % 2 === 1 && "border-l border-[var(--border)]", i >= 2 && "border-t border-[var(--border)] sm:border-t-0", i === 2 && "sm:border-l")}>
-                  <div className="text-lg font-bold tabular-nums text-[var(--primary)]">{t.stat}</div>
-                  <div className="text-xs font-semibold">{t.label}</div>
-                  <div className="mt-0.5 text-[11px] leading-snug text-[var(--muted)]">{t.sub}</div>
+      <Card className="overflow-hidden">
+        <CardBody>
+          <h2 className="mb-4 flex items-center gap-2 text-lg">
+            <Crosshair size={18} aria-hidden className="text-[var(--primary)]" /> The method — six moves, every question
+          </h2>
+          <ol className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+            {ATTACK_STEPS.map((s, i) => (
+              <li key={s.title} className="flex gap-3">
+                <Badge tone="primary" className="h-7 w-7 shrink-0 justify-center px-0 font-display text-sm tabular-nums">{i + 1}</Badge>
+                <div className="min-w-0">
+                  <div className="text-sm font-bold leading-7">{s.title}</div>
+                  <p className="text-[13px] leading-relaxed text-[var(--muted)]">{s.desc}</p>
                 </div>
-              ))}
-            </div>
-          )}
-        </Card>
-      </Reveal>
+              </li>
+            ))}
+          </ol>
+        </CardBody>
+        {tiles.length > 0 && (
+          <div className="grid grid-cols-2 border-t border-[var(--border)] sm:grid-cols-4">
+            {tiles.map((t, i) => (
+              <div key={t.label} className={cn("min-w-0 px-5 py-4", i % 2 === 1 && "border-l border-[var(--border)]", i >= 2 && "border-t border-[var(--border)] sm:border-t-0", i === 2 && "sm:border-l")}>
+                <div className="font-display text-[25px] font-bold leading-none tabular-nums text-[color-mix(in_srgb,var(--primary)_82%,var(--foreground))]">{t.stat}</div>
+                <div className="mt-1.5 text-[13px] font-semibold">{t.label}</div>
+                <div className="mt-0.5 text-xs leading-snug text-[var(--muted)]">{t.sub}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {/* Playbooks — one row per type, with your hit rate and a drill */}
-      <Reveal delay={0.08}>
-        <Card className="overflow-hidden">
-          <div className="flex items-center justify-between gap-3 px-5 pb-2 pt-5">
-            <div className="flex items-center gap-2 text-base font-bold">
-              <Swords size={17} aria-hidden className="text-[var(--accent)]" /> Playbook by question type
-            </div>
-            {showRates && <span className="text-xs text-[var(--muted)]">your hit rate</span>}
-          </div>
-          <ul className="divide-y divide-[var(--border)]">
-            {rows.map((r) => {
-              const isWeakest = !solid && weakest?.type === r.type;
-              const n = Math.min(DRILL_SIZE, r.bank);
-              return (
-                <li key={r.type} className="px-5 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="text-sm font-bold">{r.label}</span>
-                      {isWeakest && <Badge tone="warning">Weakest</Badge>}
-                      <span className="text-xs text-[var(--muted)]">{r.bank} in bank</span>
-                    </div>
-                    {showRates && <HitRate row={r} className="hidden sm:flex" />}
-                    <Button size="sm" variant="outline" disabled={n === 0} onClick={() => startDrill(r.type)} className="h-11 shrink-0 sm:h-9">
-                      Drill {n}
-                    </Button>
+      <Card className="overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-5 pb-2 pt-5">
+          <h2 className="flex items-center gap-2 text-lg">
+            <Swords size={18} aria-hidden className="text-[var(--accent)]" /> Playbook by question type
+          </h2>
+          {showRates && <span className="text-[13px] text-[var(--muted)]">Your hit rate</span>}
+        </div>
+        <ul className="divide-y divide-[var(--border)]">
+          {rows.map((r) => {
+            const isWeakest = !solid && weakest?.type === r.type;
+            const n = Math.min(DRILL_SIZE, r.bank);
+            return (
+              <li key={r.type} className="px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="text-[15px] font-bold">{r.label}</span>
+                    {isWeakest && <Badge tone="warning">Weakest</Badge>}
+                    <span className="text-xs text-[var(--muted)]">{r.bank} in bank</span>
                   </div>
-                  {showRates && <HitRate row={r} className="mt-2 sm:hidden" />}
-                  <div className="mt-2 space-y-1 text-sm leading-snug">
-                    <p className="flex gap-1.5">
-                      <Check size={15} aria-hidden className="mt-0.5 shrink-0 text-[var(--success)]" />
-                      <span className="min-w-0"><span className="sr-only">Winning move: </span>{r.move}</span>
-                    </p>
-                    <p className="flex gap-1.5 text-[var(--muted)]">
-                      <AlertTriangle size={15} aria-hidden className="mt-0.5 shrink-0 text-[var(--warning)]" />
-                      <span className="min-w-0"><span className="sr-only">Trap: </span>{r.trap}</span>
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
-      </Reveal>
+                  {showRates && <HitRate row={r} className="hidden sm:flex" />}
+                  <Button size="sm" variant={isWeakest ? "soft" : "outline"} disabled={n === 0} onClick={() => startDrill(r.type)} className="h-11 shrink-0 sm:h-9">
+                    Drill {n}
+                  </Button>
+                </div>
+                {showRates && <HitRate row={r} className="mt-2 sm:hidden" />}
+                <div className="mt-2 space-y-1 text-sm leading-snug">
+                  <p className="flex gap-1.5">
+                    <Check size={15} aria-hidden className="mt-0.5 shrink-0 text-[var(--success)]" />
+                    <span className="min-w-0"><span className="sr-only">Winning move: </span>{r.move}</span>
+                  </p>
+                  <p className="flex gap-1.5 text-[var(--muted)]">
+                    <AlertTriangle size={15} aria-hidden className="mt-0.5 shrink-0 text-[var(--warning)]" />
+                    <span className="min-w-0"><span className="sr-only">Trap: </span>{r.trap}</span>
+                  </p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
 
       {/* Trap radar */}
-      <Reveal delay={0.12}>
-        <Card>
-          <CardBody>
-            <div className="mb-3 text-base font-bold">Trap radar — words that decide answers</div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--danger)]">
-                  <X size={13} aria-hidden /> Distrust in an option
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {TRAP_WORDS.wrong.map((w) => <Badge key={w} tone="danger">{w}</Badge>)}
-                </div>
+      <Card>
+        <CardBody>
+          <h2 className="mb-3 text-lg">Trap radar — words that decide answers</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <div className="mb-2 flex items-center gap-1.5 text-[13px] font-semibold text-[color-mix(in_srgb,var(--danger)_80%,var(--foreground))]">
+                <X size={14} aria-hidden /> Distrust in an option
               </div>
-              <div>
-                <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--success)]">
-                  <Check size={13} aria-hidden /> Lean toward
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {TRAP_WORDS.right.map((w) => <Badge key={w} tone="success">{w}</Badge>)}
-                </div>
+              <div className="flex flex-wrap gap-1.5">
+                {TRAP_WORDS.wrong.map((w) => <Badge key={w} tone="danger">{w}</Badge>)}
               </div>
             </div>
-          </CardBody>
-        </Card>
-      </Reveal>
+            <div>
+              <div className="mb-2 flex items-center gap-1.5 text-[13px] font-semibold text-[color-mix(in_srgb,var(--success)_80%,var(--foreground))]">
+                <Check size={14} aria-hidden /> Lean toward
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {TRAP_WORDS.right.map((w) => <Badge key={w} tone="success">{w}</Badge>)}
+              </div>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
 
       {/* House rules */}
-      <Reveal delay={0.16}>
-        <Card>
-          <CardBody>
-            <div className="mb-1 text-base font-bold">What IAPP rewards — six house rules</div>
-            <ul className="grid sm:grid-cols-2 sm:gap-x-8">
-              {DECISION_RULES.map((r, i) => (
-                <li key={r.rule} className={cn("border-t border-[var(--border)] py-3", i === 0 && "border-t-0", i === 1 && "sm:border-t-0")}>
-                  <div className="text-sm font-bold">{r.rule}</div>
-                  <div className="mt-0.5 text-xs leading-relaxed text-[var(--muted)]">{r.detail}</div>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-[var(--border)] pt-3 text-xs text-[var(--muted)]">
-              <Badge>Tip</Badge> Tag every miss: knowledge, technique or read error.
-              <Link href="/analytics" className="font-semibold text-[var(--accent)] underline-offset-2 hover:underline">See your pattern</Link>
-            </p>
-          </CardBody>
-        </Card>
-      </Reveal>
+      <Card>
+        <CardBody>
+          <h2 className="mb-1 text-lg">What IAPP rewards — six house rules</h2>
+          <ul className="grid sm:grid-cols-2 sm:gap-x-8">
+            {DECISION_RULES.map((r, i) => (
+              <li key={r.rule} className={cn("border-t border-[var(--border)] py-3", i === 0 && "border-t-0", i === 1 && "sm:border-t-0")}>
+                <div className="text-sm font-bold">{r.rule}</div>
+                <div className="mt-0.5 text-[13px] leading-relaxed text-[var(--muted)]">{r.detail}</div>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-[var(--border)] pt-3 text-[13px] text-[var(--muted)]">
+            <Badge>Tip</Badge> Tag every miss: knowledge, technique or read error.
+            <Link href="/analytics" className="font-semibold text-[color-mix(in_srgb,var(--accent)_85%,var(--foreground))] underline-offset-2 hover:underline">See your pattern</Link>
+          </p>
+        </CardBody>
+      </Card>
     </div>
   );
 }
@@ -278,7 +275,7 @@ function HitRate({ row, className }: { row: TypeRow; className?: string }) {
   return (
     <div className={cn("flex w-full shrink-0 items-center gap-2 sm:w-36", className)} title={`${row.correct} of ${row.answered} right`}>
       <Bar value={row.rate * 100} tone={tone} className="h-1.5 min-w-0 flex-1" />
-      <span className={cn("w-10 text-right text-sm font-bold tabular-nums", TONE_TEXT[tone])}>{pct(row.rate)}</span>
+      <span className={cn("w-11 text-right font-display text-[15px] font-bold tabular-nums", TONE_TEXT[tone])}>{pct(row.rate)}</span>
     </div>
   );
 }

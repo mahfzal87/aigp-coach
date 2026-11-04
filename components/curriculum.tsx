@@ -1,18 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useId, useMemo, useState, type ComponentProps, type ReactNode } from "react";
-import { ArrowRight, CheckCircle2, ChevronDown, Circle, GraduationCap, PlayCircle, RotateCcw, Sparkles, Trophy, type LucideIcon } from "lucide-react";
+import type { VariantProps } from "class-variance-authority";
+import { ArrowRight, CheckCircle2, ChevronDown, ChevronRight, Circle, GraduationCap, PlayCircle, RotateCcw, Sparkles, Trophy, type LucideIcon } from "lucide-react";
 import { getCompetenciesByDomain, getDomains, getFlashcards, getQuestions, getQuestionsByCompetency, getTopicsByCompetency } from "@/lib/content";
 import { LESSON_PASS } from "@/lib/gamify";
 import { haptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import type { Domain, LessonSession } from "@/lib/types";
 import { useProgress, type LessonResult } from "@/store/progress";
-import { Badge, Button, Card, CardBody } from "@/components/ui";
-import { MotionBar, Stagger, StaggerItem } from "@/components/motion";
-import { DomainArt, type DomainCode } from "@/components/domain-art";
+import { Badge, Bar, buttonVariants, Card, CardBody } from "@/components/ui";
+import { DomainRing, type RingState } from "@/components/domain-art";
 
 // The study plan: every competency lesson in blueprint order, closed by a
 // domain test. One pointer ("up next") walks the plan; an in-flight lesson
@@ -158,62 +157,42 @@ export function nextAfter(units: Unit[], id: string): Row | null {
 }
 
 export function rowTitle(row: Row): string {
-  return row.kind === "test" ? `Domain ${row.domainCode} test` : `${row.code} · ${row.name}`;
+  return row.kind === "test" ? `Domain ${row.domainCode} test` : `${row.code} ${row.name}`;
 }
 
-// ── Navigation button ──
-// The shared Button primitive, navigating on click: one focus stop and one
-// role (a <Link> wrapping a <button> gives keyboard users two).
-export function NavButton({ href, onClick, children, ...props }: Omit<ComponentProps<typeof Button>, "onClick"> & { href: string; onClick?: () => void }) {
-  const router = useRouter();
+/** Ring segment per row: status first, then the plan pointer. */
+export function ringStates(rows: Row[]): RingState[] {
+  return rows.map((r) => (r.status === "done" ? "done" : r.status === "paused" ? "paused" : r.status === "retake" ? "retake" : r.isCurrent ? "current" : "new"));
+}
+
+// ── A link that looks like the shared Button (one focus stop, real navigation) ──
+export function NavButton({ variant, size, className, onClick, ...props }: ComponentProps<typeof Link> & VariantProps<typeof buttonVariants>) {
   return (
-    <Button
-      type="button"
+    <Link
       {...props}
-      onMouseEnter={() => router.prefetch(href)}
-      onFocus={() => router.prefetch(href)}
-      onClick={() => {
+      className={cn(buttonVariants({ variant, size }), className)}
+      onClick={(e) => {
         haptic("tap");
-        onClick?.();
-        router.push(href);
+        onClick?.(e);
       }}
-    >
-      {children}
-    </Button>
+    />
   );
 }
 
-// ── Domain header (art band) — shared by the Study Plan boards and Study sheets ──
-export function DomainHeader({ domain, right, as: H = "h2" }: { domain: Domain; right?: ReactNode; as?: "h2" | "h3" }) {
+// ── Domain header — shared by the Study Plan boards and Study sheets ──
+export function DomainHeader({ domain, states, right, as: H = "h2" }: { domain: Domain; states: RingState[]; right?: ReactNode; as?: "h2" | "h3" }) {
   return (
-    <div className="relative overflow-hidden border-b border-[var(--border)]">
-      <DomainArt code={domain.code as DomainCode} className="absolute inset-0 h-full w-full" />
-      <div className="relative flex min-h-[104px] items-end gap-4 px-4 pb-3.5 pt-7 sm:px-5">
-        <div className="min-w-0 flex-1">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-            Domain {domain.code} · {domain.minQ}–{domain.maxQ} <span className="hidden sm:inline">exam </span>questions
-          </div>
-          <H className="mt-0.5 text-base font-bold leading-snug sm:text-lg sm:leading-tight">{domain.name}</H>
+    <div className="flex items-center gap-3.5 border-b border-[var(--border)] px-4 py-3.5 sm:px-5">
+      <DomainRing code={domain.code} states={states} />
+      <div className="min-w-0 flex-1">
+        <H className="text-[17px] font-bold leading-snug sm:text-lg sm:leading-tight">{domain.name}</H>
+        <div className="mt-0.5 text-[13px] text-[var(--muted)]">
+          Domain {domain.code} · {domain.minQ}–{domain.maxQ} exam questions
         </div>
-        {right && <div className="shrink-0 pb-0.5">{right}</div>}
+        {/* phones: the count sits under the label so long domain names keep the width */}
+        {right && <div className="mt-0.5 sm:hidden">{right}</div>}
       </div>
-    </div>
-  );
-}
-
-function DomainProgress({ unit }: { unit: Unit }) {
-  return (
-    <div className="flex w-24 flex-col items-end gap-1.5 sm:w-28">
-      {unit.complete ? (
-        <span className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--success)]">
-          <CheckCircle2 size={13} aria-hidden /> Complete
-        </span>
-      ) : (
-        <span className="text-xs font-semibold tabular-nums text-[var(--muted)]">
-          {unit.passed}/{unit.total} passed
-        </span>
-      )}
-      <MotionBar value={unit.pct} tone={unit.complete ? "success" : "primary"} className="h-1.5" />
+      {right && <div className="hidden shrink-0 text-right sm:block">{right}</div>}
     </div>
   );
 }
@@ -222,25 +201,37 @@ function DomainProgress({ unit }: { unit: Unit }) {
 export function CurriculumBoard({ headingLevel = "h2" }: { headingLevel?: "h2" | "h3" }) {
   const { units } = useCurriculum();
   return (
-    <Stagger className="space-y-5" delay={0.05}>
+    <div className="space-y-4">
       {units.map((u) => (
-        <StaggerItem key={u.domain.id} y={14}>
-          <DomainBoard unit={u} headingLevel={headingLevel} />
-        </StaggerItem>
+        <DomainBoard key={u.domain.id} unit={u} headingLevel={headingLevel} />
       ))}
-    </Stagger>
+    </div>
   );
 }
 
 function DomainBoard({ unit, headingLevel }: { unit: Unit; headingLevel: "h2" | "h3" }) {
-  // Finished domains fold away so the remaining work leads; the user can open them.
+  // Finished domains fold away so the remaining work leads; the learner can open them.
   const [toggled, setToggled] = useState<boolean | null>(null);
   const open = toggled ?? !unit.complete;
   const listId = useId();
   const avgBest = Math.round((unit.rows.reduce((s, r) => s + (r.best ?? 0), 0) / unit.rows.length) * 100);
   return (
     <Card className="overflow-hidden">
-      <DomainHeader domain={unit.domain} as={headingLevel} right={<DomainProgress unit={unit} />} />
+      <DomainHeader
+        domain={unit.domain}
+        states={ringStates(unit.rows)}
+        as={headingLevel}
+        right={
+          !unit.complete && (
+            <span className="whitespace-nowrap text-[13px] text-[var(--muted)]">
+              <span className="font-semibold tabular-nums text-[var(--foreground)]">
+                {unit.passed}/{unit.total}
+              </span>{" "}
+              passed
+            </span>
+          )
+        }
+      />
       {unit.complete && (
         <button
           type="button"
@@ -254,11 +245,11 @@ function DomainBoard({ unit, headingLevel }: { unit: Unit; headingLevel: "h2" | 
         >
           <Trophy size={18} className="shrink-0 text-[var(--success)]" aria-hidden />
           <span className="min-w-0 flex-1 text-sm font-semibold">
-            All {unit.total} passed <span className="font-normal text-[var(--muted)]">· average best {avgBest}%</span>
+            All {unit.total} passed <span className="font-normal text-[var(--muted)]">with an average best of {avgBest}%</span>
           </span>
-          <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-[var(--muted)]">
+          <span className="flex shrink-0 items-center gap-1 text-[13px] font-semibold text-[var(--muted)]">
             {open ? "Hide" : "Show"}
-            <ChevronDown size={14} className={cn("transition-transform duration-200", open && "rotate-180")} aria-hidden />
+            <ChevronDown size={15} className={cn("motion-safe:transition-transform motion-safe:duration-200", open && "rotate-180")} aria-hidden />
           </span>
         </button>
       )}
@@ -279,8 +270,8 @@ function statusIcon(row: Row): { Icon: LucideIcon; cls: string } {
   if (row.status === "done") return { Icon: CheckCircle2, cls: "text-[var(--success)]" };
   if (row.status === "paused") return { Icon: PlayCircle, cls: "text-[var(--accent)]" };
   if (row.status === "retake") return { Icon: RotateCcw, cls: "text-[var(--warning)]" };
-  if (row.kind === "test") return { Icon: GraduationCap, cls: row.isCurrent ? "text-[var(--primary)]" : "text-[var(--muted)] opacity-60" };
-  return { Icon: row.isCurrent ? PlayCircle : Circle, cls: row.isCurrent ? "text-[var(--primary)]" : "text-[var(--muted)] opacity-50" };
+  if (row.kind === "test") return { Icon: GraduationCap, cls: row.isCurrent ? "text-[var(--primary)]" : "text-[var(--muted)] opacity-70" };
+  return { Icon: row.isCurrent ? PlayCircle : Circle, cls: row.isCurrent ? "text-[var(--primary)]" : "text-[var(--muted)] opacity-60" };
 }
 
 function actionLabel(row: Row): string {
@@ -290,33 +281,18 @@ function actionLabel(row: Row): string {
   return row.kind === "test" ? "Take test" : "Start";
 }
 
-function RowMeta({ row }: { row: Row }) {
-  const parts: ReactNode[] = [row.kind === "test" ? `${row.qCount} questions` : row.topicCount ? `${row.topicCount} topics` : `${row.steps} steps`];
-  if (row.session) parts.push(<span className="font-semibold text-[var(--accent)]">paused at {row.session.step + 1}/{row.session.total}</span>);
-  if (row.best !== null) {
-    parts.push(
-      row.passed ? (
-        `best ${Math.round(row.best * 100)}%`
-      ) : (
-        <span className="font-semibold text-[var(--warning)]">
-          best {Math.round(row.best * 100)}% · needs {PASS_PCT}%
-        </span>
-      )
+/** One short line per row — a single separator at most. */
+function rowMeta(row: Row): ReactNode {
+  const count = row.kind === "test" ? `${row.qCount} questions` : row.topicCount ? `${row.topicCount} topics` : `${row.steps} steps`;
+  if (row.session) return <span className="font-semibold text-[var(--accent)]">Paused at step {row.session.step + 1} of {row.session.total}</span>;
+  if (row.status === "retake")
+    return (
+      <span className="font-semibold text-[color-mix(in_srgb,var(--warning)_80%,var(--foreground))]">
+        Best {Math.round((row.best ?? 0) * 100)}% · needs {PASS_PCT}%
+      </span>
     );
-  } else if (!row.session) {
-    parts.push(`~${row.minutes} min`);
-  }
-  return (
-    <div className="mt-0.5 text-xs text-[var(--muted)]">
-      {row.kind === "lesson" && <span className="font-semibold sm:hidden">{row.code} · </span>}
-      {parts.map((p, i) => (
-        <span key={i}>
-          {i > 0 && " · "}
-          {p}
-        </span>
-      ))}
-    </div>
-  );
+  if (row.status === "done") return `${count} · best ${Math.round((row.best ?? 0) * 100)}%`;
+  return `${count} · ~${row.minutes} min`;
 }
 
 function ModuleRow({ row }: { row: Row }) {
@@ -329,36 +305,39 @@ function ModuleRow({ row }: { row: Row }) {
       aria-current={row.isCurrent ? "step" : undefined}
       className={cn(
         "group flex min-h-14 cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]/50 sm:px-5",
-        row.isCurrent && "bg-[var(--primary)]/5"
+        row.isCurrent && "bg-[var(--primary)]/6"
       )}
     >
-      <Icon size={20} className={cn("shrink-0 transition-transform duration-200 group-hover:scale-110", cls)} aria-hidden />
-      <span className="hidden w-10 shrink-0 text-xs font-semibold tabular-nums text-[var(--muted)] sm:block">{isTest ? "" : row.code}</span>
+      <Icon size={20} className={cn("shrink-0 motion-safe:transition-transform motion-safe:duration-200 group-hover:scale-110", cls)} aria-hidden />
+      <span className="hidden w-10 shrink-0 text-[13px] font-semibold tabular-nums text-[var(--muted)] sm:block">{isTest ? "" : row.code}</span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="line-clamp-2 min-w-0 text-sm font-semibold leading-snug sm:line-clamp-1">{isTest ? "Domain test" : row.name}</span>
+          <span className="line-clamp-2 min-w-0 text-[15px] font-semibold leading-snug sm:line-clamp-1">
+            {!isTest && <span className="font-medium text-[var(--muted)] sm:hidden">{row.code} </span>}
+            {isTest ? "Domain test" : row.name}
+          </span>
           {row.session ? (
             <Badge tone="accent" className="shrink-0 whitespace-nowrap">In progress</Badge>
           ) : (
             row.isCurrent && <Badge tone="primary" className="shrink-0 whitespace-nowrap">Up next</Badge>
           )}
         </div>
-        <RowMeta row={row} />
+        <div className="mt-0.5 text-[13px] text-[var(--muted)]">{rowMeta(row)}</div>
       </div>
-      <span className={cn("flex shrink-0 items-center gap-1 text-xs font-semibold", row.isCurrent || row.session ? "text-[var(--primary)]" : "text-[var(--accent)]")}>
-        <span className="hidden sm:inline">{actionLabel(row)}</span>
-        <ArrowRight size={14} className="transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden />
+      <span className={cn("hidden shrink-0 text-[13px] font-semibold sm:block", row.isCurrent || row.session ? "text-[var(--primary)]" : "text-[var(--muted)] group-hover:text-[var(--foreground)]")}>
+        {actionLabel(row)}
       </span>
+      <ChevronRight size={16} className="shrink-0 text-[var(--muted)] sm:hidden" aria-hidden />
     </Link>
   );
 }
 
 // ── Next step — the one primary action of the plan ──
 const TONE_TEXT = {
-  primary: "text-[var(--primary)]",
-  accent: "text-[var(--accent)]",
-  warning: "text-[var(--warning)]",
-  success: "text-[var(--success)]",
+  primary: "text-[color-mix(in_srgb,var(--primary)_85%,var(--foreground))]",
+  accent: "text-[color-mix(in_srgb,var(--accent)_85%,var(--foreground))]",
+  warning: "text-[color-mix(in_srgb,var(--warning)_80%,var(--foreground))]",
+  success: "text-[color-mix(in_srgb,var(--success)_85%,var(--foreground))]",
 } as const;
 
 export function NextStep({ row, firstRun, className }: { row: Row | null; firstRun?: boolean; className?: string }) {
@@ -368,72 +347,86 @@ export function NextStep({ row, firstRun, className }: { row: Row | null; firstR
         className={className}
         tone="success"
         icon={Trophy}
-        eyebrow="Plan complete"
+        label="Plan complete"
         title="Every module and domain test passed"
         meta="Keep sharp with full-length mocks."
-        action={<NavButton href="/mock" className="group w-full sm:w-auto">Take a full mock <ArrowRight size={15} className="transition-transform duration-200 group-hover:translate-x-0.5" /></NavButton>}
+        action={
+          <NavButton href="/mock" className="group w-full sm:w-auto">
+            Take a full mock <ArrowRight size={15} className="motion-safe:transition-transform motion-safe:duration-200 group-hover:translate-x-0.5" aria-hidden />
+          </NavButton>
+        }
       />
     );
   }
   const isTest = row.kind === "test";
   let tone: keyof typeof TONE_TEXT = "primary";
   let icon: LucideIcon = PlayCircle;
-  let eyebrow = "Up next";
-  let label = "Start lesson";
-  let meta = isTest ? `${row.domainName} · ${row.qCount} questions · ~${row.minutes} min` : `${row.topicCount ? `${row.topicCount} topics · ` : ""}${row.steps} steps · ~${row.minutes} min`;
+  let label = "Up next";
+  let cta = "Start lesson";
+  let meta = isTest ? `${row.qCount} questions · ~${row.minutes} min` : `${row.topicCount ? `${row.topicCount} topics` : `${row.steps} steps`} · ~${row.minutes} min`;
   let progress: number | null = null;
 
   if (row.session) {
     const left = row.session.total - row.session.step;
     tone = "accent";
-    eyebrow = `Resume · step ${row.session.step + 1} of ${row.session.total}`;
-    label = "Resume";
+    label = `Resume at step ${row.session.step + 1} of ${row.session.total}`;
+    cta = "Resume";
     meta = `${left} step${left === 1 ? "" : "s"} left · ~${Math.max(1, Math.round((row.minutes * left) / row.session.total))} min`;
     progress = (row.session.step / row.session.total) * 100;
   } else if (firstRun) {
     icon = Sparkles;
-    eyebrow = "Start here";
-    label = "Start first lesson";
+    label = "Your first lesson";
+    cta = "Start first lesson";
   } else if (row.status === "retake") {
     tone = "warning";
     icon = RotateCcw;
-    eyebrow = isTest ? "Up next · retake the test" : "Up next · retake to pass";
-    label = isTest ? "Retake test" : "Retake lesson";
-    meta = `Best ${Math.round((row.best ?? 0) * 100)}% · ${PASS_PCT}% passes · ~${row.minutes} min`;
+    label = isTest ? "Retake the domain test" : "Retake to pass";
+    cta = isTest ? "Retake test" : "Retake lesson";
+    meta = `Best ${Math.round((row.best ?? 0) * 100)}% · ${PASS_PCT}% passes`;
   } else if (isTest) {
     icon = GraduationCap;
-    eyebrow = "Up next · domain test";
-    label = "Take the test";
+    label = "Domain test unlocked";
+    cta = "Take the test";
   }
+
+  const title = isTest ? (
+    <>
+      Domain {row.domainCode} test <span className="font-medium text-[var(--muted)]">{row.domainName}</span>
+    </>
+  ) : (
+    <>
+      <span className="font-medium text-[var(--muted)]">{row.code}</span> {row.name}
+    </>
+  );
 
   return (
     <StepShell
       className={className}
       tone={tone}
       icon={icon}
-      eyebrow={eyebrow}
-      title={rowTitle(row)}
+      label={label}
+      title={title}
       meta={meta}
       progress={progress}
       action={
         <NavButton href={`/lesson/${row.id}`} className="group w-full sm:w-auto">
-          {label} <ArrowRight size={15} className="transition-transform duration-200 group-hover:translate-x-0.5" />
+          {cta} <ArrowRight size={15} className="motion-safe:transition-transform motion-safe:duration-200 group-hover:translate-x-0.5" aria-hidden />
         </NavButton>
       }
     />
   );
 }
 
-function StepShell({ tone, icon: Icon, eyebrow, title, meta, progress, action, className }: { tone: keyof typeof TONE_TEXT; icon: LucideIcon; eyebrow: string; title: string; meta: string; progress?: number | null; action: ReactNode; className?: string }) {
+function StepShell({ tone, icon: Icon, label, title, meta, progress, action, className }: { tone: keyof typeof TONE_TEXT; icon: LucideIcon; label: string; title: ReactNode; meta: string; progress?: number | null; action: ReactNode; className?: string }) {
   return (
     <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6", className)}>
       <div className="min-w-0 flex-1">
-        <div className={cn("flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em]", TONE_TEXT[tone])}>
-          <Icon size={13} aria-hidden /> {eyebrow}
+        <div className={cn("flex items-center gap-1.5 text-[13px] font-semibold", TONE_TEXT[tone])}>
+          <Icon size={14} aria-hidden /> {label}
         </div>
-        <div className="mt-1 text-[15px] font-bold leading-snug">{title}</div>
-        <div className="mt-0.5 text-xs text-[var(--muted)]">{meta}</div>
-        {progress != null && <MotionBar value={progress} tone="accent" className="mt-2 h-1.5 max-w-60" />}
+        <div className="mt-1 font-display text-[17px] font-bold leading-snug">{title}</div>
+        <div className="mt-0.5 text-[13px] text-[var(--muted)]">{meta}</div>
+        {progress != null && <Bar value={progress} className="mt-2 h-1.5 max-w-60" />}
       </div>
       <div className="shrink-0">{action}</div>
     </div>
@@ -444,7 +437,7 @@ function StepShell({ tone, icon: Icon, eyebrow, title, meta, progress, action, c
 export function ContinueCard() {
   const { current } = useCurriculum();
   return (
-    <Card className="mesh">
+    <Card>
       <CardBody>
         <NextStep row={current} />
       </CardBody>

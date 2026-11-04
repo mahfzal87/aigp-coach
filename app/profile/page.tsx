@@ -8,7 +8,6 @@ import {
   BarChart3,
   BookCheck,
   CheckCircle2,
-  ChevronRight,
   Circle,
   Flame,
   Footprints,
@@ -31,13 +30,13 @@ import { cn } from "@/lib/utils";
 import type { Competency, MockSession, Readiness, Verdict } from "@/lib/types";
 import { useHydrated, useProgress } from "@/store/progress";
 import { Badge, Bar, Card, CardBody, PageHeader } from "@/components/ui";
-import { Stagger, StaggerItem } from "@/components/motion";
-import { ScoreDial } from "@/components/readiness-gauge";
-import { Ring } from "@/components/gamify";
+import { LiquidOrb } from "@/components/liquid-orb";
+import { EmptyOrb, ScoreDial } from "@/components/readiness-gauge";
+import { Ring, StreakRing } from "@/components/gamify";
 import {
+  ButtonLink,
   DragRow,
-  Eyebrow,
-  GoButton,
+  Label,
   MIN_SEEN,
   MasteryBar,
   ROW_LINK,
@@ -72,6 +71,7 @@ function scaledFor(pct: number): number {
 }
 const READY_AT = scaledFor(READY_PCT); // 466
 const ALMOST_AT = scaledFor(ALMOST_PCT); // 430
+const STREAK_GOAL = 7; // the "Unstoppable" milestone
 
 // Explicit icon map — importing lucide's whole namespace pulled ~5,900 icons into this page.
 const ACH_ICON: Record<string, LucideIcon> = { Footprints, Flame, Swords, Zap, Rocket, BookCheck, Trophy, Star, TrendingUp, GraduationCap };
@@ -154,102 +154,83 @@ export default function ProfilePage() {
   const fresh = n === 0;
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title="Progress"
         subtitle="Readiness, mastery, rhythm."
         action={
-          <GoButton href="/analytics" variant="outline" size="sm">
+          <ButtonLink href="/analytics" variant="outline" size="sm">
             <BarChart3 size={14} /> Analytics
-          </GoButton>
+          </ButtonLink>
         }
       />
 
-      <Stagger className="space-y-6">
-        <StaggerItem>
-          <ReadinessHero
-            readiness={readiness}
-            answered={n}
-            passScaled={meta.passScaled}
-            latestMock={latestMock}
-            fullMocks={fullMocks.length}
-            modulesPassed={modulesPassed}
-            drag={drag}
-            firstComp={comps[0]}
-          />
-        </StaggerItem>
+      <ReadinessHero
+        readiness={readiness}
+        answered={n}
+        passScaled={meta.passScaled}
+        latestMock={latestMock}
+        fullMocks={fullMocks.length}
+        modulesPassed={modulesPassed}
+        drag={drag}
+        firstComp={comps[0]}
+      />
 
-        {!fresh && (
-          <StaggerItem>
-            <StatStrip
-              items={[
-                { label: "Answered", value: n.toLocaleString(), hint: `${unique.toLocaleString()} unique questions` },
-                {
-                  label: "Accuracy",
-                  value: accuracy == null ? "—" : `${accuracy}%`,
-                  hint: acc50 != null ? `${acc50}% in your last 50` : `${correct} of ${n} right`,
-                },
-                {
-                  label: "Modules passed",
-                  value: (
-                    <>
-                      {modulesPassed}
-                      <span className="text-base font-semibold text-[var(--muted)]">/{moduleIds.length}</span>
-                    </>
-                  ),
-                  hint: "lessons + domain tests",
-                },
-                {
-                  label: "Full mocks passed",
-                  value: fullMocks.length ? (
-                    <>
-                      {fullPassed}
-                      <span className="text-base font-semibold text-[var(--muted)]">/{fullMocks.length}</span>
-                    </>
-                  ) : (
-                    "—"
-                  ),
-                  hint: fullMocks.length ? `pass mark ${meta.passScaled}` : "none taken yet",
-                },
-              ]}
-            />
-          </StaggerItem>
-        )}
+      {!fresh && (
+        <StatStrip
+          items={[
+            { label: "Answered", value: n.toLocaleString(), hint: `${unique.toLocaleString()} unique questions` },
+            {
+              label: "Accuracy",
+              value: accuracy == null ? "—" : `${accuracy}%`,
+              hint: acc50 != null ? `${acc50}% in your last 50` : `${correct} of ${n} right`,
+            },
+            {
+              label: "Modules passed",
+              value: (
+                <>
+                  {modulesPassed}
+                  <span className="text-base font-semibold text-[var(--muted)]">/{moduleIds.length}</span>
+                </>
+              ),
+              hint: "lessons and domain tests",
+            },
+            {
+              label: "Full mocks passed",
+              value: fullMocks.length ? (
+                <>
+                  {fullPassed}
+                  <span className="text-base font-semibold text-[var(--muted)]">/{fullMocks.length}</span>
+                </>
+              ) : (
+                "—"
+              ),
+              hint: fullMocks.length ? `pass mark ${meta.passScaled}` : "none taken yet",
+            },
+          ]}
+        />
+      )}
 
-        {!fresh && (
-          <StaggerItem>
-            <DomainMastery rows={readiness.domainMastery.map((d) => ({ ...d, name: getDomain(d.code)?.name ?? `Domain ${d.code}` }))} />
-          </StaggerItem>
-        )}
+      {!fresh && <DomainMastery rows={readiness.domainMastery.map((d) => ({ ...d, name: getDomain(d.code)?.name ?? `Domain ${d.code}` }))} />}
 
-        {!fresh && topicStats.length > 0 && (
-          <StaggerItem>
-            <TopicsCard stats={topicStats} firstComp={comps[0]} />
-          </StaggerItem>
-        )}
+      {!fresh && topicStats.length > 0 && <TopicsCard stats={topicStats} firstComp={comps[0]} />}
 
-        <StaggerItem>
-          <RhythmCard
-            level={lvl.level}
-            levelPct={lvl.pct}
-            toNext={lvl.need - lvl.into}
-            streak={alive ? streak : 0}
-            staleStreak={!alive && streak > 0 ? streak : 0}
-            longest={longest}
-            todayPts={dailyDate === todayStr() ? dailyXp : 0}
-            xp={xp}
-          />
-        </StaggerItem>
+      <RhythmCard
+        level={lvl.level}
+        levelPct={lvl.pct}
+        toNext={lvl.need - lvl.into}
+        streak={alive ? streak : 0}
+        staleStreak={!alive && streak > 0 ? streak : 0}
+        longest={longest}
+        todayPts={dailyDate === todayStr() ? dailyXp : 0}
+      />
 
-        <StaggerItem>
-          <MilestonesCard input={achInput} />
-        </StaggerItem>
-      </Stagger>
+      <MilestonesCard input={achInput} />
     </div>
   );
 }
 
-// ─── Hero: verdict, the dial, the three gates, and what's dragging the score ───
+// ─── Hero: one instrument (readiness orb inside the score bezel), the verdict, the gates ───
 
 interface Gate {
   label: string;
@@ -280,6 +261,7 @@ function ReadinessHero({
   const v = VERDICT[readiness.verdict];
   const known = readiness.verdict !== "unknown";
   const projected = readiness.projectedScaled;
+  const projTone: Tone = projected >= READY_AT ? "success" : projected >= ALMOST_AT ? "warning" : "danger";
 
   const low = readiness.domainMastery
     .filter((d) => d.insufficient || d.mastery < TARGET)
@@ -290,7 +272,7 @@ function ReadinessHero({
       label: `Projected ${READY_AT}+`,
       ok: readiness.projectedPercent >= READY_PCT,
       value: String(projected),
-      tone: projected >= READY_AT ? "success" : projected >= ALMOST_AT ? "warning" : "danger",
+      tone: projTone,
     },
     {
       label: `Every domain ${TARGET}+`,
@@ -299,14 +281,14 @@ function ReadinessHero({
         ? low
             .slice(0, 2)
             .map((d) => (d.insufficient ? `${d.code} needs data` : `${d.code} at ${d.mastery}`))
-            .join(" · ") + (low.length > 2 ? ` +${low.length - 2}` : "")
+            .join(", ") + (low.length > 2 ? ` +${low.length - 2}` : "")
         : "All clear",
       tone: !worst ? "success" : worst.insufficient ? "warning" : masteryTone(worst.mastery),
     },
     {
       label: "Full mock taken",
       ok: readiness.hasMock,
-      value: fullMocks ? `${fullMocks} taken` : "None yet",
+      value: fullMocks ? (latestMock?.scaledScore != null ? `${fullMocks} taken · latest ${latestMock.scaledScore}` : `${fullMocks} taken`) : "None yet",
       tone: readiness.hasMock ? "success" : "danger",
     },
   ];
@@ -342,9 +324,11 @@ function ReadinessHero({
     { done: fullMocks > 0, label: "Finish a full mock", sub: "anchors the projection", meta: "Mock exam", href: "/mock" },
   ];
 
+  // The screen's one lit glass hero (.mesh): the exam's light pools behind the instrument.
   return (
-    <Card>
-      <CardBody className="grid gap-5 sm:grid-cols-[260px_minmax(0,1fr)] sm:items-center sm:gap-7">
+    <Card className="mesh">
+      <CardBody className="grid gap-6 sm:grid-cols-[264px_minmax(0,1fr)] sm:items-center sm:gap-8">
+        {/* The instrument: readiness in the liquid, the exam-scale projection on the bezel. */}
         <div className="flex flex-col items-center">
           <ScoreDial
             projected={known ? projected : null}
@@ -352,30 +336,42 @@ function ReadinessHero({
             pass={passScaled}
             almostAt={ALMOST_AT}
             readyAt={READY_AT}
-            mock={known ? (latestMock?.scaledScore ?? null) : null}
-            size={260}
-          />
-          {known && latestMock && (
-            <div className="mt-1 flex items-center gap-1.5 text-xs text-[var(--muted)]">
-              <span aria-hidden className="h-2 w-2 rounded-full bg-[var(--foreground)] opacity-75" />
-              Latest mock <span className="font-semibold tabular-nums text-[var(--foreground)]">{latestMock.scaledScore}</span>
-            </div>
-          )}
+            size={264}
+          >
+            {(d) =>
+              known ? (
+                <LiquidOrb value={readiness.overall} size={d} sub="readiness" label="Readiness" />
+              ) : (
+                <EmptyOrb size={d} sub={answered ? `${answered} of ${FIRST_READ} answers` : "no reading yet"} />
+              )
+            }
+          </ScoreDial>
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
+            {known && (
+              <span className="inline-flex items-center gap-1.5">
+                <span aria-hidden className="h-2.5 w-2.5 rounded-full border-[2.5px] bg-[var(--surface)]" style={{ borderColor: toneVar(projTone) }} />
+                <span className="font-semibold tabular-nums text-[var(--foreground)]">{projected}</span> projected
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1.5">
+              <span aria-hidden className="h-3 w-0.5 rounded-full bg-[var(--success)]" />
+              <span className="font-semibold tabular-nums text-[var(--foreground)]">{READY_AT}</span> ready
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span aria-hidden className="h-3 w-0.5 rounded-full bg-[var(--foreground)] opacity-45" />
+              <span className="font-semibold tabular-nums text-[var(--foreground)]">{passScaled}</span> pass
+            </span>
+          </div>
         </div>
 
         <div className="min-w-0">
           <Badge tone={v.tone}>{v.label}</Badge>
-          <div className="mt-2 text-xl font-bold tracking-tight tabular-nums">{headline}</div>
-          {known && (
-            <div className="mt-0.5 text-xs text-[var(--muted)]">
-              Readiness <span className="font-semibold tabular-nums text-[var(--foreground)]">{readiness.overall}</span>/100
-            </div>
-          )}
+          <h2 className="mt-2 text-[24px] font-bold leading-tight tabular-nums">{headline}</h2>
 
           {known ? (
             <ul className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]" aria-label="Gates to Exam ready">
               {gates.map((g) => (
-                <li key={g.label} className="flex items-center gap-2.5 py-2 text-sm">
+                <li key={g.label} className="flex items-center gap-2.5 py-2.5 text-sm">
                   {g.ok ? (
                     <CheckCircle2 size={16} className="shrink-0 text-[var(--success)]" aria-hidden />
                   ) : (
@@ -393,7 +389,7 @@ function ReadinessHero({
             </ul>
           ) : (
             <>
-              <Bar value={(Math.min(answered, FIRST_READ) / FIRST_READ) * 100} tone="primary" className="mt-3 h-1.5" />
+              <Bar value={(Math.min(answered, FIRST_READ) / FIRST_READ) * 100} className="mt-3 h-1.5" />
               <ul className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]" aria-label="First steps">
                 {steps.map((s) => {
                   const body = (
@@ -403,16 +399,13 @@ function ReadinessHero({
                         <span className="block truncate text-sm">{s.label}</span>
                         <span className="block truncate text-xs text-[var(--muted)]">{s.sub}</span>
                       </span>
-                      <span className={cn("flex shrink-0 items-center text-xs font-semibold tabular-nums", s.href ? "text-[var(--accent)]" : "text-[var(--muted)]")}>
-                        {s.meta}
-                        {s.href && <ChevronRight size={14} className="transition-transform duration-200 group-hover:translate-x-0.5" />}
-                      </span>
+                      <span className={cn("shrink-0 text-xs font-semibold tabular-nums", s.href ? "text-[var(--accent)]" : "text-[var(--muted)]")}>{s.meta}</span>
                     </>
                   );
                   return (
                     <li key={s.label}>
                       {s.href ? (
-                        <Link href={s.href} onClick={() => haptic("tap")} className={cn(ROW_LINK, "-mx-2 min-h-[48px] rounded-lg px-2")}>
+                        <Link href={s.href} onClick={() => haptic("tap")} className={cn(ROW_LINK, "-mx-2 min-h-[48px] rounded-xl px-2")}>
                           {body}
                         </Link>
                       ) : (
@@ -425,14 +418,14 @@ function ReadinessHero({
             </>
           )}
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <GoButton href={primary.href} className="group w-full sm:w-auto">
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <ButtonLink href={primary.href} className="group w-full sm:w-auto">
               {primary.label} <ArrowRight size={15} className="transition-transform duration-200 group-hover:translate-x-0.5" />
-            </GoButton>
+            </ButtonLink>
             {secondary && (
-              <GoButton href={secondary.href} variant="ghost" className="w-full sm:w-auto">
+              <ButtonLink href={secondary.href} variant="ghost" className="w-full sm:w-auto">
                 {secondary.label}
-              </GoButton>
+              </ButtonLink>
             )}
           </div>
         </div>
@@ -441,9 +434,9 @@ function ReadinessHero({
       {known && (
         <div className="border-t border-[var(--border)]">
           <div className="flex items-baseline justify-between gap-3 px-5 pb-1 pt-4">
-            <Eyebrow>Dragging you down</Eyebrow>
-            <Link href="/analytics" className="-my-3 flex items-center py-3 text-xs font-semibold text-[var(--accent)] hover:underline">
-              All competencies <ChevronRight size={14} />
+            <Label>Dragging you down</Label>
+            <Link href="/analytics" className="-my-3 py-3 text-xs font-semibold text-[var(--accent)] hover:underline">
+              All competencies
             </Link>
           </div>
           {drag.length ? (
@@ -453,7 +446,7 @@ function ReadinessHero({
               ))}
             </ul>
           ) : (
-            <p className="px-5 pb-4 pt-1 text-sm text-[var(--muted)]">Nothing below {TARGET} — keep mocks sharp.</p>
+            <p className="px-5 pb-4 pt-1 text-sm text-[var(--muted)]">Nothing below {TARGET}. Keep mocks sharp.</p>
           )}
         </div>
       )}
@@ -472,8 +465,8 @@ function DomainMastery({ rows }: { rows: (Readiness["domainMastery"][number] & {
           <SectionHead title="Mastery by domain" />
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             <p className="text-sm text-[var(--muted)]">Scores appear at {MIN_SEEN} answers per competency.</p>
-            <Link href="/practice" className="-my-3 flex items-center py-3 text-xs font-semibold text-[var(--accent)] hover:underline">
-              Start a drill <ChevronRight size={14} />
+            <Link href="/practice" className="-my-3 py-3 text-xs font-semibold text-[var(--accent)] hover:underline">
+              Start a drill
             </Link>
           </div>
         </CardBody>
@@ -496,7 +489,7 @@ function DomainMastery({ rows }: { rows: (Readiness["domainMastery"][number] & {
                     {d.insufficient ? (
                       <span className="shrink-0 text-xs text-[var(--muted)]">needs {MIN_SEEN}+ answers</span>
                     ) : (
-                      <span className="shrink-0 text-sm font-bold tabular-nums" style={{ color: toneVar(tone) }}>
+                      <span className="shrink-0 font-display text-base font-bold tabular-nums" style={{ color: toneVar(tone) }}>
                         {d.mastery}
                       </span>
                     )}
@@ -519,6 +512,9 @@ const TOPIC_SEGMENTS = [
   { key: "shaky", label: "shaky", color: "var(--warning)" },
   { key: "weak", label: "weak", color: "var(--danger)" },
 ] as const;
+
+const TOGGLE =
+  "press min-h-[44px] w-full cursor-pointer border-t border-[var(--border)] py-3 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]/50";
 
 function TopicsCard({ stats, firstComp }: { stats: TopicStat[]; firstComp?: Competency }) {
   const [showAll, setShowAll] = useState(false);
@@ -575,37 +571,29 @@ function TopicsCard({ stats, firstComp }: { stats: TopicStat[]; firstComp?: Comp
                       <span className="line-clamp-2 text-sm font-medium sm:line-clamp-1">{s.topic.title}</span>
                       <span className="block truncate text-xs tabular-nums text-[var(--muted)]">
                         {comp ? `${comp.code} · ` : ""}
-                        {Math.round(s.accuracy * 100)}% recent · {plural(s.attempts, "answer")}
+                        {Math.round(s.accuracy * 100)}% across {plural(s.attempts, "answer")}
                       </span>
                     </span>
-                    <span className="flex shrink-0 items-center text-xs font-semibold text-[var(--accent)]">
-                      Retrain
-                      <ChevronRight size={14} className="transition-transform duration-200 group-hover:translate-x-0.5" />
-                    </span>
+                    <span className="shrink-0 text-xs font-semibold text-[var(--accent)]">Retrain</span>
                   </Link>
                 </li>
               );
             })}
           </ul>
           {flagged.length > LIMIT && (
-            <button
-              type="button"
-              onClick={() => setShowAll((x) => !x)}
-              aria-expanded={showAll}
-              className="press min-h-[44px] w-full cursor-pointer border-t border-[var(--border)] py-3 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]/50"
-            >
+            <button type="button" onClick={() => setShowAll((x) => !x)} aria-expanded={showAll} className={TOGGLE}>
               {showAll ? "Show fewer" : `Show all ${flagged.length}`}
             </button>
           )}
         </>
       ) : started > 0 ? (
-        <p className="px-5 py-4 text-sm text-[var(--muted)]">No weak topics right now — keep it up.</p>
+        <p className="px-5 py-4 text-sm text-[var(--muted)]">No weak topics right now. Keep it up.</p>
       ) : (
         <div className="flex items-center justify-between gap-3 px-5 py-4">
           <p className="text-sm text-[var(--muted)]">Lessons map your topics.</p>
           {firstComp && (
-            <Link href={`/lesson/${firstComp.id}`} className="-my-3 flex shrink-0 items-center py-3 text-xs font-semibold text-[var(--accent)] hover:underline">
-              Start lesson {firstComp.code} <ChevronRight size={14} />
+            <Link href={`/lesson/${firstComp.id}`} className="-my-3 shrink-0 py-3 text-xs font-semibold text-[var(--accent)] hover:underline">
+              Start lesson {firstComp.code}
             </Link>
           )}
         </div>
@@ -614,7 +602,7 @@ function TopicsCard({ stats, firstComp }: { stats: TopicStat[]; firstComp?: Comp
   );
 }
 
-// ─── Study rhythm: level, streak, today — quiet, one card ───
+// ─── Study rhythm: three small instruments — level ring, streak pips, today's ring ───
 
 function RhythmCard({
   level,
@@ -624,7 +612,6 @@ function RhythmCard({
   staleStreak,
   longest,
   todayPts,
-  xp,
 }: {
   level: number;
   levelPct: number;
@@ -633,14 +620,14 @@ function RhythmCard({
   staleStreak: number;
   longest: number;
   todayPts: number;
-  xp: number;
 }) {
+  const todayPct = Math.min(100, (todayPts / DAILY_GOAL_XP) * 100);
   const cells = [
     {
       key: "level",
       visual: (
-        <Ring value={levelPct} size={40} stroke={4} color="var(--accent)" label={`Level ${level}, ${Math.round(levelPct)}% to level ${level + 1}`}>
-          <span className="text-sm font-bold tabular-nums">{level}</span>
+        <Ring value={levelPct} size={40} stroke={4} color="var(--primary)" label={`Level ${level}, ${Math.round(levelPct)}% to level ${level + 1}`}>
+          <span className="font-display text-sm font-bold tabular-nums">{level}</span>
         </Ring>
       ),
       title: `Level ${level}`,
@@ -648,29 +635,40 @@ function RhythmCard({
     },
     {
       key: "streak",
-      visual: <Flame size={20} className={streak ? "text-[var(--streak)]" : "text-[var(--muted)] opacity-50"} fill={streak ? "var(--streak)" : "none"} />,
-      title: streak ? `${plural(streak, "day")} streak` : "No streak running",
-      sub: streak ? `best ${plural(longest, "day")}` : staleStreak ? `was ${plural(staleStreak, "day")} · study today` : "study today to start one",
+      visual: (
+        <StreakRing days={streak} goal={STREAK_GOAL}>
+          <Flame size={15} className={streak ? "text-[var(--streak)]" : "text-[var(--muted)] opacity-50"} fill={streak ? "var(--streak)" : "none"} />
+        </StreakRing>
+      ),
+      title: streak ? `${streak}-day streak` : "No streak running",
+      sub: streak
+        ? streak < STREAK_GOAL
+          ? `${plural(STREAK_GOAL - streak, "day")} to a full week`
+          : `best ${plural(longest, "day")}`
+        : staleStreak
+          ? `was ${plural(staleStreak, "day")}, study today`
+          : "study today to start one",
     },
     {
       key: "today",
-      visual: <Zap size={20} className="text-[var(--gold)]" />,
+      visual: (
+        <Ring value={todayPct} size={40} stroke={4} color="var(--gold)" label={`${todayPts} of ${DAILY_GOAL_XP} points today`}>
+          <Zap size={15} className="text-[var(--gold)]" />
+        </Ring>
+      ),
       title: `${todayPts}/${DAILY_GOAL_XP} pts today`,
-      sub: `${xp.toLocaleString()} pts all time`,
+      sub: todayPts >= DAILY_GOAL_XP ? "daily goal met" : `${DAILY_GOAL_XP - todayPts} pts to your daily goal`,
     },
   ];
   return (
     <Card>
       <div className="grid sm:grid-cols-3">
         {cells.map((c, i) => (
-          <div
-            key={c.key}
-            className={cn("flex min-w-0 items-center gap-3 border-[var(--border)] px-4 py-3.5", i < cells.length - 1 && "border-b sm:border-b-0 sm:border-r")}
-          >
+          <div key={c.key} className={cn("flex min-w-0 items-center gap-3 border-[var(--border)] px-4 py-3.5", i < cells.length - 1 && "border-b sm:border-b-0 sm:border-r")}>
             <span className="grid h-10 w-10 shrink-0 place-items-center">{c.visual}</span>
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold tabular-nums">{c.title}</div>
-              <div className="truncate text-xs tabular-nums text-[var(--muted)]">{c.sub}</div>
+              <div className="mt-0.5 truncate text-xs tabular-nums text-[var(--muted)]">{c.sub}</div>
             </div>
           </div>
         ))}
@@ -721,7 +719,7 @@ function MilestonesCard({ input }: { input: AchievementInput }) {
 
       {pending.length > 0 && (
         <>
-          <Eyebrow className="px-5 pt-4">Next up</Eyebrow>
+          <Label className="px-5 pt-4">Next up</Label>
           <ul className="mt-1 divide-y divide-[var(--border)]">
             {shown.map(({ a, cur, goal, ratio }) => {
               const Icon = ACH_ICON[a.icon] ?? Award;
@@ -745,12 +743,7 @@ function MilestonesCard({ input }: { input: AchievementInput }) {
             })}
           </ul>
           {pending.length > LIMIT && (
-            <button
-              type="button"
-              onClick={() => setShowAll((x) => !x)}
-              aria-expanded={showAll}
-              className="press min-h-[44px] w-full cursor-pointer border-t border-[var(--border)] py-3 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]/50"
-            >
+            <button type="button" onClick={() => setShowAll((x) => !x)} aria-expanded={showAll} className={TOGGLE}>
               {showAll ? "Show fewer" : `Show all ${pending.length}`}
             </button>
           )}

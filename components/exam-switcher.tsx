@@ -44,7 +44,7 @@ export function ExamSwitcher({ compact }: { compact?: boolean }) {
         <ChevronsUpDown size={compact ? 12 : 10} />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-64 overflow-hidden rounded-xl border-2 border-[var(--border)] bg-[var(--surface)] shadow-lg">
+        <div className="absolute left-0 top-full z-50 mt-1 w-64 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--e3)]">
           <div className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">Exam</div>
           {listPacks().map((p) => (
             <button

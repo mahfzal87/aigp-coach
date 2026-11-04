@@ -1,14 +1,15 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
+import { useReducedMotion } from "framer-motion";
 import { Check, Scale, X } from "lucide-react";
 import type { Question, QuestionOption } from "@/lib/types";
 import { correctLabels, shuffle } from "@/lib/scoring";
 import { TRAP_LABEL } from "@/lib/mock-insights";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui";
+import { Badge, Card } from "@/components/ui";
 import { Markdown } from "@/components/markdown";
-import { Reveal, Stagger, StaggerItem } from "@/components/motion";
+import { m, Reveal, springSoft, Stagger, StaggerItem } from "@/components/motion";
 import { Callout, LetterChip, type ChipTone } from "@/components/practice-kit";
 import { haptic } from "@/lib/haptics";
 
@@ -42,15 +43,16 @@ export function requiredPicks(question: Question): number | null {
 
 type OptionState = "idle" | "selected" | "correct" | "correct-picked" | "wrong" | "near" | "dim";
 
-// Colored borders need `!` — see the note in components/practice-kit.tsx.
+// Tiles sit on quiet tints inside the glass panel. A correct pick fills with the
+// exam's liquid (.liquid-fill, globals.css); a wrong pick keeps the shake.
 const OPTION_CLASS: Record<OptionState, string> = {
-  idle: "cursor-pointer border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)]",
-  selected: "cursor-pointer border-[var(--primary)]! bg-[var(--primary)]/8",
-  correct: "border-[var(--success)]! bg-[var(--success)]/10",
-  "correct-picked": "border-[var(--success)]! bg-[var(--success)]/10",
-  wrong: "anim-shake border-[var(--danger)]! bg-[var(--danger)]/10",
-  near: "border-dashed border-[var(--warning)]! bg-[var(--warning)]/6",
-  dim: "border-[var(--border)] bg-[var(--surface)] opacity-60",
+  idle: "cursor-pointer border-[var(--border)] bg-[var(--surface-2)]/60 hover:border-[color-mix(in_srgb,var(--primary)_40%,var(--border))] hover:bg-[var(--surface-2)]",
+  selected: "cursor-pointer border-[color-mix(in_srgb,var(--primary)_65%,transparent)] bg-[var(--primary)]/10",
+  correct: "border-[color-mix(in_srgb,var(--success)_60%,transparent)] bg-[var(--success)]/8",
+  "correct-picked": "liquid-fill border-[color-mix(in_srgb,var(--success)_60%,transparent)]",
+  wrong: "anim-shake border-[color-mix(in_srgb,var(--danger)_60%,transparent)] bg-[var(--danger)]/8",
+  near: "border-dashed border-[color-mix(in_srgb,var(--warning)_70%,transparent)] bg-[var(--warning)]/6",
+  dim: "border-[var(--border)] opacity-55",
 };
 
 const OPTION_CHIP: Record<OptionState, ChipTone> = {
@@ -82,6 +84,7 @@ export function QuestionView({
   revealed,
   disabled,
   showTrap = false,
+  examMode = false,
 }: {
   question: Question;
   selected: string[];
@@ -90,7 +93,10 @@ export function QuestionView({
   disabled?: boolean;
   /** Name the trap in the rationale (off by default — the mock review shows its own). */
   showTrap?: boolean;
+  /** Real-exam conditions: hide the reference, type and difficulty hints (the instruction stays). */
+  examMode?: boolean;
 }) {
+  const reduce = useReducedMotion();
   const opts = useMemo(() => orderedOptions(question), [question]);
   const correct = correctLabels(question);
   const square = question.isMultiselect;
@@ -108,20 +114,55 @@ export function QuestionView({
 
   const trap = showTrap && question.trapType !== "none" ? (TRAP_LABEL[question.trapType] ?? question.trapType) : null;
 
+  const whyRight = (
+    <div>
+      <div className="mb-1.5 flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 font-semibold text-[color-mix(in_srgb,var(--success)_80%,var(--foreground))]">
+          <Check size={15} strokeWidth={2.75} />
+          Why {correct.join(", ")} {correct.length > 1 ? "are" : "is"} right
+        </span>
+        {trap && <Badge>Trap: {trap.toLowerCase()}</Badge>}
+      </div>
+      <p className="leading-relaxed">{question.correctExplanation}</p>
+    </div>
+  );
+
+  // The teaching moment: both options looked right; this is the one discriminator.
+  const nearLesson = nearMiss && nearWhy && (
+    <Callout tone="warning" className="p-3.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span aria-hidden className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--warning)]/16 text-[color-mix(in_srgb,var(--warning)_70%,var(--foreground))]">
+          <Scale size={15} />
+        </span>
+        <span className="font-display text-[15px] font-bold">The near-miss</span>
+        <LetterChip label={nearMiss} tone="warning" square={square} className="h-5 w-5 text-[10px]" />
+        {pickedNear && <Badge tone="danger">Your pick</Badge>}
+      </div>
+      <p className="mt-2 text-[13px] font-semibold">Both looked right. The one discriminator:</p>
+      <p className="mt-0.5 leading-relaxed">{nearWhy}</p>
+    </Callout>
+  );
+
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-center gap-1.5">
-        <Badge tone="primary">{question.bokRef}</Badge>
-        <Badge>{TYPE_LABEL[question.type] ?? question.type}</Badge>
-        <Badge>
-          <Stars n={question.difficulty} />
-        </Badge>
-        {question.isMultiselect && <Badge tone="warning">{picks ? `Select ${picks}` : "Select all that apply"}</Badge>}
-      </div>
+      {(!examMode || question.isMultiselect) && (
+        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          {!examMode && (
+            <>
+              <Badge tone="primary">{question.bokRef}</Badge>
+              <Badge>{TYPE_LABEL[question.type] ?? question.type}</Badge>
+              <Badge>
+                <Stars n={question.difficulty} />
+              </Badge>
+            </>
+          )}
+          {question.isMultiselect && <Badge tone="warning">{picks ? `Select ${picks}` : "Select all that apply"}</Badge>}
+        </div>
+      )}
 
       {question.scenario && (
         <Callout className="mb-3 text-sm leading-relaxed">
-          <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Scenario</span>
+          <span className="mb-1 block text-xs font-medium text-[var(--muted)]">Scenario</span>
           {question.scenario}
         </Callout>
       )}
@@ -146,10 +187,33 @@ export function QuestionView({
                   ? "near"
                   : "dim";
           const tags: ReactNode[] = [];
-          if (state === "correct-picked") tags.push(<Badge key="c" tone="success"><Check size={12} strokeWidth={3} /> Your answer</Badge>);
-          if (state === "correct") tags.push(<Badge key="c" tone="success"><Check size={12} strokeWidth={3} /> Correct answer</Badge>);
-          if (state === "wrong") tags.push(<Badge key="w" tone="danger"><X size={12} strokeWidth={3} /> Your answer</Badge>);
-          if (revealed && isNear) tags.push(<Badge key="n" tone="warning"><Scale size={12} /> Near-miss</Badge>);
+          if (state === "correct-picked")
+            tags.push(
+              <Badge key="c" tone="success">
+                <Check size={12} strokeWidth={3} className="anim-pop" /> Your answer
+              </Badge>
+            );
+          if (state === "correct")
+            tags.push(
+              <Badge key="c" tone="success">
+                <Check size={12} strokeWidth={3} /> Correct answer
+              </Badge>
+            );
+          if (state === "wrong")
+            tags.push(
+              <Badge key="w" tone="danger">
+                <X size={12} strokeWidth={3} /> Your answer
+              </Badge>
+            );
+          if (revealed && isNear)
+            tags.push(
+              // the near-miss label slides in after the verdict colors land
+              <m.span key="n" initial={reduce ? false : { opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ ...springSoft, delay: 0.25 }}>
+                <Badge tone="warning">
+                  <Scale size={12} /> Near-miss
+                </Badge>
+              </m.span>
+            );
           return (
             <StaggerItem key={o.label} y={6}>
               <button
@@ -163,8 +227,8 @@ export function QuestionView({
                   onToggle(o.label);
                 }}
                 className={cn(
-                  "press flex w-full items-start gap-3 rounded-xl border p-3 text-left text-sm transition-colors disabled:cursor-default",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]",
+                  "press relative flex w-full items-start gap-3 rounded-[14px] border p-3.5 text-left text-sm disabled:cursor-default",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
                   OPTION_CLASS[state]
                 )}
               >
@@ -181,30 +245,19 @@ export function QuestionView({
 
       {revealed && (
         <Reveal y={8} className="mt-4">
-          <Callout className="space-y-4 p-4 text-sm">
-            <div>
-              <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--success)]">
-                  <Check size={15} strokeWidth={2.75} />
-                  Why {correct.join(", ")} {correct.length > 1 ? "are" : "is"} right
-                </span>
-                {trap && <Badge>Trap · {trap}</Badge>}
-              </div>
-              <p className="leading-relaxed">{question.correctExplanation}</p>
-            </div>
-
-            {nearMiss && nearWhy && (
-              <Callout tone="warning" className="p-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--warning)]">
-                    <Scale size={14} /> Near-miss
-                  </span>
-                  <LetterChip label={nearMiss} tone="warning" square={square} className="h-5 w-5 text-[10px]" />
-                  {pickedNear && <span className="text-xs font-semibold text-[var(--danger)]">Your pick</span>}
-                </div>
-                <div className="mt-1.5 text-[13px] font-semibold">Both looked right. The one discriminator:</div>
-                <p className="mt-0.5 leading-relaxed">{nearWhy}</p>
-              </Callout>
+          {/* a Card inside the question Card flattens into a quiet outlined section */}
+          <Card className="space-y-4 rounded-[18px] p-4 text-sm">
+            {/* took the near-miss → its discriminator is why you're wrong, so it leads */}
+            {pickedNear ? (
+              <>
+                {nearLesson}
+                {whyRight}
+              </>
+            ) : (
+              <>
+                {whyRight}
+                {nearLesson}
+              </>
             )}
 
             {others.length > 0 && (
@@ -215,7 +268,7 @@ export function QuestionView({
                     <li key={w.label} className="flex items-start gap-2.5">
                       <LetterChip label={w.label} tone={w.picked ? "danger" : "muted"} square={square} className="mt-px h-5 w-5 text-[10px]" />
                       <span className="min-w-0 leading-relaxed text-[var(--muted)]">
-                        {w.picked && <span className="font-semibold text-[var(--danger)]">Your pick. </span>}
+                        {w.picked && <span className="font-semibold text-[color-mix(in_srgb,var(--danger)_80%,var(--foreground))]">Your pick. </span>}
                         {w.text}
                       </span>
                     </li>
@@ -225,11 +278,11 @@ export function QuestionView({
             )}
 
             {question.strategyNote && (
-              <Callout tone="plain" className="px-3 py-2.5">
+              <Callout className="px-3.5 py-3">
                 <Markdown>{`**Strategy:** ${question.strategyNote}`}</Markdown>
               </Callout>
             )}
-          </Callout>
+          </Card>
         </Reveal>
       )}
     </div>
