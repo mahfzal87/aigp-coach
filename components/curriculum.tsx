@@ -239,7 +239,7 @@ function DomainBoard({ unit, headingLevel }: { unit: Unit; headingLevel: "h2" | 
           aria-expanded={open}
           aria-controls={listId}
           className={cn(
-            "flex min-h-12 w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]/50 sm:px-5",
+            "flex min-h-12 w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)] sm:px-5",
             open && "border-b border-[var(--border)]"
           )}
         >
@@ -304,7 +304,7 @@ function ModuleRow({ row }: { row: Row }) {
       onClick={() => haptic("tap")}
       aria-current={row.isCurrent ? "step" : undefined}
       className={cn(
-        "group flex min-h-14 cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]/50 sm:px-5",
+        "group flex min-h-14 cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)] sm:px-5",
         row.isCurrent && "bg-[var(--primary)]/6"
       )}
     >

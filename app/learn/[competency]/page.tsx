@@ -216,12 +216,12 @@ function SheetTabs({ value, options, onChange }: { value: Section; options: { va
               // stretch the tap target to 44px on phones without growing the pill
               "before:absolute before:inset-x-0 before:-inset-y-1 before:content-[''] md:before:hidden",
               active ? "text-[color-mix(in_srgb,var(--primary)_82%,var(--foreground))]" : "text-[var(--muted)] hover:text-[var(--foreground)]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50"
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
             )}
           >
             {active && <motion.span layoutId="sheet-tabs-lens" transition={lens} aria-hidden className="absolute inset-0 rounded-full bg-[var(--glass-tint-strong)] shadow-[var(--e1)] ring-1 ring-[var(--primary)]/30" />}
             <span className="relative">{o.label}</span>
-            <span className="relative font-medium tabular-nums opacity-70">{o.count}</span>
+            <span className="relative font-medium tabular-nums">{o.count}</span>
           </button>
         );
       })}
@@ -257,7 +257,7 @@ function TopicStrip({ topics, status }: { topics: Topic[]; status: Map<string, T
               title={`${i + 1}. ${t.title} — ${TOPIC_STATUS[st].label}`}
               aria-label={`Topic ${i + 1}: ${t.title} (${TOPIC_STATUS[st].label})`}
               className={cn(
-                "press grid h-11 min-w-11 place-items-center rounded-full px-2 font-display text-[13px] font-extrabold tabular-nums hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50 md:h-9 md:min-w-9",
+                "press grid h-11 min-w-11 place-items-center rounded-full px-2 font-display text-[13px] font-extrabold tabular-nums hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] md:h-9 md:min-w-9",
                 TOPIC_STATUS[st].chip
               )}
             >

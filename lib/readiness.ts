@@ -21,6 +21,15 @@ export const READINESS = {
   weights: { accuracy: 0.55, coverage: 0.25, calibration: 0.2 },
 } as const;
 
+// The smallest projected scaled score (100–500) whose rounded percent reaches
+// `pct` — the exact line where the verdict flips (rounding puts "ready" at 466).
+export function scaledFor(pct: number): number {
+  for (let s = 100; s <= 500; s++) if (Math.round(((s - 100) / 400) * 100) >= pct) return s;
+  return 500;
+}
+export const READY_SCALED = scaledFor(READINESS.readyPct);
+export const ALMOST_SCALED = scaledFor(READINESS.almostPct);
+
 const MIN_SEEN = READINESS.minSeen; // cold-start threshold
 
 // Exponentially recency-weighted accuracy over a competency's attempts.

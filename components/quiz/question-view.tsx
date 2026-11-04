@@ -228,7 +228,7 @@ export function QuestionView({
                 }}
                 className={cn(
                   "press relative flex w-full items-start gap-3 rounded-[14px] border p-3.5 text-left text-sm disabled:cursor-default",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
                   OPTION_CLASS[state]
                 )}
               >

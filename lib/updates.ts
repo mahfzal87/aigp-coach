@@ -11,11 +11,11 @@ export async function getUpdates(): Promise<LawUpdate[]> {
   const sb = getActiveExam() === "aigp" ? getSupabase() : null;
   if (sb) {
     try {
-      const { data, error } = await sb
-        .from("law_updates")
-        .select("*")
-        .eq("status", "published")
-        .order("published_date", { ascending: false });
+      // A paused or unreachable backend must not hold the page on "Loading…":
+      // after 2.5 s, fall back to the bundled feed.
+      const query = sb.from("law_updates").select("*").eq("status", "published").order("published_date", { ascending: false });
+      const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 2500));
+      const { data, error } = await Promise.race([query, timeout]);
       if (!error && data && data.length) {
         return data.map((r: Record<string, unknown>) => ({
           id: String(r.id),

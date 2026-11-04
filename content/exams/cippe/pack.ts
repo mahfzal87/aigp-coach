@@ -62,7 +62,7 @@ export const cippePack: ExamPack = {
   lawlab: {
     maps: LAW_MAPS_CIPPE,
     confusables: CONFUSABLES_CIPPE,
-    blurb: "GDPR and its satellites, mapped — lockable facts, trigger keywords, and the pairs the exam loves to swap.",
+    blurb: "GDPR and its neighbours, as facts you lock in.",
     weaknessCompetencies: competenciesCippe.map((c) => c.id),
   },
   library: {

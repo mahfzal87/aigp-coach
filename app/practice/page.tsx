@@ -270,7 +270,7 @@ export default function PracticePage() {
                 aria-label="Competency"
                 value={f.competency}
                 onChange={(e) => set({ competency: e.target.value })}
-                className="h-11 w-full cursor-pointer appearance-none truncate rounded-2xl border border-[var(--border)] bg-[var(--surface)] pl-3.5 pr-10 text-sm font-medium text-[var(--foreground)] focus-visible:border-[var(--primary)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--primary)]/15"
+                className="h-11 w-full cursor-pointer appearance-none truncate rounded-2xl border border-[var(--border)] bg-[var(--surface)] pl-3.5 pr-10 text-sm font-medium text-[var(--foreground)] focus-visible:border-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
               >
                 <option value="all">All competencies ({facets.competency.total})</option>
                 {domains.map((d) => (

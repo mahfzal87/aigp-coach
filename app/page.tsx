@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useSyncExternalStore, type ReactNode } from "react";
 import { useReducedMotion } from "framer-motion";
 import { BookOpen, CloudOff, Target, X } from "lucide-react";
-import { allCompetencyMastery, computeReadiness } from "@/lib/readiness";
+import { allCompetencyMastery, computeReadiness, READINESS, READY_SCALED } from "@/lib/readiness";
 import { DAILY_GOAL_XP, LESSON_PASS, todayStr } from "@/lib/gamify";
 import { getActiveMeta, getCompetency } from "@/lib/content";
 import { cn, daysUntil } from "@/lib/utils";
@@ -25,9 +25,7 @@ const VERDICT: Record<Verdict, { label: string; color: string }> = {
 
 // Mirrors lib/readiness.ts: a verdict needs 10 answers; "ready" needs a
 // projected score of 92%+ (the safe margin), on the IAPP 100–500 scale.
-const BASELINE_ANSWERS = 10;
-const SAFE_PCT = 0.92;
-const toScaled = (pct: number) => Math.round(100 + pct * 400);
+const BASELINE_ANSWERS = READINESS.firstRead;
 
 function useMediaQuery(query: string): boolean {
   return useSyncExternalStore(
@@ -101,7 +99,7 @@ export default function StudyPlanPage() {
         <Card className="border-[var(--warning)]/40">
           <CardBody className="flex items-center gap-3 py-2.5 pr-2.5">
             <CloudOff size={17} className="shrink-0 text-[var(--warning)]" aria-hidden />
-            <p className="min-w-0 flex-1 text-sm font-semibold">Saved in this browser only</p>
+            <p className="min-w-0 flex-1 text-sm font-semibold">Not backed up yet</p>
             <NavButton href="/settings" size="sm" variant="accent" className="h-11 sm:h-9">
               Back it up
             </NavButton>
@@ -154,7 +152,7 @@ function VerdictHero({
   const meta = getActiveMeta();
   const v = VERDICT[readiness.verdict];
   const pass = meta.passScaled;
-  const safe = toScaled(SAFE_PCT);
+  const safe = READY_SCALED; // the verdict's own line, so the copy never contradicts it
   const baseline = readiness.verdict === "unknown";
   const wide = useMediaQuery("(min-width: 640px)");
   const goalPct = Math.min(100, (todayXp / DAILY_GOAL_XP) * 100);

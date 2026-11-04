@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, LayoutGrid } from "lucide-react";
 import { clearStoredExam, getActiveExam, switchExam } from "@/lib/exam-state";
 import { listPacks } from "@/lib/exam-registry";
 import { getActiveMeta } from "@/lib/content";
+import { useMenuFocus } from "@/components/a11y";
 import { cn } from "@/lib/utils";
 import { haptic } from "@/lib/haptics";
 
@@ -14,6 +15,8 @@ import { haptic } from "@/lib/haptics";
 export function ExamSwitcher({ compact }: { compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const meta = getActiveMeta();
   const active = getActiveExam();
 
@@ -25,58 +28,72 @@ export function ExamSwitcher({ compact }: { compact?: boolean }) {
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
   }, [open]);
+  useMenuFocus(menuRef, open, () => setOpen(false), triggerRef);
 
+  const item = "flex w-full cursor-pointer items-start gap-2 rounded-xl px-3 py-2.5 text-left hover:bg-[var(--surface-2)] focus-visible:bg-[var(--surface-2)] focus-visible:outline-none";
   return (
     <div ref={ref} className="relative">
       <button
+        ref={triggerRef}
         onClick={() => {
           haptic("tap");
           setOpen((o) => !o);
         }}
         className={cn(
-          "press flex cursor-pointer items-center gap-1 rounded-md font-medium text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]",
-          compact ? "px-1.5 py-0.5 text-[11px]" : "-mx-1 px-1 py-0.5 text-[10px]"
+          "press flex cursor-pointer items-center gap-1 rounded-lg font-medium text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]",
+          // A real 44px target on phones without growing the header.
+          compact ? "-my-2 h-11 px-2 text-xs" : "-mx-1 px-1 py-0.5 text-[11px]"
         )}
-        aria-haspopup="listbox"
+        aria-haspopup="menu"
         aria-expanded={open}
+        aria-label={`Exam: ${meta.name}. Switch exam`}
       >
-        {compact ? meta.name : `${meta.name} · ${meta.bokLabel}`}
-        <ChevronsUpDown size={compact ? 12 : 10} />
+        <span className="font-semibold text-[var(--foreground)]">{meta.name}</span>
+        {!compact && <span>{meta.bokLabel}</span>}
+        <ChevronsUpDown size={compact ? 13 : 11} aria-hidden />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-64 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--e3)]">
-          <div className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">Exam</div>
+        <div
+          ref={menuRef}
+          role="menu"
+          aria-label="Switch exam"
+          className={cn(
+            "z-50 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--e3)]",
+            // Phone: a full-width panel under the header, so it never runs off-screen.
+            compact ? "fixed inset-x-3 top-[68px]" : "absolute left-0 top-full mt-1.5 w-64"
+          )}
+        >
           {listPacks().map((p) => (
             <button
               key={p.meta.slug}
+              role="menuitemradio"
+              aria-checked={p.meta.slug === active}
               onClick={() => {
                 setOpen(false);
                 if (p.meta.slug !== active) switchExam(p.meta.slug);
               }}
-              className="flex w-full cursor-pointer items-start gap-2 px-3 py-2 text-left hover:bg-[var(--surface-2)]"
+              className={item}
             >
-              <span className="mt-0.5 w-4 shrink-0 text-[var(--primary)]">{p.meta.slug === active && <Check size={14} />}</span>
-              <span>
+              <span className="mt-0.5 w-4 shrink-0 text-[var(--primary-ink)]">{p.meta.slug === active && <Check size={14} aria-hidden />}</span>
+              <span className="min-w-0">
                 <span className="block text-sm font-bold leading-tight">{p.meta.name}</span>
-                <span className="block text-[11px] leading-tight text-[var(--muted)]">
-                  {p.meta.fullName} · {p.meta.bokLabel}
-                </span>
+                <span className="block text-xs leading-snug text-[var(--muted)]">{p.meta.fullName}</span>
               </span>
             </button>
           ))}
+          <div className="my-1 border-t border-[var(--border)]" />
           <button
+            role="menuitem"
             onClick={() => {
               setOpen(false);
               clearStoredExam();
               window.location.assign("/");
             }}
-            className="w-full cursor-pointer border-t border-[var(--border)] px-3 py-2 text-left text-[11px] font-semibold text-[var(--primary)] hover:bg-[var(--surface-2)]"
+            className={cn(item, "items-center text-sm font-semibold text-[var(--primary-ink)]")}
           >
-            Browse all exams →
+            <LayoutGrid size={15} aria-hidden /> Browse all exams
           </button>
-          <div className="px-3 pb-2 pt-1 text-[10px] leading-snug text-[var(--muted)]">
-            Each exam keeps its own progress, mocks and streak.
-          </div>
+          <p className="px-3 pb-1.5 pt-1 text-xs leading-snug text-[var(--muted)]">Each exam keeps its own progress, mocks and streak.</p>
         </div>
       )}
     </div>

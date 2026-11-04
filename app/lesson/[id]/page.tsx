@@ -520,7 +520,7 @@ function MissRow({ group }: { group: MissGroup }) {
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen(!open)}
-        className="flex min-h-12 w-full cursor-pointer items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]/50"
+        className="flex min-h-12 w-full cursor-pointer items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]"
       >
         <span className="min-w-0 flex-1 text-[15px] font-semibold leading-snug">{group.title}</span>
         <Badge tone="danger" className="shrink-0 whitespace-nowrap">{group.items.length} missed</Badge>

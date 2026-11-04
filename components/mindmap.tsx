@@ -33,7 +33,7 @@ const BRANCH = [
 ];
 const TRUNK = "var(--muted)";
 const R = 8; // elbow radius, px
-const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50";
+const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]";
 const EDGE_HOVER = "hover:border-[color-mix(in_srgb,var(--primary)_40%,var(--border))]";
 const CHECK_SPRING = { type: "spring", stiffness: 560, damping: 14, mass: 0.6 } as const;
 

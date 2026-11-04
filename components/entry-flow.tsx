@@ -384,7 +384,7 @@ export function ExamTiles() {
                 data-exam={meta.slug}
                 style={EXAM_SCOPE}
                 className={cn(
-                  "mesh press liftable relative overflow-hidden has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--ring)]/60 has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-[var(--canvas)]",
+                  "mesh press liftable relative overflow-hidden has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--ring)] has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-[var(--canvas)]",
                   opening !== null && !isOpening && "opacity-50"
                 )}
               >
@@ -408,7 +408,8 @@ export function ExamTiles() {
                   onClick={() => {
                     haptic("tap");
                     setOpening(meta.slug);
-                    switchExam(meta.slug); // stores the choice and reloads into that exam
+                    // Stores the choice and reloads into that exam — back to the deep link the visitor arrived on.
+                    switchExam(meta.slug, window.location.pathname + window.location.search + window.location.hash);
                   }}
                   className="relative flex h-full w-full cursor-pointer flex-col items-center rounded-[22px] px-5 py-7 text-center focus-visible:outline-none disabled:cursor-default sm:px-6 sm:py-8"
                 >

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { pullProgress, pushProgress, syncConfigured } from "@/lib/sync";
+import { getActiveExam } from "@/lib/exam-state";
 import { useProgress } from "@/store/progress";
 
 // Cloud sync lifecycle:
@@ -35,8 +36,10 @@ export function SyncManager() {
       const code = s.settings.syncCode;
       if (!s.settings.syncEnabled || !code || reconciled.current) return;
       reconciled.current = true;
+      const exam = getActiveExam();
       const res = await pullProgress(code).catch(() => null);
       if (!res) return; // transport error — leave both sides untouched
+      if (getActiveExam() !== exam) return; // exam changed mid-flight — this result belongs to another exam
       if (res.ok && res.data) {
         const cloudAttempts = res.data.attempts?.length ?? 0;
         if (cloudAttempts > s.attempts.length) {

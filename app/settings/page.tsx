@@ -7,7 +7,9 @@ import { useHydrated, useProgress } from "@/store/progress";
 import type { ProgressExport } from "@/lib/types";
 import { genSyncCode, normalizeCode, pullProgress, pushProgress, syncConfigured } from "@/lib/sync";
 import { authConfigured } from "@/lib/account";
-import { getActiveMeta } from "@/lib/content";
+import { getActiveMeta, getQuestion } from "@/lib/content";
+import { getActiveExam, type ExamSlug } from "@/lib/exam-state";
+import { getPack } from "@/lib/exam-registry";
 import { playSuccessChime } from "@/lib/celebrate";
 import { haptic } from "@/lib/haptics";
 import { cn, daysUntil } from "@/lib/utils";
@@ -60,7 +62,7 @@ export default function SettingsPage() {
               <ShieldCheck size={12} aria-hidden /> Backed up
             </Badge>
           ) : (
-            <a href="#backup" className="press shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50">
+            <a href="#backup" className="press relative shrink-0 rounded-full before:absolute before:-inset-x-1 before:-inset-y-2.5 before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
               <Badge tone="warning" className="whitespace-nowrap">
                 <CloudOff size={12} aria-hidden /> Not backed up
               </Badge>
@@ -74,7 +76,7 @@ export default function SettingsPage() {
           <Card>
             <Link
               href="/account"
-              className="press flex items-center gap-3 rounded-[22px] px-5 py-4 text-[15px] font-semibold hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50"
+              className="press flex items-center gap-3 rounded-[22px] px-5 py-4 text-[15px] font-semibold hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
             >
               <UserRound size={18} className="shrink-0 text-[var(--primary)]" aria-hidden />
               <span className="min-w-0 flex-1">{signedIn ? "Profile, backup & sign-out" : "Sign in to back up your progress"}</span>
@@ -218,11 +220,28 @@ function SyncCodeRow({ signedIn }: { signedIn: boolean }) {
 
   async function turnOn() {
     setBusy("on");
+    // Resuming an existing code: read the cloud copy first — it may be ahead of
+    // this device, and a blind push would overwrite it.
+    if (code) {
+      const pulled = await pullProgress(code).catch(() => null);
+      if (!pulled || (!pulled.ok && pulled.error !== "not-found")) {
+        setBusy(null);
+        flash("Couldn't reach the cloud, so sync stays paused. Try again.", "error");
+        return;
+      }
+      const store = useProgress.getState();
+      if (pulled.ok && pulled.data && answers(pulled.data) > store.attempts.length) {
+        store.importData({ ...pulled.data, settings: { ...pulled.data.settings, syncEnabled: true, syncCode: code } });
+        setBusy(null);
+        flash(`Sync resumed. Restored ${answers(pulled.data)} answers from the cloud.`);
+        return;
+      }
+    }
     const next = code || genSyncCode();
     setSettings({ syncEnabled: true, syncCode: next });
     const res = await pushProgress(next, exportData());
     setBusy(null);
-    if (res.ok) flash("Sync is on. Keep the code somewhere safe.");
+    if (res.ok) flash(code ? "Sync resumed." : "Sync is on. Keep the code somewhere safe.");
     else flash(`Couldn't reach the cloud: ${res.error}.`, "error");
   }
 
@@ -398,6 +417,20 @@ function FileRow({ slug }: { slug: string }) {
     try {
       const data = JSON.parse(await file.text()) as ProgressExport;
       if (!data || typeof data !== "object" || !Array.isArray(data.attempts)) throw new Error("not an export");
+      // Backups are stamped with their exam; never pour one exam's file into another.
+      if (data.examId && data.examId !== getActiveExam()) {
+        const other = getPack(data.examId as ExamSlug)?.meta.name ?? data.examId;
+        flash(`That backup is for ${other}. Switch to ${other} to import it.`, "error");
+        return;
+      }
+      // Older files carry no exam stamp: check the answers belong to this exam's bank.
+      if (!data.examId && data.attempts.length > 0) {
+        const known = data.attempts.filter((a) => getQuestion(a.questionId)).length;
+        if (known / data.attempts.length < 0.5) {
+          flash(`Those answers aren't from the ${getActiveMeta().name} question bank — switch exams to import it.`, "error");
+          return;
+        }
+      }
       pending.arm(data);
     } catch {
       flash("That file isn't a progress export.", "error");
@@ -419,7 +452,9 @@ function FileRow({ slug }: { slug: string }) {
         className={rowCtl}
         onClick={() => {
           if (!pending.armed) return fileRef.current?.click();
-          importData(pending.armed);
+          // Keep this device's own sync code — a file must not switch sync off.
+          const own = useProgress.getState().settings;
+          importData({ ...pending.armed, settings: { ...pending.armed.settings, syncEnabled: own.syncEnabled, syncCode: own.syncCode } });
           flash(`Imported ${answers(pending.armed)} answers.`);
           pending.disarm();
         }}

@@ -22,7 +22,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { getActiveMeta, getCompetenciesByDomain, getCompetency, getDomain, getDomains } from "@/lib/content";
-import { allCompetencyMastery, computeReadiness } from "@/lib/readiness";
+import { allCompetencyMastery, ALMOST_SCALED, computeReadiness, READINESS, READY_SCALED } from "@/lib/readiness";
 import { computeTopicStats, type TopicStat } from "@/lib/topic-stats";
 import { ACHIEVEMENTS, DAILY_GOAL_XP, LESSON_PASS, levelFromXp, streakAlive, todayStr, type AchievementInput } from "@/lib/gamify";
 import { haptic } from "@/lib/haptics";
@@ -63,14 +63,8 @@ const VERDICT: Record<Verdict, { label: string; tone: "success" | "warning" | "d
 // located on the scaled range with the verdict's own rounding, so the dial,
 // the gates and the badge can never disagree.
 const FIRST_READ = 10;
-const READY_PCT = 92;
-const ALMOST_PCT = 83;
-function scaledFor(pct: number): number {
-  for (let s = 100; s <= 500; s++) if (Math.round(((s - 100) / 400) * 100) >= pct) return s;
-  return 500;
-}
-const READY_AT = scaledFor(READY_PCT); // 466
-const ALMOST_AT = scaledFor(ALMOST_PCT); // 430
+const READY_AT = READY_SCALED; // 466
+const ALMOST_AT = ALMOST_SCALED; // 430
 const STREAK_GOAL = 7; // the "Unstoppable" milestone
 
 // Explicit icon map — importing lucide's whole namespace pulled ~5,900 icons into this page.
@@ -270,7 +264,7 @@ function ReadinessHero({
   const gates: Gate[] = [
     {
       label: `Projected ${READY_AT}+`,
-      ok: readiness.projectedPercent >= READY_PCT,
+      ok: readiness.projectedPercent >= READINESS.readyPct,
       value: String(projected),
       tone: projTone,
     },
@@ -514,7 +508,7 @@ const TOPIC_SEGMENTS = [
 ] as const;
 
 const TOGGLE =
-  "press min-h-[44px] w-full cursor-pointer border-t border-[var(--border)] py-3 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]/50";
+  "press min-h-[44px] w-full cursor-pointer border-t border-[var(--border)] py-3 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]";
 
 function TopicsCard({ stats, firstComp }: { stats: TopicStat[]; firstComp?: Competency }) {
   const [showAll, setShowAll] = useState(false);

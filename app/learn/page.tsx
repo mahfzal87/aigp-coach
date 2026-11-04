@@ -57,7 +57,7 @@ function SheetRow({ row, cards, notes }: { row: Row; cards: number; notes: numbe
     <li>
       <Link
         href={`/learn/${row.id}`}
-        className="group flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]/50 sm:px-5"
+        className="group flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)] sm:px-5"
       >
         <span className="hidden w-10 shrink-0 text-[13px] font-semibold tabular-nums text-[var(--muted)] sm:block">{row.code}</span>
         <div className="min-w-0 flex-1">

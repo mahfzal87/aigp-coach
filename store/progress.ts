@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { progressStorageKey } from "@/lib/exam-state";
+import { getActiveExam, progressStorageKey } from "@/lib/exam-state";
 import { newCardState, review as sm2Review } from "@/lib/sm2";
 import { XP_PER_ATTEMPT, XP_PER_CORRECT, todayStr, updateStreak } from "@/lib/gamify";
 import type {
@@ -155,6 +155,7 @@ export const useProgress = create<ProgressState>()(
         return {
           version: EXPORT_VERSION,
           exportedAt: new Date().toISOString(),
+          examId: getActiveExam(),
           attempts: s.attempts,
           flashcards: s.flashcards,
           mocks: s.mocks,
@@ -191,17 +192,35 @@ export const useProgress = create<ProgressState>()(
       // each exam keeps its own progress. ExamGate calls persist.rehydrate()
       // after activating a non-default exam.
       name: "aigp-coach-progress",
+      // Storage can be blocked (strict privacy modes): never let that throw
+      // into a state update — the app then just runs without persistence.
       storage: createJSONStorage(() => ({
-        getItem: (_n) => (typeof window === "undefined" ? null : window.localStorage.getItem(progressStorageKey())),
-        setItem: (_n, value) => {
-          if (typeof window !== "undefined") window.localStorage.setItem(progressStorageKey(), value);
+        getItem: () => {
+          try {
+            return typeof window === "undefined" ? null : window.localStorage.getItem(progressStorageKey());
+          } catch {
+            return null;
+          }
         },
-        removeItem: (_n) => {
-          if (typeof window !== "undefined") window.localStorage.removeItem(progressStorageKey());
+        setItem: (_n, value) => {
+          try {
+            if (typeof window !== "undefined") window.localStorage.setItem(progressStorageKey(), value);
+          } catch {
+            /* storage blocked or full */
+          }
+        },
+        removeItem: () => {
+          try {
+            if (typeof window !== "undefined") window.localStorage.removeItem(progressStorageKey());
+          } catch {
+            /* storage blocked */
+          }
         },
       })),
-      onRehydrateStorage: () => (state) => {
+      onRehydrateStorage: () => (state, error) => {
         if (state) state.hydrated = true;
+        // A failed rehydrate hands back no state — still release the UI.
+        if (error || !state) queueMicrotask(() => useProgress.setState({ hydrated: true }));
       },
     }
   )

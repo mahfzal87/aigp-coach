@@ -4,11 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import { BarChart3, BookMarked, BookOpen, Brain, ChevronRight, FileText, Flame, GraduationCap, Layers, MoreHorizontal, Newspaper, Scale, X, Zap } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { getPackExtras } from "@/lib/content";
 import { ExamSwitcher } from "@/components/exam-switcher";
 import { UserMenu } from "@/components/user-menu";
+import { useModalFocus } from "@/components/a11y";
 import { useHydrated, useProgress } from "@/store/progress";
 import { streakAlive } from "@/lib/gamify";
 import { haptic } from "@/lib/haptics";
@@ -91,7 +92,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh">
       {/* Desktop: a floating glass rail */}
-      <aside className="sticky top-0 hidden h-dvh w-[268px] shrink-0 p-3 pr-0 md:block">
+      <aside className="sticky top-0 z-40 hidden h-dvh w-[268px] shrink-0 p-3 pr-0 md:block">
         <div className="glass-panel flex h-full flex-col rounded-[28px]">
           <div className="flex items-center gap-3 px-4 pb-3 pt-4">
             <BrandMark />
@@ -115,10 +116,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Phone: one glass bar. Desktop: a floating status island, top-right. */}
         <header className="pointer-events-none sticky top-0 z-30 px-3 pt-3 md:px-6">
-          <div className="pointer-events-auto glass-panel flex h-[52px] items-center justify-between rounded-[20px] pl-3 pr-1.5 md:ml-auto md:w-fit md:rounded-full md:pl-4">
+          <div className="pointer-events-auto glass-float flex h-[52px] items-center justify-between rounded-[20px] pl-3 pr-1.5 md:ml-auto md:w-fit md:rounded-full md:pl-4">
             <div className="flex min-w-0 items-center gap-2 md:hidden">
               <BrandMark size={30} />
-              <span className="truncate font-display text-[15px] font-extrabold">AIGP Coach</span>
+              <span className="truncate font-display text-[15px] font-extrabold max-[419px]:sr-only">AIGP Coach</span>
               <ExamSwitcher compact />
             </div>
             <div className="ml-auto flex items-center gap-3 md:ml-0">
@@ -146,23 +147,20 @@ function MobileNav({ pathname, isActive, updatesDot }: { pathname: string; isAct
   const moreActive = secondaryNav.some((n) => isActive(n.href));
   const lens = useLensTransition();
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpenOn(null);
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const moreRef = useRef<HTMLButtonElement>(null);
+  useModalFocus(sheetRef, open, () => setOpenOn(null), moreRef);
 
   const tab = "press relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold";
   return (
     <>
       <nav aria-label="Primary" className="app-dock fixed inset-x-3 bottom-[max(10px,env(safe-area-inset-bottom))] z-30 md:hidden">
-        <div className="glass-panel grid h-[62px] grid-cols-6 rounded-[24px] px-1">
+        <div className="glass-float grid h-[62px] grid-cols-6 rounded-[24px] px-1">
           {primaryNav.map((n) => {
             const Icon = n.icon;
             const active = isActive(n.href);
             return (
-              <Link key={n.href} href={n.href} aria-current={active ? "page" : undefined} onClick={() => haptic("tap")} className={cn(tab, active ? "text-[var(--primary)]" : "text-[var(--muted)]")}>
+              <Link key={n.href} href={n.href} aria-current={active ? "page" : undefined} onClick={() => haptic("tap")} className={cn(tab, active ? "text-[var(--primary-ink)]" : "text-[var(--muted)]")}>
                 {active && <motion.span layoutId="dock-lens" transition={lens} className="absolute inset-x-0.5 inset-y-1.5 rounded-[18px] bg-[var(--primary)]/12 ring-1 ring-[var(--primary)]/25" />}
                 <Icon size={20} className="relative" />
                 <span className="relative">{n.label}</span>
@@ -170,13 +168,14 @@ function MobileNav({ pathname, isActive, updatesDot }: { pathname: string; isAct
             );
           })}
           <button
+            ref={moreRef}
             onClick={() => {
               haptic("tap");
               setOpenOn(open ? null : pathname);
             }}
             aria-expanded={open}
             aria-haspopup="dialog"
-            className={cn(tab, "cursor-pointer", moreActive || open ? "text-[var(--primary)]" : "text-[var(--muted)]")}
+            className={cn(tab, "cursor-pointer", moreActive || open ? "text-[var(--primary-ink)]" : "text-[var(--muted)]")}
           >
             {moreActive && !open && <motion.span layoutId="dock-lens" transition={lens} className="absolute inset-x-0.5 inset-y-1.5 rounded-[18px] bg-[var(--primary)]/12 ring-1 ring-[var(--primary)]/25" />}
             <span className="relative">
@@ -190,8 +189,8 @@ function MobileNav({ pathname, isActive, updatesDot }: { pathname: string; isAct
 
       {open && (
         <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true" aria-label="More pages">
-          <button aria-label="Close" className="absolute inset-0 cursor-default bg-black/45" onClick={() => setOpenOn(null)} />
-          <div className="sheet-up glass-float absolute bottom-0 left-0 right-0 rounded-t-[28px] px-3 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-2">
+          <div aria-hidden className="absolute inset-0 bg-black/45" onClick={() => setOpenOn(null)} />
+          <div ref={sheetRef} className="sheet-up glass-float absolute bottom-0 left-0 right-0 rounded-t-[28px] px-3 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-2">
             <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-[var(--border)]" />
             <div className="flex items-center justify-between px-2 pb-1">
               <span className="font-display text-lg font-extrabold">More</span>
@@ -209,7 +208,7 @@ function MobileNav({ pathname, isActive, updatesDot }: { pathname: string; isAct
                   href={n.href}
                   aria-current={active ? "page" : undefined}
                   onClick={() => haptic("tap")}
-                  className={cn("flex h-12 items-center gap-3 rounded-2xl px-3 text-[15px] font-semibold", active ? "bg-[var(--primary)]/12 text-[var(--primary)]" : "text-[var(--foreground)] active:bg-[var(--surface-2)]")}
+                  className={cn("flex h-12 items-center gap-3 rounded-2xl px-3 text-[15px] font-semibold", active ? "bg-[var(--primary)]/12 text-[var(--primary-ink)]" : "text-[var(--foreground)] active:bg-[var(--surface-2)]")}
                 >
                   <Icon size={18} className={active ? "" : "text-[var(--muted)]"} />
                   <span className="flex-1">{n.label}</span>
@@ -234,7 +233,7 @@ function NavLink({ href, label, icon: Icon, active, small, dot }: { href: string
       className={cn(
         "press relative flex items-center gap-3 rounded-2xl px-3 font-medium",
         small ? "py-2 text-[13px]" : "py-2.5 text-[14.5px]",
-        active ? "font-semibold text-[var(--primary)]" : "text-[var(--muted)] hover:text-[var(--foreground)]"
+        active ? "font-semibold text-[var(--primary-ink)]" : "text-[var(--muted)] hover:text-[var(--foreground)]"
       )}
     >
       {active && <motion.span layoutId="nav-lens" transition={lens} className="absolute inset-0 rounded-2xl bg-[var(--primary)]/12 ring-1 ring-[var(--primary)]/22" />}

@@ -125,7 +125,7 @@ function IdentityCard({ session }: { session: Session }) {
                 <button
                   onClick={startEdit}
                   aria-label="Edit first name"
-                  className="press grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-xl sm:h-9 sm:w-9 text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50"
+                  className="press grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-xl sm:h-9 sm:w-9 text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
                 >
                   <Pencil size={15} aria-hidden />
                 </button>

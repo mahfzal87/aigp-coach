@@ -50,7 +50,7 @@ export const aigpPack: ExamPack = {
   lawlab: {
     maps: LAW_MAPS,
     confusables: CONFUSABLES,
-    blurb: "Every law, framework and policy instrument on the AIGP exam — lockable facts, trigger keywords, confusables.",
+    blurb: "Every law and framework on the exam, as facts you lock in.",
     weaknessCompetencies: ["i-c", "ii-a", "ii-b", "ii-c", "ii-d"],
   },
   library: {

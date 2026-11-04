@@ -1,5 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
-import { clearStoredExam, EXAM_SLUGS, getActiveExam, progressKeyFor } from "@/lib/exam-state";
+import { clearStoredExam, EXAM_SLUGS, getActiveExam, lawlabKeyFor, ownerKeyFor, progressKeyFor, type ExamSlug } from "@/lib/exam-state";
 import { getSupabase, supabaseConfigured } from "@/lib/supabase";
 import type { ProgressExport } from "@/lib/types";
 
@@ -47,7 +47,16 @@ export async function signOut(): Promise<void> {
     const uid = data.session?.user.id;
     if (uid) {
       const { useProgress } = await import("@/store/progress");
-      await pushAccountProgress(uid, useProgress.getState().exportData()).catch(() => undefined);
+      const active = getActiveExam();
+      // Flush every exam this device holds for this user, not just the active one:
+      // an exam switch reloads the page and can drop the last debounced push.
+      const pushes = EXAM_SLUGS.map((slug) => {
+        if (slug === active) return pushAccountProgress(uid, useProgress.getState().exportData(), slug);
+        const stored = readStoredProgress(slug);
+        if (!stored || readOwner(slug) !== uid) return null; // nothing local, or not this user's
+        return pushAccountProgress(uid, stored, slug);
+      });
+      await Promise.all(pushes.map((p) => p?.catch(() => undefined)));
     }
     await sb.auth.signOut();
   }
@@ -58,12 +67,51 @@ export async function signOut(): Promise<void> {
     // Reset first so any late store write persists an empty state, never this user's.
     useProgress.getState().reset();
     try {
-      for (const slug of EXAM_SLUGS) localStorage.removeItem(progressKeyFor(slug));
+      for (const slug of EXAM_SLUGS) {
+        localStorage.removeItem(progressKeyFor(slug));
+        localStorage.removeItem(lawlabKeyFor(slug));
+        localStorage.removeItem(ownerKeyFor(slug));
+      }
       localStorage.removeItem("coach-name-skip");
     } catch {
       /* storage unavailable */
     }
     window.location.assign("/");
+  }
+}
+
+function readOwner(slug: ExamSlug): string | null {
+  try {
+    return localStorage.getItem(ownerKeyFor(slug));
+  } catch {
+    return null;
+  }
+}
+
+// A persisted progress blob for an exam that isn't active, shaped like exportData().
+function readStoredProgress(slug: ExamSlug): ProgressExport | null {
+  try {
+    const raw = localStorage.getItem(progressKeyFor(slug));
+    const st = raw ? JSON.parse(raw)?.state : null;
+    if (!st || !Array.isArray(st.attempts)) return null;
+    return {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      attempts: st.attempts,
+      flashcards: st.flashcards ?? {},
+      mocks: st.mocks ?? [],
+      settings: st.settings ?? { updatesApiEnabled: false },
+      readNotes: st.readNotes ?? [],
+      xp: st.xp ?? 0,
+      streakCount: st.streakCount ?? 0,
+      longestStreak: st.longestStreak ?? 0,
+      lastActiveDate: st.lastActiveDate ?? null,
+      lessons: st.lessons ?? {},
+      lessonSessions: st.lessonSessions ?? {},
+      mockRun: st.mockRun ?? null,
+    };
+  } catch {
+    return null;
   }
 }
 
@@ -107,12 +155,12 @@ export function onAuthChange(cb: (session: Session | null) => void): () => void 
   return () => data.subscription.unsubscribe();
 }
 
-export async function pushAccountProgress(userId: string, data: ProgressExport): Promise<{ ok: boolean; error?: string }> {
+export async function pushAccountProgress(userId: string, data: ProgressExport, examId: string = getActiveExam()): Promise<{ ok: boolean; error?: string }> {
   const sb = getSupabase();
   if (!sb || !userId) return { ok: false, error: "not-configured" };
   const { error } = await sb
     .from(TABLE)
-    .upsert({ user_id: userId, exam_id: getActiveExam(), data, updated_at: new Date().toISOString() }, { onConflict: "user_id,exam_id" });
+    .upsert({ user_id: userId, exam_id: examId, data, updated_at: new Date().toISOString() }, { onConflict: "user_id,exam_id" });
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 

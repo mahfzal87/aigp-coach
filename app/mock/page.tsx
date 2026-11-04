@@ -40,6 +40,7 @@ import { haptic } from "@/lib/haptics";
 import { celebrate } from "@/lib/celebrate";
 import type { DomainCode, MockRun, MockSession, Question } from "@/lib/types";
 import { uid, useHydrated, useProgress } from "@/store/progress";
+import { useModalFocus } from "@/components/a11y";
 import { Badge, Bar, Button, Card, CardBody, Chip, PageHeader } from "@/components/ui";
 import { AnimatedNumber } from "@/components/motion";
 import { QuestionView } from "@/components/quiz/question-view";
@@ -285,6 +286,38 @@ export default function MockPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answers, idx, phase, set, deadline]);
 
+  // Also capture the clock when the page is hidden, reloaded or closed —
+  // otherwise a reload refunds the time since the last answer. (Not on a timer:
+  // every save also triggers a cloud backup.)
+  const persistClock = useRef<() => void>(() => {});
+  useEffect(() => {
+    persistClock.current = () => {
+      if (phase !== "run" || set.length === 0 || !deadline) return;
+      saveMockRun({
+        examId: def?.id,
+        examName: def?.name,
+        questionIds: set.map((q) => q.id),
+        answers,
+        idx,
+        remainingMs: Math.max(0, deadline - Date.now()),
+        startedAt: startedRef.current,
+        updatedAt: Date.now(),
+        totalMinutes: def?.minutes ?? Math.round(set.length * 1.65),
+      });
+    };
+  });
+  useEffect(() => {
+    if (phase !== "run") return;
+    const save = () => persistClock.current();
+    const onVisibility = () => document.visibilityState === "hidden" && save();
+    window.addEventListener("pagehide", save);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", save);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [phase]);
+
   useEffect(() => () => {
     if (confirmTimer.current) clearTimeout(confirmTimer.current);
   }, []);
@@ -310,6 +343,11 @@ export default function MockPage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [phase, set.length]);
+
+  // Phone question-list sheet: keep keyboard focus inside it; Esc returns focus to the list button.
+  const navSheetRef = useRef<HTMLDivElement>(null);
+  const navTriggerRef = useRef<HTMLButtonElement>(null);
+  useModalFocus(navSheetRef, navOpen && !desktop, () => setNavOpen(false), navTriggerRef);
 
   // Exam focus mode: while the clock runs the shell hides the phone dock.
   useEffect(() => {
@@ -732,6 +770,7 @@ export default function MockPage() {
           </Button>
           <FlagToggle flagged={flagged} onToggle={() => toggleFlag(q.id)} compact />
           <Button
+            ref={navTriggerRef}
             variant="ghost"
             onClick={toggleNav}
             aria-expanded={navOpen}
@@ -751,8 +790,8 @@ export default function MockPage() {
       {/* Phone: the question list as a glass bottom sheet */}
       {navOpen && !desktop && (
         <div className="fixed inset-0 z-40" role="dialog" aria-modal="true" aria-label="Question list">
-          <button type="button" tabIndex={-1} aria-label="Close question list" className="absolute inset-0 cursor-default bg-black/45" onClick={() => setNavOpen(false)} />
-          <div className="sheet-up glass-float absolute inset-x-0 bottom-0 flex max-h-[78dvh] flex-col rounded-t-[28px] px-4 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-2">
+          <div aria-hidden className="absolute inset-0 bg-black/45" onClick={() => setNavOpen(false)} />
+          <div ref={navSheetRef} className="sheet-up glass-float absolute inset-x-0 bottom-0 flex max-h-[78dvh] flex-col rounded-t-[28px] px-4 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-2">
             <div aria-hidden className="mx-auto mb-2 h-1 w-10 shrink-0 rounded-full bg-[var(--border)]" />
             <div className="flex shrink-0 items-center justify-between pb-2">
               <span className="font-display text-lg font-extrabold">Questions</span>
@@ -876,7 +915,7 @@ function FilterChips<T extends string>({
           >
             {on && <motion.span layoutId={lensId} transition={lens} aria-hidden className="absolute inset-0 rounded-full bg-[var(--primary)]/12 ring-1 ring-[var(--primary)]/25" />}
             <span className="relative">{o.label}</span>{" "}
-            <span className="relative tabular-nums opacity-75">{o.n}</span>
+            <span className="relative tabular-nums">{o.n}</span>
           </Chip>
         );
       })}

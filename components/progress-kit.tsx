@@ -160,7 +160,7 @@ export function rankDrag(comps: Competency[], mastery: CompetencyMastery[], limi
 
 /** Ruled-list row inside a glass panel: quiet hover fill, springy press, inset focus ring. */
 export const ROW_LINK =
-  "press group flex items-center gap-3 px-5 py-2.5 transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]/50";
+  "press group flex items-center gap-3 px-5 py-2.5 transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]";
 
 export function DragRow({ item }: { item: DragItem }) {
   const { comp, m, reason, href } = item;

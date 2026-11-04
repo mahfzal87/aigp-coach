@@ -12,13 +12,20 @@ import { AccountSyncManager } from "@/components/account-manager";
 // stored exam choice is activated: the module slug flips (which repoints the
 // per-exam storage keys and the content accessors), the stores are reset and
 // rehydrated from the new keys, and the keyed subtree remounts so every page
-// and manager re-reads the new pack. For default-exam users none of that runs.
+// re-reads the new pack.
+//
+// The sync managers mount only once the active exam is RESOLVED. Mounted
+// earlier, their reconcile would pull for the default exam and then apply the
+// result to whichever exam became live a moment later.
 export function ExamGate({ children }: { children: ReactNode }) {
-  const [slug, setSlug] = useState<ExamSlug>(DEFAULT_EXAM);
+  const [slug, setSlug] = useState<ExamSlug | null>(null);
 
   useEffect(() => {
     const stored = activateStoredExam();
-    if (stored === DEFAULT_EXAM) return;
+    if (stored === DEFAULT_EXAM) {
+      void Promise.resolve().then(() => setSlug(DEFAULT_EXAM));
+      return;
+    }
     // The slug is already flipped, so the stores now persist to the NEW exam's
     // keys. Memory still holds the default exam's state, which must not leak
     // into this exam when it has nothing saved yet — hence the reset. But the
@@ -46,10 +53,23 @@ export function ExamGate({ children }: { children: ReactNode }) {
     Promise.all([useProgress.persist.rehydrate(), useLawLab.persist.rehydrate()]).finally(() => setSlug(stored));
   }, []);
 
+  // Another tab saved this exam's progress: reload it, so a stale tab never
+  // writes its older snapshot over newer work (persist writes whole state).
+  useEffect(() => {
+    if (!slug) return;
+    const onStorage = (e: StorageEvent) => {
+      if (e.storageArea !== localStorage || e.newValue === null) return;
+      if (e.key === progressStorageKey()) void useProgress.persist.rehydrate();
+      else if (e.key === lawlabStorageKey()) void useLawLab.persist.rehydrate();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [slug]);
+
   return (
-    <Fragment key={slug}>
-      <SyncManager />
-      <AccountSyncManager />
+    <Fragment key={slug ?? DEFAULT_EXAM}>
+      {slug && <SyncManager />}
+      {slug && <AccountSyncManager />}
       {children}
     </Fragment>
   );

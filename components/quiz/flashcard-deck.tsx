@@ -180,7 +180,7 @@ export function FlashcardDeck({ cards }: { cards: Flashcard[] }) {
             tabIndex={deck.flipped ? -1 : 0}
             className={cn(
               FACE,
-              "cursor-pointer justify-between bg-[var(--primary)]/6 text-left hover:border-[color-mix(in_srgb,var(--primary)_40%,var(--border))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50",
+              "cursor-pointer justify-between bg-[var(--primary)]/6 text-left hover:border-[color-mix(in_srgb,var(--primary)_40%,var(--border))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
               deck.flipped && "pointer-events-none"
             )}
           >

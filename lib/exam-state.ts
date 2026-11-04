@@ -61,8 +61,18 @@ export function switchExam(slug: ExamSlug, to = "/") {
   } catch {
     /* storage unavailable — switch still applies for this load via reload default */
   }
-  // Same-origin paths only ("//host" is protocol-relative — an open redirect).
-  window.location.assign(to.startsWith("/") && !to.startsWith("//") && !to.startsWith("/\\") ? to : "/");
+  window.location.assign(safeLocalPath(to));
+}
+
+// Resolve against this origin and keep only same-origin paths. A prefix check is
+// not enough: browsers strip tabs/newlines, so "/\t/evil.example" becomes "//evil.example".
+export function safeLocalPath(to: string): string {
+  try {
+    const u = new URL(to, window.location.origin);
+    return u.origin === window.location.origin ? u.pathname + u.search + u.hash : "/";
+  } catch {
+    return "/";
+  }
 }
 
 // Physical localStorage keys are per exam. The AIGP keys keep their legacy names
@@ -75,6 +85,17 @@ export function progressStorageKey(): string {
   return progressKeyFor(active);
 }
 
+export function lawlabKeyFor(slug: ExamSlug): string {
+  return slug === "aigp" ? "aigp-lawlab" : `coach-lawlab__${slug}`;
+}
+
 export function lawlabStorageKey(): string {
-  return active === "aigp" ? "aigp-lawlab" : `coach-lawlab__${active}`;
+  return lawlabKeyFor(active);
+}
+
+// Which account this device's progress for an exam belongs to (set after a
+// successful account reconcile). Local data is never pushed into a different
+// account — the shared-device case.
+export function ownerKeyFor(slug: ExamSlug): string {
+  return `coach-owner__${slug}`;
 }

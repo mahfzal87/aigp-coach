@@ -1,5 +1,6 @@
 "use client";
 
+import { getPackExtras } from "@/lib/content";
 import { useEffect, useId, useMemo, useState } from "react";
 import { AlertOctagon, AlertTriangle, BellDot, CheckCircle2, ChevronDown, ExternalLink, Info, Newspaper } from "lucide-react";
 import { getUpdates } from "@/lib/updates";
@@ -59,7 +60,9 @@ export default function UpdatesPage() {
       // "New" = published after the mark as it stood when this visit began.
       const seenBefore = useProgress.getState().settings.lastSeenUpdateTs ?? null;
       setFeed({ items, now: Date.now(), seenBefore });
-      const newest = items.reduce((m, u) => Math.max(m, tsOf(u)), 0);
+      // Stamp across the bundled feed too: the nav dot compares against the bundle,
+      // so a lagging online feed must not leave the dot stuck on.
+      const newest = [...items, ...getPackExtras().updates].reduce((m, u) => Math.max(m, tsOf(u)), 0);
       if (newest <= (seenBefore ?? 0)) return;
       // Advance the mark only once the visit has settled. On boot ExamGate may
       // still swap to a stored non-default exam and remount this page — that

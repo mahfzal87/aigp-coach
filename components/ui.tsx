@@ -4,18 +4,18 @@ import { cn } from "@/lib/utils";
 
 // ── Button — pills with a tactile press ──
 export const buttonVariants = cva(
-  "press inline-flex items-center justify-center gap-2 rounded-full font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer",
+  "press inline-flex items-center justify-center gap-2 rounded-full font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer",
   {
     variants: {
       variant: {
         primary:
           "bg-[var(--primary)] text-[var(--primary-fg)] shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_6px_16px_-8px_var(--primary)] hover:bg-[var(--primary-shade)]",
-        accent: "bg-[var(--accent)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-[var(--accent-shade)]",
-        danger: "bg-[var(--danger)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-[var(--danger-shade)]",
+        accent: "bg-[var(--accent)] text-[var(--accent-fg)] shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-[var(--accent-shade)]",
+        danger: "bg-[var(--danger)] text-[var(--danger-fg)] shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-[var(--danger-shade)]",
         gold: "bg-[var(--gold)] text-[#1b1300] hover:opacity-90",
         outline:
           "bg-[var(--glass-tint-strong)] text-[var(--foreground)] border border-[var(--border)] hover:border-[color-mix(in_srgb,var(--primary)_40%,var(--border))]",
-        soft: "bg-[var(--primary)]/12 text-[var(--primary)] hover:bg-[var(--primary)]/18",
+        soft: "bg-[var(--primary)]/12 text-[var(--primary-ink)] hover:bg-[var(--primary)]/18",
         ghost: "bg-transparent text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]",
       },
       size: { sm: "h-9 px-3.5 text-xs", md: "h-11 px-5 text-sm", lg: "h-12 px-6 text-sm" },
@@ -41,13 +41,13 @@ const badgeVariants = cva("inline-flex items-center gap-1 rounded-full px-2.5 py
   variants: {
     tone: {
       default: "bg-[var(--surface-2)] text-[var(--muted)]",
-      primary: "bg-[var(--primary)]/14 text-[color-mix(in_srgb,var(--primary)_78%,var(--foreground))]",
-      accent: "bg-[var(--accent)]/14 text-[color-mix(in_srgb,var(--accent)_78%,var(--foreground))]",
+      primary: "bg-[var(--primary)]/14 text-[var(--primary-ink)]",
+      accent: "bg-[var(--accent)]/14 text-[var(--accent-ink)]",
       gold: "bg-[var(--gold)]/18 text-[color-mix(in_srgb,var(--gold)_55%,var(--foreground))]",
       streak: "bg-[var(--streak)]/15 text-[color-mix(in_srgb,var(--streak)_72%,var(--foreground))]",
-      success: "bg-[var(--success)]/14 text-[color-mix(in_srgb,var(--success)_72%,var(--foreground))]",
-      warning: "bg-[var(--warning)]/16 text-[color-mix(in_srgb,var(--warning)_65%,var(--foreground))]",
-      danger: "bg-[var(--danger)]/14 text-[color-mix(in_srgb,var(--danger)_78%,var(--foreground))]",
+      success: "bg-[var(--success)]/14 text-[color-mix(in_srgb,var(--success)_66%,var(--foreground))]",
+      warning: "bg-[var(--warning)]/16 text-[color-mix(in_srgb,var(--warning)_60%,var(--foreground))]",
+      danger: "bg-[var(--danger)]/14 text-[color-mix(in_srgb,var(--danger)_70%,var(--foreground))]",
     },
   },
   defaultVariants: { tone: "default" },
@@ -95,7 +95,7 @@ export function Input({ className, ...props }: ComponentProps<"input">) {
   return (
     <input
       className={cn(
-        "h-11 w-full min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3.5 text-base text-[var(--foreground)] placeholder:text-[var(--muted)] focus-visible:border-[var(--primary)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--primary)]/15 disabled:opacity-60 aria-[invalid=true]:border-[var(--danger)] aria-[invalid=true]:focus-visible:ring-[var(--danger)]/15 sm:text-sm",
+        "h-11 w-full min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3.5 text-base text-[var(--foreground)] placeholder:text-[var(--muted)] focus-visible:border-[var(--ring)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:opacity-60 aria-[invalid=true]:border-[var(--danger)] aria-[invalid=true]:focus-visible:ring-[var(--danger)] sm:text-sm",
         className
       )}
       {...props}
@@ -116,7 +116,7 @@ export function Switch({
       aria-checked={checked}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        "press relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border border-[var(--border)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50",
+        "press relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border border-[var(--border)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] before:absolute before:-inset-2 before:content-['']",
         checked ? "bg-[var(--primary)]" : "bg-[var(--surface-2)]",
         className
       )}

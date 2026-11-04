@@ -105,7 +105,7 @@ export function Segmented<T extends string | number>({
               "before:absolute before:inset-x-0 before:-inset-y-1 before:content-[''] md:before:hidden",
               active ? "text-[color-mix(in_srgb,var(--primary)_82%,var(--foreground))]" : "text-[var(--muted)] hover:text-[var(--foreground)]",
               "disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-[var(--muted)]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
               itemClassName
             )}
           >
@@ -118,7 +118,7 @@ export function Segmented<T extends string | number>({
               />
             )}
             <span className="relative inline-flex items-center gap-1.5">{o.label}</span>
-            {o.count !== undefined && <span className="relative font-medium tabular-nums opacity-70">{o.count}</span>}
+            {o.count !== undefined && <span className="relative font-medium tabular-nums">{o.count}</span>}
           </button>
         );
       })}

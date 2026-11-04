@@ -403,7 +403,7 @@ function MissCauses({ attempts }: { attempts: Attempt[] }) {
             title={misses.length ? "No misses tagged yet" : "No misses yet"}
             hint={misses.length ? "Tag misses in Practice drills" : "Misses get tagged in Practice"}
             href="/practice"
-            cta="Start a drill"
+            cta={misses.length ? "Start a drill" : undefined}
           />
         ) : (
           <>
@@ -438,7 +438,7 @@ function MissCauses({ attempts }: { attempts: Attempt[] }) {
                       <Link
                         href={c.href}
                         onClick={() => haptic("tap")}
-                        className="press -mx-2 block min-h-[44px] rounded-xl px-2 py-1.5 transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50"
+                        className="press -mx-2 block min-h-[44px] rounded-xl px-2 py-1.5 transition-colors hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
                       >
                         {body}
                       </Link>
@@ -515,7 +515,7 @@ function Calibration({ attempts }: { attempts: Attempt[] }) {
   );
 }
 
-function EmptyRow({ icon: Icon, title, hint, href, cta }: { icon: ComponentType<{ size?: number; className?: string }>; title: string; hint: string; href: string; cta: string }) {
+function EmptyRow({ icon: Icon, title, hint, href, cta }: { icon: ComponentType<{ size?: number; className?: string }>; title: string; hint: string; href: string; cta?: string }) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
       <Icon size={18} className="shrink-0 text-[var(--muted)]" />
@@ -523,9 +523,11 @@ function EmptyRow({ icon: Icon, title, hint, href, cta }: { icon: ComponentType<
         <div className="text-sm font-semibold">{title}</div>
         <div className="mt-0.5 text-xs text-[var(--muted)]">{hint}</div>
       </div>
-      <ButtonLink href={href} size="sm" variant="outline">
-        {cta}
-      </ButtonLink>
+      {cta && (
+        <ButtonLink href={href} size="sm" variant="outline">
+          {cta}
+        </ButtonLink>
+      )}
     </div>
   );
 }

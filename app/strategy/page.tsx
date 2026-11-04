@@ -256,7 +256,7 @@ export default function StrategyPage() {
           </ul>
           <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-[var(--border)] pt-3 text-[13px] text-[var(--muted)]">
             <Badge>Tip</Badge> Tag every miss: knowledge, technique or read error.
-            <Link href="/analytics" className="font-semibold text-[color-mix(in_srgb,var(--accent)_85%,var(--foreground))] underline-offset-2 hover:underline">See your pattern</Link>
+            <Link href="/analytics" className="relative font-semibold text-[var(--accent-ink)] underline-offset-2 before:absolute before:-inset-x-1 before:-inset-y-3 before:content-[''] hover:underline">See your pattern</Link>
           </p>
         </CardBody>
       </Card>

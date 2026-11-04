@@ -11,10 +11,10 @@
 /* ── Per-exam light ── */
 :root,
 [data-exam="aigp"] {
-  --exam-primary: #0a8a5e; /* Lagoon — white text ≥ 4.5:1 */
-  --exam-primary-shade: #086f4c;
-  --exam-accent: #2563eb;
-  --exam-accent-shade: #1d4ed8;
+  --exam-primary: #087f56; /* Lagoon — white text 5.0:1 */
+  --exam-primary-shade: #066a47;
+  --exam-accent: #1e55d6;
+  --exam-accent-shade: #1a47b3;
   --glow: #34d3c0;
   --spark: #c6f432;
   --field-a: #5fe3cf;
@@ -64,6 +64,8 @@
   --accent: var(--exam-accent);
   --accent-shade: var(--exam-accent-shade);
   --ring: var(--exam-primary);
+  --primary-ink: color-mix(in srgb, var(--exam-primary) 72%, var(--foreground));
+  --accent-ink: color-mix(in srgb, var(--exam-accent) 78%, var(--foreground));
 }
 
 /* ── Core tokens ── */
@@ -73,20 +75,25 @@
   --surface: #ffffff;                    /* opaque: inputs, menus, sheets */
   --surface-2: rgba(20, 23, 43, 0.05);   /* quiet fills that sit on glass */
   --foreground: #14172b;
-  --muted: #5a6078;
+  --muted: #4a5069;                      /* ≥ 4.5:1 on glass AND directly on the light field */
   --border: rgba(20, 23, 43, 0.1);
 
   --primary: var(--exam-primary);
   --primary-shade: var(--exam-primary-shade);
   --primary-fg: #ffffff;
+  /* Text in the exam's color on tinted/glass surfaces (selected states, links). */
+  --primary-ink: color-mix(in srgb, var(--exam-primary) 72%, var(--foreground));
   --accent: var(--exam-accent);
   --accent-shade: var(--exam-accent-shade);
+  --accent-ink: color-mix(in srgb, var(--exam-accent) 78%, var(--foreground));
+  --accent-fg: #ffffff;
   --gold: #c98a04;
   --streak: #ea580c;
-  --danger: #dc2626;
-  --danger-shade: #b91c1c;
-  --success: #15803d;
-  --warning: #b45309;
+  --danger: #c81e1e;
+  --danger-shade: #a51818;
+  --danger-fg: #ffffff;
+  --success: #13753a;
+  --warning: #9a4a05;
   --ring: var(--exam-primary);
   --radius: 22px;
 
@@ -94,7 +101,7 @@
   --bottom-nav-h: 76px;
 
   --glass-tint: rgba(255, 255, 255, 0.62);
-  --glass-tint-strong: rgba(255, 255, 255, 0.84);
+  --glass-tint-strong: rgba(255, 255, 255, 0.9);
   --glass-edge: rgba(255, 255, 255, 0.7);
   --glass-hairline: rgba(20, 23, 43, 0.08);
   --glass-highlight: rgba(255, 255, 255, 0.95);
@@ -114,10 +121,12 @@
   --surface: #131726;
   --surface-2: rgba(255, 255, 255, 0.06);
   --foreground: #eceef8;
-  --muted: #9aa0b8;
+  --muted: #b4b9cc;                      /* ≥ 4.5:1 on dark glass AND on the night field */
   --border: rgba(255, 255, 255, 0.09);
 
   --primary-fg: #061019;
+  --accent-fg: #061019;                  /* bright dark-mode fills need dark ink */
+  --danger-fg: #1a0505;
   --gold: #fbbf24;
   --streak: #fb923c;
   --danger: #f87171;
@@ -126,7 +135,7 @@
   --warning: #fbbf24;
 
   --glass-tint: rgba(22, 26, 42, 0.55);
-  --glass-tint-strong: rgba(24, 28, 46, 0.86);
+  --glass-tint-strong: rgba(20, 24, 40, 0.92);
   --glass-edge: rgba(255, 255, 255, 0.1);
   --glass-hairline: rgba(255, 255, 255, 0.07);
   --glass-highlight: rgba(255, 255, 255, 0.1);
@@ -185,6 +194,29 @@
   ::selection {
     background: color-mix(in srgb, var(--primary) 24%, transparent);
   }
+
+  /* A solid, offset ring for anything focusable that doesn't style its own. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* Keep focused/anchored content clear of the floating bars on phones. */
+  html {
+    scroll-padding-top: calc(var(--header-h) + 12px);
+  }
+  @media (max-width: 767px) {
+    html {
+      scroll-padding-bottom: calc(var(--bottom-nav-h) + 96px);
+    }
+  }
+}
+
+/* Recharts sets its own outline: none — charts must still show keyboard focus. */
+.recharts-wrapper:focus-visible,
+.recharts-surface:focus-visible {
+  outline: 2px solid var(--ring) !important;
+  outline-offset: 4px;
 }
 
 @layer components {
@@ -344,17 +376,25 @@
 @keyframes drift-a { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(9vmax, 6vmax, 0) scale(1.08); } }
 @keyframes drift-b { from { transform: translate3d(0, 0, 0) scale(1.05); } to { transform: translate3d(-8vmax, 7vmax, 0) scale(0.95); } }
 @keyframes drift-c { from { transform: translate3d(0, 0, 0) scale(0.96); } to { transform: translate3d(6vmax, -7vmax, 0) scale(1.06); } }
+/* The light drifts once out and back after arrival, then holds still: moving
+   colour under backdrop-filter glass forces every panel to re-blur each frame,
+   so a perpetual drift would never let the page go idle (battery). */
 @media (prefers-reduced-motion: no-preference) {
-  .exam-light__a { animation: drift-a 110s ease-in-out infinite alternate; }
-  .exam-light__b { animation: drift-b 135s ease-in-out infinite alternate; }
-  .exam-light__c { animation: drift-c 95s ease-in-out infinite alternate; }
+  .exam-light__a { animation: drift-a 40s ease-in-out 2 alternate both; }
+  .exam-light__b { animation: drift-b 48s ease-in-out 2 alternate both; }
+  .exam-light__c { animation: drift-c 36s ease-in-out 2 alternate both; }
+}
+/* A timed exam is a still room. */
+body[data-focus="exam"] .exam-light > span {
+  animation-play-state: paused;
 }
 
 /* The readiness orb's surface waves (SVG user units). */
 @keyframes orb-wave { from { transform: translateX(0); } to { transform: translateX(-200px); } }
+/* The surface rolls for a few cycles after the orb fills, then settles. */
 @media (prefers-reduced-motion: no-preference) {
-  .orb-wave { animation: orb-wave 7s linear infinite; }
-  .orb-wave-slow { animation: orb-wave 12s linear infinite reverse; }
+  .orb-wave { animation: orb-wave 7s linear 4; }
+  .orb-wave-slow { animation: orb-wave 12s linear 3 reverse; }
 }
 
 /* Exam focus mode: a timed mock sets body[data-focus="exam"] to hide app navigation. */

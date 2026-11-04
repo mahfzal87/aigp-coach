@@ -72,13 +72,25 @@ export function LiquidOrb({
         <circle cx={C} cy={C} r={R} fill="none" strokeWidth={1.25} style={{ stroke: "var(--glass-edge)" }} />
       </svg>
 
-      {/* The figure sits over liquid once the orb is past half full — switch ink for contrast. */}
+      {/* Past half full the figure sits over bright liquid (in both themes), so it
+          takes dark ink; the small label rides in a frosted pill so it stays legible
+          over any part of the gradient. */}
       <div className="absolute inset-0 grid place-items-center text-center">
-        <div className={v >= 56 ? "text-white [text-shadow:0_1px_12px_rgba(0,0,0,0.18)]" : "text-[var(--foreground)]"}>
+        <div className={!empty && v >= 56 ? "text-[#0d1324]" : "text-[var(--foreground)]"}>
           <div className="font-display font-extrabold leading-none tabular-nums" style={{ fontSize: size * 0.3 }}>
             {empty ? "—" : v}
           </div>
-          {sub && <div className="mt-1 text-[11px] font-semibold opacity-85">{sub}</div>}
+          {sub && (
+            <div
+              className={
+                !empty && v >= 56
+                  ? "mt-1.5 inline-block rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-semibold text-[#0d1324]"
+                  : "mt-1 text-[11px] font-semibold text-[var(--muted)]"
+              }
+            >
+              {sub}
+            </div>
+          )}
         </div>
       </div>
     </div>

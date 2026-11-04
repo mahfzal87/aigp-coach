@@ -11,6 +11,7 @@ import { clearStoredExam } from "@/lib/exam-state";
 import { getActiveMeta } from "@/lib/content";
 import { useSession } from "@/components/account";
 import { haptic } from "@/lib/haptics";
+import { useMenuFocus } from "@/components/a11y";
 import { cn } from "@/lib/utils";
 
 type SessionLike = { user: { email?: string; created_at?: string; user_metadata?: Record<string, unknown> } } | null;
@@ -82,7 +83,10 @@ export function UserMenuView({ session, ready }: { session: SessionLike; ready: 
   const open = openOn === pathname;
   const mounted = useIsClient();
   const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const { busy, run: doSignOut } = useSignOut();
+  useMenuFocus(menuRef, open, () => setOpenOn(null), triggerRef);
 
   useEffect(() => {
     if (!open) return;
@@ -98,7 +102,7 @@ export function UserMenuView({ session, ready }: { session: SessionLike; ready: 
     };
   }, [open]);
 
-  if (!mounted || !ready) return <div className="h-9 w-9" />;
+  if (!mounted || !ready) return <div className="h-9 w-11" />;
 
   const name = displayName(firstNameOf(session as Session | null), session?.user.email);
   const exam = getActiveMeta();
@@ -107,6 +111,7 @@ export function UserMenuView({ session, ready }: { session: SessionLike; ready: 
   return (
     <div ref={ref} className="relative">
       <button
+        ref={triggerRef}
         onClick={() => {
           haptic("tap");
           setOpenOn(open ? null : pathname);
@@ -114,7 +119,7 @@ export function UserMenuView({ session, ready }: { session: SessionLike; ready: 
         aria-label="Account menu"
         aria-haspopup="menu"
         aria-expanded={open}
-        className="press grid h-9 w-9 cursor-pointer place-items-center rounded-full ring-offset-2 ring-offset-[var(--background)] hover:ring-2 hover:ring-[var(--border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+        className="press -my-1 grid h-11 w-11 cursor-pointer place-items-center rounded-full ring-offset-2 ring-offset-[var(--background)] hover:ring-2 hover:ring-[var(--border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
       >
         {session ? (
           <Avatar name={name} size={34} />
@@ -126,7 +131,7 @@ export function UserMenuView({ session, ready }: { session: SessionLike; ready: 
       </button>
 
       {open && (
-        <div role="menu" className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--e3)]">
+        <div ref={menuRef} role="menu" aria-label="Account" className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--e3)]">
           <div className="flex items-center gap-2.5 px-2.5 pb-2.5 pt-2">
             {session ? (
               <Avatar name={name} size={36} />
@@ -156,14 +161,14 @@ export function UserMenuView({ session, ready }: { session: SessionLike; ready: 
 
           <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">
             <span className="text-sm font-medium">Color mode</span>
-            <div role="radiogroup" aria-label="Color mode" className="flex gap-0.5 rounded-lg bg-[var(--surface-2)] p-0.5">
+            <div role="group" aria-label="Color mode" className="flex gap-0.5 rounded-lg bg-[var(--surface-2)] p-0.5">
               {MODES.map((m) => {
                 const Icon = m.icon;
                 const on = mode === m.id;
                 return (
                   <button
                     key={m.id}
-                    role="radio"
+                    role="menuitemradio"
                     aria-checked={on}
                     aria-label={m.label}
                     title={m.label}

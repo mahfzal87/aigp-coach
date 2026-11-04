@@ -225,13 +225,13 @@ export function LensTabs<K extends string>({
               title={t.title}
               onClick={() => onPick(t.key)}
               className={cn(
-                "press relative flex h-11 flex-none cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50 disabled:cursor-not-allowed disabled:opacity-40 sm:h-9 sm:flex-1",
+                "press relative flex h-11 flex-none cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:cursor-not-allowed disabled:opacity-40 sm:h-9 sm:flex-1",
                 on ? "text-[color-mix(in_srgb,var(--primary)_82%,var(--foreground))]" : "text-[var(--muted)] hover:text-[var(--foreground)]"
               )}
             >
               {on && <motion.span layoutId={lensId} transition={transition} aria-hidden className="absolute inset-0 rounded-full bg-[var(--primary)]/12 ring-1 ring-[var(--primary)]/25" />}
               <span className="relative">{t.label}</span>
-              {t.count !== undefined && <Tick value={t.count} className="relative text-xs opacity-70" />}
+              {t.count !== undefined && <Tick value={t.count} className="relative text-xs" />}
             </button>
           );
         })}
@@ -269,7 +269,7 @@ export function FilterChip({
     >
       {dot && <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ background: dot }} />}
       {label}
-      {count !== undefined && <Tick value={count} className="opacity-70" />}
+      {count !== undefined && <Tick value={count} />}
     </Chip>
   );
 }

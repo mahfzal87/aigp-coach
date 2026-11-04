@@ -273,7 +273,7 @@ export function AccountForm({ defaultMode = "in", autoFocus = false }: { default
               onClick={() => !on && switchMode(t.id)}
               onKeyDown={onTabKey}
               className={cn(
-                "press relative h-11 cursor-pointer rounded-full px-3 text-sm font-semibold focus-visible:outline-none sm:h-9 focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50 disabled:cursor-not-allowed",
+                "press relative h-11 cursor-pointer rounded-full px-3 text-sm font-semibold focus-visible:outline-none sm:h-9 focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:cursor-not-allowed",
                 on ? "text-[var(--primary)]" : "text-[var(--muted)] hover:text-[var(--foreground)]"
               )}
             >
@@ -351,7 +351,7 @@ export function AccountForm({ defaultMode = "in", autoFocus = false }: { default
                 aria-pressed={showPw}
                 aria-controls={pwId}
                 title={showPw ? "Hide password" : "Show password"}
-                className="grid h-11 w-11 cursor-pointer place-items-center rounded-r-2xl text-[var(--muted)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]/50"
+                className="grid h-11 w-11 cursor-pointer place-items-center rounded-r-2xl text-[var(--muted)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]"
               >
                 {showPw ? <EyeOff size={17} aria-hidden /> : <Eye size={17} aria-hidden />}
               </button>

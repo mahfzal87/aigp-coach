@@ -194,6 +194,7 @@ export interface LessonSession {
 export interface ProgressExport {
   version: number;
   exportedAt: string;
+  examId?: string; // which exam this progress belongs to (absent on older exports)
   attempts: Attempt[];
   flashcards: Record<string, FlashcardState>;
   mocks: MockSession[];

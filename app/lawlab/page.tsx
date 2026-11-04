@@ -28,7 +28,7 @@ const REGIONS: LawRegion[] = ["EU", "US", "APAC", "Global", "Org"];
 const REGION_LABEL: Record<LawRegion, string> = { EU: "EU", US: "US", APAC: "APAC", Global: "Global", Org: "In the org" };
 const DRILL_ROUNDS = 10;
 
-const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]/50";
+const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]";
 // Stretches a 32–36px control's tap area to 44px without changing how it looks.
 const HIT = "relative after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-['']";
 // Scroll targets clear the floating header / phone dock (shell tokens).
@@ -216,7 +216,7 @@ function ModeTabs({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void 
             )}
             <Icon size={15} aria-hidden="true" className="relative hidden shrink-0 sm:block" />
             <span className="relative truncate">{label}</span>
-            {counts[m] !== null && <span className="relative hidden text-xs tabular-nums opacity-70 sm:inline">{counts[m]}</span>}
+            {counts[m] !== null && <span className="relative hidden text-xs tabular-nums sm:inline">{counts[m]}</span>}
           </button>
         );
       })}
@@ -485,11 +485,11 @@ function MapsSection({
         {showRegions && (
           <div role="group" aria-label="Filter maps by region" className="-mx-4 flex gap-1.5 overflow-x-auto px-4 py-1.5 [scrollbar-width:none] sm:mx-0 sm:px-0">
             <Chip selected={active === "All"} onClick={() => pick("All")} className={cn("shrink-0 gap-1.5", HIT)}>
-              All <span className="tabular-nums opacity-70">{maps.length}</span>
+              All <span className="tabular-nums">{maps.length}</span>
             </Chip>
             {regions.map(({ r, n }) => (
               <Chip key={r} selected={active === r} onClick={() => pick(r)} className={cn("shrink-0 gap-1.5", HIT)}>
-                {REGION_LABEL[r]} <span className="tabular-nums opacity-70">{n}</span>
+                {REGION_LABEL[r]} <span className="tabular-nums">{n}</span>
               </Chip>
             ))}
           </div>
