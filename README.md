@@ -2,7 +2,7 @@
 
 **An exam simulator for IAPP certifications, built because the material I could buy told me *what* to know and never *why I kept getting questions wrong*.**
 
-It started as a study system for the AIGP exam. It now runs two exams, **AIGP** and **CIPP/E**, and the rest of the IAPP lineup is queued on the exam picker.
+It started as a study system for the AIGP exam. It now runs three exams, **AIGP**, **CIPP/E** and **CIPM**, and the rest of the IAPP lineup is queued on the exam picker.
 
 Use the hosted copy at **[aigp-coach.vercel.app](https://aigp-coach.vercel.app)**: create a free account, tell it your first name, pick your exam, and go. Your progress backs up to your account automatically and you stay signed in until you log out. Or clone it and run your own with **no account at all**. A clone keeps everything in your browser: no tracking, no API keys, no configuration.
 
@@ -35,7 +35,7 @@ I built the thing I wanted. Five decisions shaped it.
 
 **Diagnose the miss, not the answer.** Every question carries a rationale, a line on why each wrong option fails, and a trap type. After answering I tag the miss as Knowledge, Technique, or Read-error: I did not know it, I knew it and attacked the question wrong, or I simply misread the stem. Those three need completely different remedies, and lumping them together is why "just do more questions" stops working somewhere around the fourth hundred.
 
-The CIPP/E pack goes one step further. Real papers come down to two options that both look right, so every CIPP/E question is written around a named near-miss: an option that is true in general and wrong here on one precise point. Pick it and the reveal says so, then spells out the one discriminator between the two.
+The CIPP/E and CIPM packs go one step further. Real papers come down to two options that both look right, so every question in them is written around a named near-miss: an option that is true in general and wrong here on one precise point. Pick it and the reveal says so, then spells out the one discriminator between the two.
 
 <img src="docs/practice.png" alt="A CIPP/E practice question in dark mode after a wrong answer: the chosen option is marked Your answer and Near-miss, the correct option is highlighted, and a near-miss panel names the one discriminator between them" width="100%">
 
@@ -47,11 +47,11 @@ The CIPP/E pack goes one step further. Real papers come down to two options that
 
 <img src="docs/progress.png" alt="The progress page: a readiness orb at 83, the verdict Not yet ready with a checklist for the projected score, the domain floor and the full mock, the competencies dragging the score down with drill links, and totals for answers, accuracy, modules and mocks" width="100%">
 
-**Fixed papers, where the record is the product.** The mock module is a cluster of fixed, mutually disjoint papers rather than random pulls. AIGP has three blueprint-proportional 100-question forms, a 50-question Hard Gauntlet rated hardest throughout, a 40-question Trap Lab where every item carries a named trap, and a 25-question deep-dive per domain. CIPP/E has a 90-question form, its own Gauntlet and Trap Lab, and five domain deep-dives. Papers run on real exam timing, pause cleanly mid-run, and give no feedback until submission, then full reasoning for every miss. The mock homescreen keeps the whole record: score trajectory against the pass line, per-domain readiness with trend, weakest competencies, technique leaks, a vault of every question ever missed, and the paper to sit next.
+**Fixed papers, where the record is the product.** The mock module is a cluster of fixed, mutually disjoint papers rather than random pulls. AIGP has three blueprint-proportional 100-question forms, a 50-question Hard Gauntlet rated hardest throughout, a 40-question Trap Lab where every item carries a named trap, and a 25-question deep-dive per domain. CIPP/E has a 90-question form, its own Gauntlet and Trap Lab, and five domain deep-dives. CIPM has two 90-question forms, a Gauntlet, a Trap Lab and six domain deep-dives. Papers run on real exam timing, pause cleanly mid-run, and give no feedback until submission, then full reasoning for every miss. The mock homescreen keeps the whole record: score trajectory against the pass line, per-domain readiness with trend, weakest competencies, technique leaks, a vault of every question ever missed, and the paper to sit next.
 
 <img src="docs/mock-insights.png" alt="The AIGP mock exam record in dark mode: the latest full paper at 458 out of 500 with a pass badge, best score and open misses, the next recommended paper, a score track against the pass line, and per-domain accuracy with trend" width="100%">
 
-**The laws get their own room.** Two days out from the exam my misses all had the same shape: laws, frameworks, and the deliberate confusion between them. Law Lab is the answer. Every instrument on the Body of Knowledge gets a tappable mindmap of facts you lock in one by one as you learn them cold (16 maps and 233 facts for AIGP, 10 maps and 279 facts for CIPP/E), trigger keywords that map exam phrasing to the right law, side-by-side tables for the pairs the exam loves to swap (DPIA vs FRIA, provider vs deployer, controller vs processor), and a timed trigger drill with a personal best. The top card is live: it names your weakest law competencies from your own attempt history, so the tab always opens with the reason it exists.
+**The laws get their own room.** Two days out from the exam my misses all had the same shape: laws, frameworks, and the deliberate confusion between them. Law Lab is the answer. Every instrument on the Body of Knowledge gets a tappable mindmap of facts you lock in one by one as you learn them cold (16 maps and 233 facts for AIGP, 10 maps and 279 facts for CIPP/E, 12 maps and 278 facts for CIPM), trigger keywords that map exam phrasing to the right law, side-by-side tables for the pairs the exam loves to swap (DPIA vs FRIA, provider vs deployer, controller vs processor, PIA vs DPIA), and a timed trigger drill with a personal best. The top card is live: it names your weakest law competencies from your own attempt history, so the tab always opens with the reason it exists.
 
 <img src="docs/lawlab-mindmap.png" alt="An AIGP Law Lab mindmap of the EU AI Act: lab progress and drill best, the weakest law competencies from practice, region filters, and the risk-tiers branch with each fact locked in with a green check" width="100%">
 
@@ -61,13 +61,15 @@ The CIPP/E pack goes one step further. Real papers come down to two options that
 
 Every exam lives in the app as a self-contained content pack: curriculum, question bank, fixed mock papers, Law Lab, glossary. Each keeps its own progress, streak, mocks and readiness model, driven by its official blueprint weights, and the switcher under the logo moves between them without mixing anything up.
 
-**AIGP** is the original, full-depth pack. **CIPP/E** (BoK v1.3.3, the five-domain 2025–26 structure) is the second, written to the near-miss standard from its first question. **CIPP/US, CIPM, CIPT, CIPP/C, CIPP/A and CIPP/CN** sit on the picker as coming soon.
+**AIGP** is the original, full-depth pack. **CIPP/E** (BoK v1.3.3, the five-domain 2025–26 structure) is the second, written to the near-miss standard from its first question. **CIPM** (BoK v4.2.0, in force since September 2025) is the third, and the first with six domains. It is a program-management exam rather than a law exam, so most of its questions are scenarios about running a privacy program: what to do FIRST, who owns a task, which assessment or metric fits. **CIPP/US, CIPT, CIPP/C, CIPP/A and CIPP/CN** sit on the picker as coming soon.
 
-<img src="docs/exam-picker.png" alt="The exam picker: AIGP and CIPP/E as live tiles, and six coming-soon tiles for CIPP/US, CIPM, CIPT, CIPP/C, CIPP/A and CIPP/CN" width="100%">
+<img src="docs/exam-picker.png" alt="The exam picker: AIGP, CIPP/E and CIPM as live tiles, and five coming-soon tiles for CIPP/US, CIPT, CIPP/C, CIPP/A and CIPP/CN" width="100%">
+
+<img src="docs/cipm-mock.png" alt="The CIPM mock exams page in dark mode and its amethyst light: Full Mock Form A as the next paper, then Form B, a Hard Gauntlet, a Trap Lab and a deep-dive for each of the six domains" width="100%">
 
 ## The interface
 
-The first version looked like what it was: a textbook with a progress bar. The current one takes its idea from the subject. AI governance and data protection both come down to transparency, so the interface is made of glass: frosted panels over a soft field of light. Each exam has its own light, a lagoon green for AIGP and a European blue for CIPP/E, so you know which exam you are in without reading a label. Navigation is a floating glass rail with a lens that slides to the page you pick, and a dock on phones. Everything personal sits behind the avatar in the top-right corner: profile, settings, colour mode and sign out.
+The first version looked like what it was: a textbook with a progress bar. The current one takes its idea from the subject. AI governance and data protection both come down to transparency, so the interface is made of glass: frosted panels over a soft field of light. Each exam has its own light, a lagoon green for AIGP, a European blue for CIPP/E and amethyst for CIPM, so you know which exam you are in without reading a label. Navigation is a floating glass rail with a lens that slides to the page you pick, and a dock on phones. Everything personal sits behind the avatar in the top-right corner: profile, settings, colour mode and sign out.
 
 Light and dark are designed as a pair, contrast is measured rather than eyeballed, focus rings are always visible, and the motion stops when your system asks for reduced motion.
 
@@ -85,19 +87,19 @@ Light and dark are designed as a pair, contrast is measured rather than eyeballe
 
 Coverage per exam:
 
-| | AIGP | CIPP/E |
-|---|---|---|
-| Body of Knowledge | v2.1, 2026 | v1.3.3, 2025–26 |
-| Real exam | 100 questions, 165 minutes | 90 questions, 150 minutes |
-| Domains / competencies | 4 / 13 | 5 / 18 |
-| Topics | 101 | 60 |
-| Questions | 406, of which 211 sit in the hard pool the mock papers draw from | 202, of which 108 sit in the hard pool |
-| Fixed mock papers | 9 | 8 |
-| Law Lab | 16 maps, 233 facts, 12 confusable pairs | 10 maps, 279 facts, 13 confusable pairs |
-| Glossary | 105 terms | 90 terms |
-| Flashcards | 33 | 24 |
+| | AIGP | CIPP/E | CIPM |
+|---|---|---|---|
+| Body of Knowledge | v2.1, 2026 | v1.3.3, 2025–26 | v4.2.0, 2025–26 |
+| Real exam | 100 questions, 165 minutes | 90 questions, 150 minutes | 90 questions, 150 minutes |
+| Domains / competencies | 4 / 13 | 5 / 18 | 6 / 21 |
+| Topics | 101 | 60 | 54 |
+| Questions | 406, of which 211 sit in the hard pool the mock papers draw from | 202, of which 108 sit in the hard pool | 227, of which 119 sit in the hard pool |
+| Fixed mock papers | 9 | 8 | 10 |
+| Law Lab | 16 maps, 233 facts, 12 confusable pairs | 10 maps, 279 facts, 13 confusable pairs | 12 maps, 278 facts, 14 confusable pairs |
+| Glossary | 105 terms | 90 terms | 93 terms |
+| Flashcards | 33 | 24 | 24 |
 
-Both exams are scored on the IAPP's 100 to 500 scale with the pass at 300, and both use all six question types.
+All three exams are scored on the IAPP's 100 to 500 scale with the pass at 300, and all three use the same six question types.
 
 **Stack:** Next.js 16, TypeScript, Tailwind v4, Zustand, Framer Motion, Recharts, with Bricolage Grotesque and Instrument Sans for type. Supabase is optional and powers accounts, sync and content updates. Progress lives in `localStorage` first; nothing is sent anywhere unless you create an account or mint a sync code (both below).
 
@@ -134,7 +136,7 @@ The AIGP pack's files still live in `/content`, their home from before there was
 | `flashcards.ts` | Spaced-repetition cards |
 | `updates.ts` | The law-updates feed |
 
-CIPP/E uses the same shapes in `content/exams/cippe/`, split by domain: `topics-d1.ts` … `topics-d5.ts` and `questions-d1.ts` … `questions-d5.ts` (each with its share of the hard pool), plus `lawlab.ts`, `library.ts`, `flashcards.ts` and `updates.ts`.
+CIPP/E and CIPM use the same shapes in `content/exams/cippe/` and `content/exams/cipm/`, split by domain: `topics-d1.ts`, `questions-d1.ts` and so on, one pair per domain (each questions file carries its share of the hard pool), plus `lawlab.ts`, `library.ts`, `flashcards.ts` and `updates.ts`.
 
 Add your own questions, correct mine, or rewrite the topics in your own words, which is the version that sticks. If you fix something wrong, a PR is welcome.
 
@@ -152,7 +154,7 @@ Add your own questions, correct mine, or rewrite the topics in your own words, w
 
 ## Credits and provenance
 
-Most of these questions are mine. On AIGP, 71 of the 406 are adapted from AIGP study material that circulates freely among candidates, and they carry a `community` tag in the source so you can see which is which. The CIPP/E pack is original throughout.
+Most of these questions are mine. On AIGP, 71 of the 406 are adapted from AIGP study material that circulates freely among candidates, and they carry a `community` tag in the source so you can see which is which. The CIPP/E and CIPM packs are original throughout.
 
 I cannot trace those adapted items back to an original author. That is a real limitation, not a disclaimer, and it is why this is shared for personal study rather than sold. If you published something I have adapted and want it credited differently or removed, open an issue and I will action it.
 
