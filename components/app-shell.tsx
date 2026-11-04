@@ -28,6 +28,14 @@ const secondaryNav = [
   { href: "/updates", label: "Law Updates", icon: Newspaper },
 ];
 
+const NAV_ALIASES: Record<string, string[]> = { "/": ["/lesson"], "/profile": ["/analytics"] };
+
+// Re-tapping the tab you're on returns that page to its root (the standard tab-bar
+// behavior); pages that keep sub-states (e.g. a running drill) listen for this.
+function announceReselect(href: string, pathname: string) {
+  if (href === pathname) window.dispatchEvent(new CustomEvent("app:reselect", { detail: href }));
+}
+
 // The liquid lens: one spring pill that glides to the active destination.
 function useLensTransition() {
   const reduce = useReducedMotion();
@@ -86,7 +94,9 @@ function BrandMark({ size = 36 }: { size?: number }) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  // Sub-pages light their parent: a lesson belongs to the Study Plan, Analytics to Progress.
+  const isActive = (href: string) =>
+    (href === "/" ? pathname === "/" : pathname.startsWith(href)) || (NAV_ALIASES[href]?.some((p) => pathname.startsWith(p)) ?? false);
   const updatesDot = useUpdatesDot();
 
   return (
@@ -160,7 +170,16 @@ function MobileNav({ pathname, isActive, updatesDot }: { pathname: string; isAct
             const Icon = n.icon;
             const active = isActive(n.href);
             return (
-              <Link key={n.href} href={n.href} aria-current={active ? "page" : undefined} onClick={() => haptic("tap")} className={cn(tab, active ? "text-[var(--primary-ink)]" : "text-[var(--muted)]")}>
+              <Link
+                key={n.href}
+                href={n.href}
+                aria-current={active ? "page" : undefined}
+                onClick={() => {
+                  haptic("tap");
+                  announceReselect(n.href, pathname);
+                }}
+                className={cn(tab, active ? "text-[var(--primary-ink)]" : "text-[var(--muted)]")}
+              >
                 {active && <motion.span layoutId="dock-lens" transition={lens} className="absolute inset-x-0.5 inset-y-1.5 rounded-[18px] bg-[var(--primary)]/12 ring-1 ring-[var(--primary)]/25" />}
                 <Icon size={20} className="relative" />
                 <span className="relative">{n.label}</span>
@@ -226,9 +245,11 @@ function MobileNav({ pathname, isActive, updatesDot }: { pathname: string; isAct
 
 function NavLink({ href, label, icon: Icon, active, small, dot }: { href: string; label: string; icon: typeof BookOpen; active: boolean; small?: boolean; dot?: boolean }) {
   const lens = useLensTransition();
+  const pathname = usePathname();
   return (
     <Link
       href={href}
+      onClick={() => announceReselect(href, pathname)}
       aria-current={active ? "page" : undefined}
       className={cn(
         "press relative flex items-center gap-3 rounded-2xl px-3 font-medium",

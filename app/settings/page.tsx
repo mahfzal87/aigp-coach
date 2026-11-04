@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronRight, Cloud, CloudOff, Copy, Download, RefreshCw, ShieldCheck, Trash2, Upload, UserRound, X } from "lucide-react";
-import { useHydrated, useProgress } from "@/store/progress";
+import { isValidAttempt, isValidMock, useHydrated, useProgress } from "@/store/progress";
 import type { ProgressExport } from "@/lib/types";
 import { genSyncCode, normalizeCode, pullProgress, pushProgress, syncConfigured } from "@/lib/sync";
 import { authConfigured } from "@/lib/account";
@@ -417,6 +417,12 @@ function FileRow({ slug }: { slug: string }) {
     try {
       const data = JSON.parse(await file.text()) as ProgressExport;
       if (!data || typeof data !== "object" || !Array.isArray(data.attempts)) throw new Error("not an export");
+      // Refuse damaged files outright rather than importing a partial copy.
+      const bad = data.attempts.filter((a) => !isValidAttempt(a)).length + (Array.isArray(data.mocks) ? data.mocks.filter((m) => !isValidMock(m)).length : 0);
+      if (bad > 0) {
+        flash(`That file is damaged (${bad} unreadable ${bad === 1 ? "entry" : "entries"}), so nothing was imported.`, "error");
+        return;
+      }
       // Backups are stamped with their exam; never pour one exam's file into another.
       if (data.examId && data.examId !== getActiveExam()) {
         const other = getPack(data.examId as ExamSlug)?.meta.name ?? data.examId;

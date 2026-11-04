@@ -83,7 +83,7 @@ export default function StudyPlanPage() {
   return (
     <div className="space-y-6">
       {firstRun ? (
-        <WelcomeHero />
+        <WelcomeHero daysLeft={daysUntil(examDate)} />
       ) : (
         <VerdictHero
           readiness={readiness}
@@ -100,7 +100,7 @@ export default function StudyPlanPage() {
           <CardBody className="flex items-center gap-3 py-2.5 pr-2.5">
             <CloudOff size={17} className="shrink-0 text-[var(--warning)]" aria-hidden />
             <p className="min-w-0 flex-1 text-sm font-semibold">Not backed up yet</p>
-            <NavButton href="/settings" size="sm" variant="accent" className="h-11 sm:h-9">
+            <NavButton href="/settings#backup" size="sm" variant="accent" className="h-11 sm:h-9">
               Back it up
             </NavButton>
             <button
@@ -268,7 +268,7 @@ function ScaleGauge({ value, pass, safe, color, className }: { value: number; pa
 }
 
 // ── Brand-new learner: what this is, how a lesson works, the first lesson ──
-function WelcomeHero() {
+function WelcomeHero({ daysLeft }: { daysLeft: number | null }) {
   const meta = getActiveMeta();
   const plan = useCurriculum();
   const lessons = plan.units.reduce((n, u) => n + u.rows.filter((r) => r.kind === "lesson").length, 0);
@@ -280,6 +280,11 @@ function WelcomeHero() {
   return (
     <Card className="mesh overflow-hidden">
       <CardBody className="p-5 sm:p-6">
+        {daysLeft !== null && daysLeft >= 0 && (
+          <Badge tone={daysLeft <= 14 ? "warning" : "default"} className="mb-2">
+            {daysLeft === 0 ? "Exam today" : `${daysLeft} day${daysLeft === 1 ? "" : "s"} to exam`}
+          </Badge>
+        )}
         <h1 className="text-[28px] font-extrabold leading-[1.1] sm:text-[32px]">Your {meta.name} study plan</h1>
         <p className="mt-1.5 text-[15px] text-[var(--muted)]">
           {lessons} lessons across {plan.units.length} domains, in blueprint order.

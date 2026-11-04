@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { ArrowRight, ChevronDown, RotateCcw, SearchX } from "lucide-react";
 import { getCompetencies, getDomains, getQuestions } from "@/lib/content";
 import { shuffle } from "@/lib/scoring";
@@ -100,6 +100,17 @@ export default function PracticePage() {
     setF(filtersFrom(search));
     if (appliedSearch !== null) setSession(null);
   }
+
+  // Re-tapping "Practice" in the nav returns to the setup screen, mid-drill or not.
+  useEffect(() => {
+    const onReselect = (e: Event) => {
+      if ((e as CustomEvent<string>).detail !== "/practice") return;
+      setSession(null);
+      window.scrollTo({ top: 0 });
+    };
+    window.addEventListener("app:reselect", onReselect);
+    return () => window.removeEventListener("app:reselect", onReselect);
+  }, []);
 
   const seenIds = useMemo(() => new Set(attempts.map((a) => a.questionId)), [attempts]);
   const wrongIds = useMemo(() => new Set(attempts.filter((a) => !a.correct).map((a) => a.questionId)), [attempts]);

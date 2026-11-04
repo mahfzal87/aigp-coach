@@ -192,6 +192,12 @@ function LessonFlow({ id, meta, onRestart }: { id: string; meta: LessonMeta; onR
     if (selected.length === 0) return;
     const correct = isAnswerCorrect(q, selected);
     recordAttempt({ questionId: q.id, competencyId: q.competencyId, chosen: selected, correct, confidence: 2, timeMs: Date.now() - startedAt.current, mode: isTest ? "mock" : "practice" });
+    // Save the position past this question right away: a reload between Check and
+    // Next would otherwise resume on it and record (and reward) the answer twice.
+    if (!isTest && !last) {
+      const missedIds = [...missed.map((mm) => mm.q.id), ...(correct ? [] : [q.id])];
+      saveLessonSession(id, { step: step + 1, correctCount: correctCount + (correct ? 1 : 0), missedIds, total: steps.length, updatedAt: Date.now() });
+    }
     haptic(correct ? "success" : "error");
     if (correct) setCorrectCount((c) => c + 1);
     else setMissed((prev) => [...prev, { q, topicTitle, topicId }]);

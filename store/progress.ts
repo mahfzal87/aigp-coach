@@ -62,6 +62,38 @@ function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
+const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+const num = (v: unknown, d = 0) => (typeof v === "number" && Number.isFinite(v) ? v : d);
+
+export function isValidAttempt(a: unknown): a is Attempt {
+  return isObj(a) && typeof a.questionId === "string" && typeof a.competencyId === "string" && typeof a.correct === "boolean" && Array.isArray(a.chosen);
+}
+
+export function isValidMock(m: unknown): m is MockSession {
+  return isObj(m) && typeof m.id === "string" && Array.isArray(m.questionIds) && isObj(m.answers);
+}
+
+// Shape-checks an export: keeps every well-formed entry, drops the rest.
+export function sanitizeExport(data: Partial<ProgressExport> | null | undefined) {
+  const d: Partial<ProgressExport> = isObj(data) ? data : {};
+  const objOr = <T,>(v: unknown, fallback: T): T => (isObj(v) ? (v as T) : fallback);
+  const run = d.mockRun;
+  return {
+    attempts: Array.isArray(d.attempts) ? d.attempts.filter(isValidAttempt) : [],
+    flashcards: objOr<Record<string, FlashcardState>>(d.flashcards, {}),
+    mocks: Array.isArray(d.mocks) ? d.mocks.filter(isValidMock) : [],
+    readNotes: Array.isArray(d.readNotes) ? d.readNotes.filter((n): n is string => typeof n === "string") : [],
+    settings: isObj(d.settings) ? ({ ...d.settings, updatesApiEnabled: d.settings.updatesApiEnabled === true } as Settings) : { updatesApiEnabled: false },
+    xp: num(d.xp),
+    streakCount: num(d.streakCount),
+    longestStreak: num(d.longestStreak),
+    lastActiveDate: typeof d.lastActiveDate === "string" ? d.lastActiveDate : null,
+    lessons: objOr<Record<string, LessonResult>>(d.lessons, {}),
+    lessonSessions: objOr<Record<string, LessonSession>>(d.lessonSessions, {}),
+    mockRun: isObj(run) && Array.isArray(run.questionIds) && isObj(run.answers) ? (run as MockRun) : null,
+  };
+}
+
 export const useProgress = create<ProgressState>()(
   persist(
     (set, get) => ({
@@ -171,21 +203,25 @@ export const useProgress = create<ProgressState>()(
         };
       },
 
-      importData: (data) =>
+      // Every import path (files, sync codes, account restores) goes through here,
+      // so malformed entries are dropped instead of crashing pages that read them.
+      importData: (data) => {
+        const clean = sanitizeExport(data);
         set({
-          attempts: data.attempts ?? [],
-          flashcards: data.flashcards ?? {},
-          mocks: data.mocks ?? [],
-          readNotes: data.readNotes ?? [],
-          settings: data.settings ?? { updatesApiEnabled: false },
-          xp: data.xp ?? 0,
-          streakCount: data.streakCount ?? 0,
-          longestStreak: data.longestStreak ?? 0,
-          lastActiveDate: data.lastActiveDate ?? null,
-          lessons: data.lessons ?? {},
-          lessonSessions: data.lessonSessions ?? {},
-          mockRun: data.mockRun ?? null,
-        }),
+          attempts: clean.attempts,
+          flashcards: clean.flashcards,
+          mocks: clean.mocks,
+          readNotes: clean.readNotes,
+          settings: clean.settings,
+          xp: clean.xp,
+          streakCount: clean.streakCount,
+          longestStreak: clean.longestStreak,
+          lastActiveDate: clean.lastActiveDate,
+          lessons: clean.lessons,
+          lessonSessions: clean.lessonSessions,
+          mockRun: clean.mockRun,
+        });
+      },
     }),
     {
       // Logical name only — the PHYSICAL key is per exam (lib/exam-state.ts), so

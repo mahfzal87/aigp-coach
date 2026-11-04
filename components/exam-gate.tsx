@@ -6,13 +6,13 @@ import { useProgress } from "@/store/progress";
 import { useLawLab } from "@/store/lawlab";
 import { SyncManager } from "@/components/sync-manager";
 import { AccountSyncManager } from "@/components/account-manager";
+import { Splash } from "@/components/entry-ui";
 
 // Multi-exam boot gate. The server render and the first client (hydration)
-// render always show the DEFAULT exam, so markup matches. After mount, the
-// stored exam choice is activated: the module slug flips (which repoints the
-// per-exam storage keys and the content accessors), the stores are reset and
-// rehydrated from the new keys, and the keyed subtree remounts so every page
-// re-reads the new pack.
+// render show the splash, so markup matches. After mount, the stored exam
+// choice is activated: the module slug flips (which repoints the per-exam
+// storage keys and the content accessors), the stores are reset and rehydrated
+// from the new keys, and only then does the app render — against the right pack.
 //
 // The sync managers mount only once the active exam is RESOLVED. Mounted
 // earlier, their reconcile would pull for the default exam and then apply the
@@ -66,10 +66,15 @@ export function ExamGate({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("storage", onStorage);
   }, [slug]);
 
+  // Pages wait for the resolved exam: rendered earlier, a page would run once
+  // against the default exam's content and storage (and could write to it).
+  // The splash covers the instant it takes — EntryFlow shows the same one.
+  if (!slug) return <Splash />;
+
   return (
-    <Fragment key={slug ?? DEFAULT_EXAM}>
-      {slug && <SyncManager />}
-      {slug && <AccountSyncManager />}
+    <Fragment key={slug}>
+      <SyncManager />
+      <AccountSyncManager />
       {children}
     </Fragment>
   );
