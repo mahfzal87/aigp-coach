@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, Check, CheckCircle2, Target } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, Clock, Target } from "lucide-react";
 import { authRequired, firstNameOf, setFirstName } from "@/lib/account";
 import { DEFAULT_EXAM, EXAM_SLUGS, hasStoredExam, switchExam, type ExamSlug } from "@/lib/exam-state";
 import { getPack, listPacks } from "@/lib/exam-registry";
@@ -25,7 +25,18 @@ import { BrandMark, EXAM_SCOPE, LogoTile, Spinner, Splash, TextField } from "@/c
 // nothing that reads the session or localStorage has to match the server.
 
 const NAME_SKIP_KEY = "coach-name-skip";
-const COMING_SOON = "CIPP/US, CIPM and CIPT are coming soon";
+// IAPP's other certifications, in rough order of demand. Shown on the picker
+// as frosted "Coming soon" tiles; the welcome line summarizes them.
+const UPCOMING_EXAMS = [
+  { name: "CIPP/US", fullName: "Certified Information Privacy Professional / United States" },
+  { name: "CIPM", fullName: "Certified Information Privacy Manager" },
+  { name: "CIPT", fullName: "Certified Information Privacy Technologist" },
+  { name: "CIPP/C", fullName: "Certified Information Privacy Professional / Canada" },
+  { name: "CIPP/A", fullName: "Certified Information Privacy Professional / Asia" },
+  { name: "CIPP/CN", fullName: "Certified Information Privacy Professional / China" },
+] as const;
+
+const COMING_SOON = `${UPCOMING_EXAMS.length} more IAPP exams are coming soon`;
 
 const noSubscribe = () => () => {};
 function useMounted() {
@@ -370,12 +381,12 @@ export function ExamTiles() {
   const [opening, setOpening] = useState<ExamSlug | null>(null);
   return (
     <main className="grid min-h-dvh place-items-center px-4 py-10">
-      <div className="w-full max-w-xl">
+      <div className="w-full max-w-2xl">
         <div className="mb-8 flex flex-col items-center gap-3">
           <LogoTile />
           <h1 className="text-[31px] font-extrabold leading-tight">Choose your exam</h1>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+        <div className="mx-auto grid max-w-xl gap-3 sm:grid-cols-2 sm:gap-4">
           {packs.map(({ meta }) => {
             const isOpening = opening === meta.slug;
             return (
@@ -434,7 +445,38 @@ export function ExamTiles() {
             );
           })}
         </div>
-        <p className="mt-6 text-center text-[13px] text-[var(--muted)]">{COMING_SOON}</p>
+
+        <section aria-labelledby="coming-soon-heading" className="mt-10">
+          <h2 id="coming-soon-heading" className="mb-3 text-center text-[15px] font-semibold text-[var(--muted)]">
+            Coming soon
+          </h2>
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {UPCOMING_EXAMS.map((x) => (
+              <li key={x.name} className="min-w-0">
+                <Card className="relative h-full overflow-hidden">
+                  {/* Readable but clearly inactive: the name stays crisp, a frosted veil
+                      pools at the bottom, and the overlay pill says why it can't open yet. */}
+                  <div aria-hidden className="flex h-full flex-col items-center px-3 pb-14 pt-6 text-center opacity-75">
+                    <span className="font-display text-[26px] font-extrabold leading-none">{x.name}</span>
+                    <span className="mt-2 line-clamp-3 text-xs leading-snug text-[var(--muted)] sm:line-clamp-2">{x.fullName}</span>
+                  </div>
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-x-0 bottom-0 flex h-3/5 items-end justify-center pb-3.5"
+                    style={{ background: "linear-gradient(to top, var(--glass-tint-strong) 35%, transparent)" }}
+                  >
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--glass-edge)] bg-[var(--surface)] px-3 py-1 text-xs font-semibold shadow-[var(--e2)]">
+                      <Clock size={12} className="text-[var(--muted)]" /> Coming soon
+                    </span>
+                  </div>
+                  <span className="sr-only">
+                    {x.name}, {x.fullName}: coming soon
+                  </span>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
     </main>
   );
