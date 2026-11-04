@@ -32,6 +32,17 @@
   --field-b: #3d5ef0;
   --field-c: #ffd666;
 }
+[data-exam="cipm"] {
+  --exam-primary: #6d3ad6; /* Amethyst — white text 6.5:1 */
+  --exam-primary-shade: #5a2cbb;
+  --exam-accent: #a3218f;
+  --exam-accent-shade: #861a75;
+  --glow: #a98bff;
+  --spark: #ff8ccf;
+  --field-a: #b9a0ff;
+  --field-b: #7b4dff;
+  --field-c: #ffa3d8;
+}
 .dark,
 .dark [data-exam="aigp"],
 .dark[data-exam="aigp"] {
@@ -54,6 +65,17 @@
   --field-a: #2a3fb8;
   --field-b: #16247a;
   --field-c: #5a3fa0;
+}
+.dark [data-exam="cipm"],
+.dark[data-exam="cipm"] {
+  --exam-primary: #b39bff;
+  --exam-primary-shade: #9d7fff;
+  --exam-accent: #f08bd6;
+  --exam-accent-shade: #e46cc6;
+  --glow: #b79dff;
+  --field-a: #5b34c8;
+  --field-b: #2b1678;
+  --field-c: #8a2a7a;
 }
 
 /* Any element can carry its own exam scope (picker cards, previews): re-derive

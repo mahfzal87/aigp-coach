@@ -4,7 +4,7 @@
 // Switching exams writes the choice and does a full reload for clean state.
 
 export const DEFAULT_EXAM = "aigp";
-export const EXAM_SLUGS = ["aigp", "cippe"] as const;
+export const EXAM_SLUGS = ["aigp", "cippe", "cipm"] as const;
 export type ExamSlug = (typeof EXAM_SLUGS)[number];
 
 const KEY = "coach-active-exam";

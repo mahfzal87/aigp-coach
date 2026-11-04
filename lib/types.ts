@@ -1,6 +1,6 @@
 // ─── Content types (source of truth in /content, mirrored in Supabase) ───
 
-export type DomainCode = "I" | "II" | "III" | "IV" | "V";
+export type DomainCode = "I" | "II" | "III" | "IV" | "V" | "VI";
 
 export interface Domain {
   id: string; // slug, e.g. "domain-i"

@@ -29,7 +29,6 @@ const NAME_SKIP_KEY = "coach-name-skip";
 // as frosted "Coming soon" tiles; the welcome line summarizes them.
 const UPCOMING_EXAMS = [
   { name: "CIPP/US", fullName: "Certified Information Privacy Professional / United States" },
-  { name: "CIPM", fullName: "Certified Information Privacy Manager" },
   { name: "CIPT", fullName: "Certified Information Privacy Technologist" },
   { name: "CIPP/C", fullName: "Certified Information Privacy Professional / Canada" },
   { name: "CIPP/A", fullName: "Certified Information Privacy Professional / Asia" },
@@ -156,6 +155,7 @@ export function Welcome() {
 const SAMPLE_ACCURACY: Partial<Record<ExamSlug, number[]>> = {
   aigp: [0.86, 0.72, 0.81, 0.78],
   cippe: [0.9, 0.7, 0.82, 0.62, 0.75],
+  cipm: [0.81, 0.86, 0.69, 0.84, 0.75, 0.8],
 };
 const onScale = (scaled: number) => ((scaled - 100) / 400) * 100;
 
@@ -381,12 +381,12 @@ export function ExamTiles() {
   const [opening, setOpening] = useState<ExamSlug | null>(null);
   return (
     <main className="grid min-h-dvh place-items-center px-4 py-10">
-      <div className="w-full max-w-2xl">
+      <div className={cn("w-full", packs.length > 2 ? "max-w-3xl" : "max-w-2xl")}>
         <div className="mb-8 flex flex-col items-center gap-3">
           <LogoTile />
           <h1 className="text-[31px] font-extrabold leading-tight">Choose your exam</h1>
         </div>
-        <div className="mx-auto grid max-w-xl gap-3 sm:grid-cols-2 sm:gap-4">
+        <div className={cn("mx-auto grid gap-3 sm:gap-4", packs.length > 2 ? "sm:grid-cols-3" : "max-w-xl sm:grid-cols-2")}>
           {packs.map(({ meta }) => {
             const isOpening = opening === meta.slug;
             return (
@@ -450,9 +450,10 @@ export function ExamTiles() {
           <h2 id="coming-soon-heading" className="mb-3 text-center text-[15px] font-semibold text-[var(--muted)]">
             Coming soon
           </h2>
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {/* Wrapping rows centre, so a short last row never hangs off to one side. */}
+          <ul className="flex flex-wrap justify-center gap-3">
             {UPCOMING_EXAMS.map((x) => (
-              <li key={x.name} className="min-w-0">
+              <li key={x.name} className="w-[calc(50%-0.375rem)] min-w-0 sm:w-[calc(33.333%-0.5rem)]">
                 <Card className="relative h-full overflow-hidden">
                   {/* Readable but clearly inactive: the name stays crisp, a frosted veil
                       pools at the bottom, and the overlay pill says why it can't open yet. */}

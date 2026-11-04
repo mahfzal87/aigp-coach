@@ -2,6 +2,7 @@ import type { ExamPack } from "@/lib/exam-pack";
 import { getActiveExam, type ExamSlug } from "@/lib/exam-state";
 import { aigpPack } from "@/content/exams/aigp/pack";
 import { cippePack } from "@/content/exams/cippe/pack";
+import { cipmPack } from "@/content/exams/cipm/pack";
 
 // Every exam the app can run. Adding an exam = add a pack folder under
 // content/exams/<slug>/, assemble its pack.ts, and register it here
@@ -10,6 +11,7 @@ import { cippePack } from "@/content/exams/cippe/pack";
 const PACKS: Record<ExamSlug, ExamPack> = {
   aigp: aigpPack,
   cippe: cippePack,
+  cipm: cipmPack,
 };
 
 export function getActivePack(): ExamPack {

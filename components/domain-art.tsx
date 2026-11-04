@@ -4,7 +4,7 @@
 // segment per module in plan order, coloured by that module's state, with the
 // domain numeral inside. The exam light behind the glass carries identity.
 
-export type DomainCode = "I" | "II" | "III" | "IV" | "V";
+export type DomainCode = "I" | "II" | "III" | "IV" | "V" | "VI";
 export type RingState = "done" | "paused" | "retake" | "current" | "new";
 
 const STROKE: Record<RingState, string> = {

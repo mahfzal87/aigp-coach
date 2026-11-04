@@ -81,7 +81,7 @@ Law Lab maps/confusables, glossary and updates feed, assembled in that folder's 
 new packs in `lib/exam-registry.ts` and add the slug in `lib/exam-state.ts`. Progress is stored per
 exam (separate localStorage keys; cloud rows are keyed `(code|user, exam_id)`), the exam switcher
 lives under the logo, and `GET /api/audit` integrity-checks every pack. Shipped packs: **AIGP**
-(full) and **CIPP/E** (BoK v1.3.3).
+(full), **CIPP/E** (BoK v1.3.3) and **CIPM** (BoK v4.2.0).
 
 ## Updating content
 

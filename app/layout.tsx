@@ -10,8 +10,8 @@ const display = Bricolage_Grotesque({ variable: "--font-bricolage", subsets: ["l
 const sans = Instrument_Sans({ variable: "--font-instrument", subsets: ["latin"], axes: ["wdth"] });
 
 export const metadata: Metadata = {
-  title: "AIGP Coach — structured prep for IAPP exams (AIGP · CIPP/E)",
-  description: "Learn each BoK domain by domain, drill IAPP-style questions, sit fixed mock papers, track your mastery, and know when you're ready. AIGP and CIPP/E.",
+  title: "AIGP Coach — structured prep for IAPP exams (AIGP · CIPP/E · CIPM)",
+  description: "Learn each BoK domain by domain, drill IAPP-style questions, sit fixed mock papers, track your mastery, and know when you're ready. AIGP, CIPP/E and CIPM.",
 };
 
 // Applies the stored exam's light before first paint, so a CIPP/E session never

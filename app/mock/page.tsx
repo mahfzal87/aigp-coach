@@ -453,7 +453,7 @@ export default function MockPage() {
 
   function finish(byTime = false) {
     let correct = 0;
-    const perDomain: Record<DomainCode, { correct: number; total: number }> = { I: { correct: 0, total: 0 }, II: { correct: 0, total: 0 }, III: { correct: 0, total: 0 }, IV: { correct: 0, total: 0 }, V: { correct: 0, total: 0 } };
+    const perDomain: Record<DomainCode, { correct: number; total: number }> = { I: { correct: 0, total: 0 }, II: { correct: 0, total: 0 }, III: { correct: 0, total: 0 }, IV: { correct: 0, total: 0 }, V: { correct: 0, total: 0 }, VI: { correct: 0, total: 0 } };
     for (const q of set) {
       const chosen = answers[q.id] ?? [];
       const ok = chosen.length > 0 && isAnswerCorrect(q, chosen);
