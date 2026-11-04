@@ -154,14 +154,14 @@ export const LAW_MAPS_CIPM: LawMapDef[] = [
         leaves: [
           "CBPR (2011): certifies a CONTROLLER's privacy program against APEC-based program requirements",
           "PRP: the companion certification for PROCESSORS — shows they can follow a controller's instructions",
-          "Certified by an approved accountability agent — not a regulator — and renewed annually",
-          "Global CBPR Forum (2022) took the system beyond APEC; Global CBPR and PRP certifications launched June 2025",
+          "Certified by a recognized accountability agent (not the privacy enforcement authority) and renewed annually",
+          "Global CBPR Forum (2022) extends it beyond APEC: Global CBPR and PRP certifications since June 2025, alongside APEC's",
         ],
       },
     ],
     keywords: [
       { term: "preventing harm", cue: "APEC's first principle — not one of the OECD eight" },
-      { term: "accountability agent", cue: "the third party that certifies CBPR and PRP — not a regulator" },
+      { term: "accountability agent", cue: "the recognized certifier for CBPR and PRP — not the privacy enforcement authority" },
       { term: "processor certification", cue: "PRP, not CBPR" },
       { term: "use limitation", cue: "OECD: no new use or disclosure without consent or legal authority" },
       { term: "individual participation", cue: "OECD's access-and-correction principle" },
@@ -233,7 +233,7 @@ export const LAW_MAPS_CIPM: LawMapDef[] = [
         id: "pets",
         t: "Privacy-enhancing technologies",
         leaves: [
-          "Pseudonymization: identifiers replaced, key held separately — still personal data",
+          "Pseudonymization: identifiers replaced, key held apart — still personal data for the key holder (EDPS v SRB, 2025)",
           "Anonymization: re-identification no longer reasonably possible — a high bar, re-tested as data and tools change",
           "Tokenization swaps a value for a token, with the original in a vault; masking hides part of a value",
           "Differential privacy: calibrated noise so results reveal almost nothing about any one person",
@@ -257,7 +257,7 @@ export const LAW_MAPS_CIPM: LawMapDef[] = [
     ],
     traps: [
       "Positive-sum means no trade-off — an answer that sacrifices functionality 'for privacy' misreads principle 4.",
-      "Pseudonymized and tokenized data are still personal data — only true anonymization leaves the law.",
+      "Pseudonymized and tokenized data stay personal data for whoever can re-identify — only true anonymization leaves the law.",
       "A privacy review the week before launch is remediation, not design — PbD starts at requirements.",
     ],
   },
@@ -356,7 +356,7 @@ export const LAW_MAPS_CIPM: LawMapDef[] = [
         leaves: [
           "27001:2022 — requirements for an information security management system (ISMS); CERTIFIABLE",
           "Annex A: 93 controls in four themes — organizational, people, physical, technological",
-          "27002:2022 — implementation guidance for those controls; a code of practice, NOT certifiable",
+          "27002:2022 'Information security controls' — implementation guidance, NOT certifiable ('code of practice' was its 2013 title)",
           "2013-edition certificates had to move to the 2022 edition by 31 October 2025",
         ],
       },
@@ -388,7 +388,7 @@ export const LAW_MAPS_CIPM: LawMapDef[] = [
           "ISO 31000:2018 — generic risk management; ISO/IEC 27557:2022 applies it to privacy risk",
           "ISO/IEC 27005:2022 — information security risk management; 27035 — security incident management",
           "ISO/IEC 42001:2023 — certifiable AI management system; 42005:2025 — AI system impact assessment",
-          "ISO 19011:2018 — guidelines for auditing management systems",
+          "ISO 19011:2026 — guidelines for auditing management systems (4th edition, May 2026; replaced the 2018 edition)",
         ],
       },
       {
@@ -405,7 +405,7 @@ export const LAW_MAPS_CIPM: LawMapDef[] = [
     ],
     keywords: [
       { term: "certifiable", cue: "27001, 27701 and 42001 — never 27002, 29100 or 29134" },
-      { term: "code of practice", cue: "guidance you implement (27002, 29151) — not a certification target" },
+      { term: "code of practice", cue: "29151's title (and 27002's before 2022) — guidance you implement, not a certification target" },
       { term: "PIMS", cue: "privacy information management system — ISO/IEC 27701" },
       { term: "PII principal", cue: "ISO/IEC 29100's word for the data subject" },
       { term: "public cloud processor", cue: "ISO/IEC 27018" },
@@ -446,7 +446,7 @@ export const LAW_MAPS_CIPM: LawMapDef[] = [
         t: "Records & processors (Arts 28, 30)",
         leaves: [
           "Art 30 records: purposes, categories, recipients, transfers, retention, security — shown to the SA on request",
-          "The under-250-employee exemption dies on non-occasional, risky or special-category processing",
+          "Under-250 exemption lost for non-occasional, risky or special-category processing — Omnibus IV (deal June 2026) would widen it",
           "Art 28: use only processors with sufficient guarantees, under a written contract with mandatory terms",
           "Sub-processors need the controller's prior written authorization — specific, or general with a right to object",
         ],
@@ -468,7 +468,7 @@ export const LAW_MAPS_CIPM: LawMapDef[] = [
         leaves: [
           "Art 35: DPIA before processing likely to result in HIGH risk — new technology is the classic signal",
           "Residual high risk after mitigation → Art 36 prior consultation with the SA before starting",
-          "Art 37: DPO required for public authorities, or when core activities mean large-scale systematic monitoring or special data",
+          "Art 37: DPO for public authorities, or core activities of large-scale regular and systematic monitoring or special/criminal data",
           "Art 38: independent — no instructions on tasks, no penalty for doing the job, reports to top management",
           "No conflict of interest: the DPO can't also decide purposes and means (e.g., head of marketing or IT)",
         ],
@@ -480,7 +480,7 @@ export const LAW_MAPS_CIPM: LawMapDef[] = [
           "Rights requests: one month, extendable by two further months for complexity or volume",
           "Transfers: adequacy → appropriate safeguards (SCCs, BCRs) → narrow derogations, in that order",
           "SCCs need a transfer impact assessment — plus supplementary measures where local law undercuts them",
-          "EU-US Data Privacy Framework (July 2023): certified US importers only — upheld by the General Court in 2025",
+          "EU-US DPF (July 2023): certified US importers only — upheld by the General Court (2025); CJEU appeal C-703/25 P pending",
           "Fines: up to €20M or 4% of worldwide turnover, €10M or 2% for program-duty failures — whichever is HIGHER",
         ],
       },
@@ -492,7 +492,7 @@ export const LAW_MAPS_CIPM: LawMapDef[] = [
       { term: "sufficient guarantees", cue: "the Art 28 test for choosing a processor" },
       { term: "conflict of interest", cue: "why a DPO can't also decide purposes and means (Art 38)" },
       { term: "whichever is higher", cue: "GDPR fines — the fixed sum or the % of worldwide turnover, the larger one" },
-      { term: "one month", cue: "the GDPR rights-request clock — plus two further months only for complexity or volume" },
+      { term: "Art 33(5)", cue: "the GDPR duty to document every breach internally — notified or not" },
     ],
     distinctions: [
       { vs: "Data inventory", point: "The inventory is the program's working tool; Art 30 records are the legally required subset the SA can demand." },
@@ -790,6 +790,7 @@ export const LAW_MAPS_CIPM: LawMapDef[] = [
           "Generally Accepted Privacy Principles: ten principles, each with measurable criteria for audit and self-assessment",
           "Management · Notice · Choice and consent · Collection · Use, retention and disposal",
           "Access · Disclosure to third parties · Security for privacy · Quality · Monitoring and enforcement",
+          "The AICPA reissued GAPP in 2020 as the Privacy Management Framework (nine components); CIPM still teaches GAPP's ten",
         ],
       },
       {
@@ -889,8 +890,10 @@ export const LAW_MAPS_CIPM: LawMapDef[] = [
         t: "GDPR & UK GDPR",
         leaves: [
           "Respond without undue delay, within ONE month of receipt",
+          "UK GDPR Art 12A (from 5 Feb 2026): the month starts once requested ID or a fee arrives; access requests pause for clarification",
           "Extend by up to TWO further months for complex or numerous requests — say so within month one, with reasons",
-          "Free by default; a fee or refusal only for manifestly unfounded or excessive requests",
+          "Free by default; Art 12(5) allows a fee or refusal for manifestly unfounded or excessive requests",
+          "Each right also has its own limits — e.g., Art 17(3) erasure exceptions; Art 15(3) lets you charge for further copies",
           "Refusing? Give the reasons and point to the supervisory authority and the courts",
           "Tell recipients about rectification, erasure or restriction unless impossible or disproportionate",
         ],
@@ -930,7 +933,7 @@ export const LAW_MAPS_CIPM: LawMapDef[] = [
       { term: "one month", cue: "the GDPR response clock — plus two further months only for complexity or volume" },
       { term: "45 calendar days", cue: "the CCPA response clock — plus 45 once, with notice" },
       { term: "10 business days", cue: "CCPA confirmation of a request to know, delete or correct" },
-      { term: "manifestly unfounded or excessive", cue: "the only GDPR gate to a fee or refusal" },
+      { term: "manifestly unfounded or excessive", cue: "Art 12(5): the general gate to a fee or refusal — each right keeps its own exceptions too" },
       { term: "authorized agent", cue: "someone acting for the individual — verify their authority" },
       { term: "suppression list", cue: "keeps a marketing opt-out effective after deletion" },
     ],
@@ -998,7 +1001,7 @@ export const LAW_MAPS_CIPM: LawMapDef[] = [
         id: "us-global-clocks",
         t: "Clocks: US & elsewhere",
         leaves: [
-          "HIPAA: individuals within 60 days of discovery; 500+ also triggers HHS and (per state) media; fewer → annual HHS log",
+          "HIPAA: individuals without unreasonable delay, ≤60 days from discovery; 500+ adds HHS and (per state) media; fewer → annual log",
           "SEC Form 8-K Item 1.05: four business days after the incident is determined MATERIAL",
           "GLBA Safeguards Rule: FTC within 30 days for 500+ consumers — and every US state has its own breach law",
           "Canada: report real risk of significant harm as soon as feasible; keep records of ALL breaches for 24 months",
@@ -1026,7 +1029,7 @@ export const LAW_MAPS_CIPM: LawMapDef[] = [
     ],
     distinctions: [
       { vs: "Business continuity", point: "Incident response contains and investigates the event; continuity and disaster recovery keep or restore operations — linked plans, different goals." },
-      { vs: "Rights requests", point: "Breach clocks run from awareness or discovery of the breach; rights clocks run from receipt of a request." },
+      { vs: "NIS2 / DORA reports", point: "Cyber regimes run their own clocks with no personal data required — a ransomware outage at a bank or utility can be reportable when no privacy law is triggered." },
       { vs: "Security incident", point: "Only incidents that compromise personal data are personal data breaches — and only breaches start privacy notification clocks." },
     ],
     traps: [
@@ -1096,11 +1099,11 @@ export const CONFUSABLES_CIPM: Confusable[] = [
     rows: [
       { dim: "Definition", a: "Any event threatening the confidentiality, integrity or availability of systems or data", b: "An incident that actually compromises personal data — destroyed, lost, altered, disclosed or accessed" },
       { dim: "Personal data involved?", a: "Not required", b: "Always" },
-      { dim: "Notification", a: "Internal escalation; sector rules may apply", b: "May trigger regulator and individual notice clocks" },
+      { dim: "Notification", a: "Internal escalation; NIS2, DORA or SEC rules may apply", b: "May trigger privacy-regulator and individual notice clocks" },
       { dim: "Record", a: "The incident log", b: "The breach register — every breach, notified or not" },
       { dim: "Example", a: "A blocked phishing wave; malware on a test server with no personal data", b: "Customer records emailed to the wrong recipient; ransomware locking HR files" },
     ],
-    tell: "Every breach is an incident; only incidents touching personal data are breaches — and only breaches start the notification clocks.",
+    tell: "Every breach is an incident; only incidents touching personal data are breaches — and only breaches start the privacy-law clocks (NIS2, DORA or SEC rules can still catch the incident).",
   },
   {
     id: "centralized-hybrid",
@@ -1146,13 +1149,13 @@ export const CONFUSABLES_CIPM: Confusable[] = [
     a: "Anonymization",
     b: "Pseudonymization",
     rows: [
-      { dim: "Legal status", a: "Outside privacy law once truly anonymous", b: "Still personal data — every rule applies" },
+      { dim: "Legal status", a: "Outside privacy law once truly anonymous", b: "Personal data for anyone able to re-identify (always the key holder); per EDPS v SRB (2025), maybe not for a recipient without the means" },
       { dim: "Reversibility", a: "Not reasonably possible, by anyone", b: "Possible with the separately held key" },
       { dim: "Purpose", a: "Share or analyze data without personal-data duties", b: "Cut risk while keeping records linkable" },
       { dim: "Techniques", a: "Aggregation, generalization, noise (differential privacy)", b: "Tokens, keyed hashes, coded IDs" },
       { dim: "Main risk", a: "Re-identification by linking datasets — re-test over time", b: "Compromise of the key or token vault" },
     ],
-    tell: "If anyone can reasonably re-link it to a person, it's pseudonymized — and the law never left.",
+    tell: "If the key holder — or anyone — can reasonably re-link it to a person, it's pseudonymized and still personal data for them; only true anonymization exits.",
   },
   {
     id: "inventory-map",
