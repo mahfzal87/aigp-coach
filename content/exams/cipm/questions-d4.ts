@@ -40,7 +40,7 @@ export const questionsD4: Question[] = [
     competencyId: "iv-a",
     type: "best",
     difficulty: 2,
-    stem: "Brightwater Credit Union classifies information by the commercial damage its disclosure would cause the organization. Under that rule, a spreadsheet of members' hardship-assistance requests, which describe medical bills and job losses, was labeled 'internal' because competitors would gain nothing from it. What is the BEST correction for the privacy manager to propose?",
+    stem: "Olvenridge Credit Union classifies information by the commercial damage its disclosure would cause the organization. Under that rule, a spreadsheet of members' hardship-assistance requests, which describe medical bills and job losses, was labeled 'internal' because competitors would gain nothing from it. What is the BEST correction for the privacy manager to propose?",
     isMultiselect: false,
     options: [
       o("A", "Ask the security team to relabel this spreadsheet as restricted and to sweep the same share for similar files, leaving the scheme's criteria unchanged because they work for most data.", false, 0),
@@ -189,7 +189,7 @@ export const questionsD4: Question[] = [
     competencyId: "iv-b",
     type: "distinction",
     difficulty: 2,
-    stem: "At a design meeting for Kestrel Bank's new fraud-detection system, the head of fraud says: 'We have to accept less privacy to catch more fraud; that is the price of security.' The privacy lead replies that the bank should get strong fraud detection AND strong privacy, for instance by scoring transaction patterns without names and revealing identities only for flagged cases. Which Privacy by Design principle does the privacy lead's reply express?",
+    stem: "At a design meeting for Orrinwell Bank's new fraud-detection system, the head of fraud says: 'We have to accept less privacy to catch more fraud; that is the price of security.' The privacy lead replies that the bank should get strong fraud detection AND strong privacy, for instance by scoring transaction patterns without names and revealing identities only for flagged cases. Which Privacy by Design principle does the privacy lead's reply express?",
     isMultiselect: false,
     options: [
       o("A", "Full functionality, positive-sum not zero-sum, because it rejects the assumption that privacy must be traded away to achieve security.", true, 0),
@@ -520,7 +520,7 @@ export const poolD4: Question[] = [
     competencyId: "iv-a",
     type: "role",
     difficulty: 2,
-    stem: "Ashgrove Hotels is launching quarterly access recertification for the systems that hold guest profiles and payment details. Who is BEST placed to confirm whether each employee's access is still appropriate?",
+    stem: "Marrowby Hotels is launching quarterly access recertification for the systems that hold guest profiles and payment details. Who is BEST placed to confirm whether each employee's access is still appropriate?",
     isMultiselect: false,
     options: [
       o("A", "The identity and access management team, which provisions every account and can produce full entitlement reports.", false, 0),
@@ -648,8 +648,8 @@ export const poolD4: Question[] = [
     competencyId: "iv-b",
     type: "best",
     difficulty: 3,
-    scenario: "Lumen Pay, a fintech with 40 product squads working in two-week sprints, has a privacy team of three. Privacy problems keep surfacing in production because the only privacy check is a full privacy impact assessment that squads request when they think one is needed.",
-    stem: "Which change would BEST embed Privacy by Design into Lumen Pay's development process?",
+    scenario: "Brindlemoor Pay, a fintech with 40 product squads working in two-week sprints, has a privacy team of three. Privacy problems keep surfacing in production because the only privacy check is a full privacy impact assessment that squads request when they think one is needed.",
+    stem: "Which change would BEST embed Privacy by Design into Brindlemoor Pay's development process?",
     isMultiselect: false,
     options: [
       o("A", "Require a full privacy impact assessment for every sprint, signed off by the privacy team before any code from that sprint is merged.", false, 0),
@@ -660,7 +660,7 @@ export const poolD4: Question[] = [
     correctExplanation: "PbD scales in agile teams when privacy is built into the team's own routine rather than queued behind a central bottleneck: a quick threshold check decides which work needs a full assessment, acceptance criteria make privacy part of 'done', and champions catch issues while code is written. Full assessments stay, reserved for the work the triage flags as high risk. A mandatory PIA every sprint would bury three people in paperwork and push squads to route around the process.",
     whyWrong: {
       A: "More assessment sounds like more privacy, but the economics break it: three people cannot run full PIAs for 40 squads every two weeks, most changes do not need one, and a bottleneck that size invites workarounds. The discriminator is proportionate triage built into the teams versus blanket central review.",
-      B: "A pre-launch review is a useful gate, but on its own it is the reactive pattern Lumen Pay already suffers from: problems found at the end are the most expensive to fix.",
+      B: "A pre-launch review is a useful gate, but on its own it is the reactive pattern Brindlemoor Pay already suffers from: problems found at the end are the most expensive to fix.",
       C: "Awareness without mechanism. A policy reminder changes nothing in how work is planned, built or accepted.",
     },
     strategyNote: "When a 'more assessment' option competes with a 'triage plus embedded controls' option, check the economics in the stem: team size, volume and cadence. The exam rewards the proportionate design that will actually be followed.",
@@ -701,7 +701,7 @@ export const poolD4: Question[] = [
     competencyId: "iv-c",
     type: "ordering",
     difficulty: 3,
-    scenario: "During a routine data-use audit, the privacy manager at Calder Home Furnishings, an online furniture retailer, discovers that the e-commerce team has been sharing customers' browsing histories with a social-media platform for ad targeting for three months. The use is not covered by the privacy notice or by any approved data-use request.",
+    scenario: "During a routine data-use audit, the privacy manager at Brackenhurst Home Furnishings, an online furniture retailer, discovers that the e-commerce team has been sharing customers' browsing histories with a social-media platform for ad targeting for three months. The use is not covered by the privacy notice or by any approved data-use request.",
     stem: "Place these responses in the BEST order: (1) assess the use against the data-use guidelines (compatibility, lawful basis, notice and consent); (2) suspend the sharing; (3) close the gap that let the use bypass review, for example by adding marketing tags to the intake checklist; (4) remediate the outcome: obtain consent or end the use, update the notice, and have the platform delete what it received if the use cannot be justified.",
     isMultiselect: false,
     options: [
@@ -779,7 +779,7 @@ export const poolD4: Question[] = [
     competencyId: "iv-c",
     type: "best",
     difficulty: 3,
-    scenario: "Fernhill Staffing, a recruitment agency, labels its files public, internal, confidential or restricted. A new data-discovery scan finds candidates' medical and criminal-record checks in 1,400 files labeled 'internal', many of them on shares open to the whole company.",
+    scenario: "Kittering Staffing, a recruitment agency, labels its files public, internal, confidential or restricted. A new data-discovery scan finds candidates' medical and criminal-record checks in 1,400 files labeled 'internal', many of them on shares open to the whole company.",
     stem: "What should the privacy manager do FIRST?",
     isMultiselect: false,
     options: [

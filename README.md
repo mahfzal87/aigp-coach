@@ -51,7 +51,7 @@ The CIPP/E and CIPM packs go one step further. Real papers come down to two opti
 
 <img src="docs/mock-insights.png" alt="The AIGP mock exam record in dark mode: the latest full paper at 458 out of 500 with a pass badge, best score and open misses, the next recommended paper, a score track against the pass line, and per-domain accuracy with trend" width="100%">
 
-**The laws get their own room.** Two days out from the exam my misses all had the same shape: laws, frameworks, and the deliberate confusion between them. Law Lab is the answer. Every instrument on the Body of Knowledge gets a tappable mindmap of facts you lock in one by one as you learn them cold (16 maps and 233 facts for AIGP, 10 maps and 279 facts for CIPP/E, 12 maps and 278 facts for CIPM), trigger keywords that map exam phrasing to the right law, side-by-side tables for the pairs the exam loves to swap (DPIA vs FRIA, provider vs deployer, controller vs processor, PIA vs DPIA), and a timed trigger drill with a personal best. The top card is live: it names your weakest law competencies from your own attempt history, so the tab always opens with the reason it exists.
+**The laws get their own room.** Two days out from the exam my misses all had the same shape: laws, frameworks, and the deliberate confusion between them. Law Lab is the answer. Every instrument on the Body of Knowledge gets a tappable mindmap of facts you lock in one by one as you learn them cold (16 maps and 233 facts for AIGP, 10 maps and 279 facts for CIPP/E, 12 maps and 281 facts for CIPM), trigger keywords that map exam phrasing to the right law, side-by-side tables for the pairs the exam loves to swap (DPIA vs FRIA, provider vs deployer, controller vs processor, PIA vs DPIA), and a timed trigger drill with a personal best. The top card is live: it names your weakest law competencies from your own attempt history, so the tab always opens with the reason it exists.
 
 <img src="docs/lawlab-mindmap.png" alt="An AIGP Law Lab mindmap of the EU AI Act: lab progress and drill best, the weakest law competencies from practice, region filters, and the risk-tiers branch with each fact locked in with a green check" width="100%">
 
@@ -95,7 +95,7 @@ Coverage per exam:
 | Topics | 101 | 60 | 54 |
 | Questions | 406, of which 211 sit in the hard pool the mock papers draw from | 202, of which 108 sit in the hard pool | 227, of which 119 sit in the hard pool |
 | Fixed mock papers | 9 | 8 | 10 |
-| Law Lab | 16 maps, 233 facts, 12 confusable pairs | 10 maps, 279 facts, 13 confusable pairs | 12 maps, 278 facts, 14 confusable pairs |
+| Law Lab | 16 maps, 233 facts, 12 confusable pairs | 10 maps, 279 facts, 13 confusable pairs | 12 maps, 281 facts, 14 confusable pairs |
 | Glossary | 105 terms | 90 terms | 93 terms |
 | Flashcards | 33 | 24 | 24 |
 
